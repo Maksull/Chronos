@@ -1,0 +1,68 @@
+{
+    "navigation": {
+        "brand": "Chronos",
+        "calendar": "Calendar",
+        "tasks": "Tasks",
+        "events": "Events",
+        "notifications": "Notifications",
+        "settings": "Settings",
+        "profile": "Profile"
+    },
+    "home": {
+        "hero": {
+            "title": {
+                "first": "Organize your time with",
+                "second": "Chronos"
+            },
+            "description": "Your all-in-one solution for managing meetings, tasks, and events. Create multiple calendars, invite collaborators, and stay organized across all time horizons.",
+            "buttons": {
+                "getStarted": "Get Started Free",
+                "liveDemo": "Live Demo"
+            }
+        },
+        "features": {
+            "title": "Features",
+            "subtitle": "Everything you need to stay organized",
+            "description": "Powerful features designed to help you manage time efficiently and collaborate seamlessly",
+            "items": {
+                "calendarViews": {
+                    "title": "Multiple Calendar Views",
+                    "description": "Switch between week, month, and year views. Track week numbers and manage multiple calendars simultaneously."
+                },
+                "categories": {
+                    "title": "Smart Event Categories",
+                    "description": "Organize events by type: arrangements, reminders, and tasks. Each with custom functionality and duration settings."
+                },
+                "collaboration": {
+                    "title": "Collaboration",
+                    "description": "Share calendars, invite friends via email, and manage team permissions for shared calendars."
+                },
+                "holidays": {
+                    "title": "Holiday Integration",
+                    "description": "Built-in calendar with national holidays based on your region, automatically synchronized."
+                },
+                "quickEvents": {
+                    "title": "Quick Event Creation",
+                    "description": "Create events directly from the calendar interface or use detailed forms for more complex scheduling."
+                },
+                "privacy": {
+                    "title": "Privacy Controls",
+                    "description": "Manage sharing permissions and event visibility with granular access controls."
+                }
+            }
+        },
+        "cta": {
+            "title": {
+                "first": "Ready to get started?",
+                "second": "Start your free trial today."
+            },
+            "description": "Join thousands of users who are already managing their time better with Chronos.",
+            "button": "Sign up for free"
+        }
+    },
+    "footer": {
+        "brand": "Chronos",
+        "description": "Chronos is your all-in-one solution for organizing meetings, tasks, and events. Our platform helps you manage time effectively with features like multiple calendar views, smart event categorization, and team collaboration tools.",
+        "copyright": "© {year} Chronos. All rights reserved."
+    }
+}

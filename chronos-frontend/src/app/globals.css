@@ -1,0 +1,33 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Set dark theme as default to prevent flash */
+:root {
+    color-scheme: dark;
+}
+
+@layer base {
+    :root {
+        --background: #0a0a0a;
+        --foreground: #ededed;
+    }
+
+    :root.light {
+        --background: #ffffff;
+        --foreground: #171717;
+    }
+}
+
+body {
+    color: var(--foreground);
+    background: var(--background);
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Add transitions only after page load to prevent flash */
+.transitioning {
+    transition:
+        color 0.3s ease,
+        background-color 0.3s ease;
+}
