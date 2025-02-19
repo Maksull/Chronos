@@ -6,17 +6,17 @@ export class User {
     @PrimaryGeneratedColumn('uuid')
     id!: string;
 
+    @Column({ type: 'varchar', unique: true })
+    username!: string;
+
     @Column({ type: 'varchar' })
     email!: string;
 
     @Column({ type: 'varchar' })
     password!: string;
 
-    @Column({ type: 'varchar' })
-    firstName!: string;
-
-    @Column({ type: 'varchar' })
-    lastName!: string;
+    @Column({ type: 'varchar', nullable: true })
+    fullName!: string;
 
     @Column({ type: 'varchar', nullable: true })
     region!: string;
@@ -37,4 +37,22 @@ export class User {
 
     @UpdateDateColumn()
     updatedAt!: Date;
+
+    @Column({ type: 'boolean', default: false })
+    isEmailVerified!: boolean;
+
+    @Column({ type: 'varchar', nullable: true })
+    verificationToken!: string | null;
+
+    @Column({ type: 'timestamp', nullable: true })
+    verificationTokenExpiresAt!: Date | null;
+
+    @Column({ type: 'varchar', nullable: true })
+    newEmail!: string | null;
+
+    @Column({ type: 'varchar', nullable: true })
+    emailChangeToken!: string | null;
+
+    @Column({ type: 'timestamp', nullable: true })
+    emailChangeTokenExpiresAt!: Date | null;
 }

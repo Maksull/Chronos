@@ -1,12 +1,14 @@
-// src/index.ts
 import 'reflect-metadata';
 import 'dotenv/config';
 import fastify, { FastifyInstance } from 'fastify';
 import { AppDataSource } from './database/data-source.js';
+import { authRoutes } from './routes/auth.routes';
 
 const app: FastifyInstance = fastify({
     logger: true,
 });
+
+authRoutes(app);
 
 // Register routes
 app.get('/', async (request, reply) => {
