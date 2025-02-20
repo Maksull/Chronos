@@ -6,7 +6,45 @@
         "events": "Events",
         "notifications": "Notifications",
         "settings": "Settings",
-        "profile": "Profile"
+        "profile": "Profile",
+        "login": "Sign in",
+        "register": "Register"
+    },
+    "auth": {
+        "fields": {
+            "username": "Username",
+            "email": "Email address",
+            "password": "Password",
+            "fullName": "Full name (optional)",
+            "region": "Region (optional)"
+        },
+        "errors": {
+            "generic": "Something went wrong. Please try again."
+        },
+        "login": {
+            "title": "Sign in to your account",
+            "subtitle": "Don't have an account?",
+            "registerLink": "Register now",
+            "forgotPassword": "Forgot your password?",
+            "submit": "Sign in",
+            "loading": "Signing in..."
+        },
+        "register": {
+            "title": "Create your account",
+            "subtitle": "Already have an account?",
+            "loginLink": "Sign in",
+            "submit": "Create account",
+            "loading": "Creating account...",
+            "passwordRequirement": "Password must be at least 8 characters long",
+            "termsText": "By registering, you agree to our",
+            "termsLink": "Terms and Conditions"
+        },
+        "verifyEmail": {
+            "title": "Check your email",
+            "description": "We've sent you a verification email. Please click the link in the email to verify your account.",
+            "checkSpam": "If you don't see the email, please check your spam folder.",
+            "backToLogin": "Back to login"
+        }
     },
     "home": {
         "hero": {
