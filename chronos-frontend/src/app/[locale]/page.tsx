@@ -1,6 +1,5 @@
 import { useTranslations } from 'next-intl';
 import { Calendar, Clock, Users, Target, Lock, Globe } from 'lucide-react';
-import { Footer, Header } from '@/components';
 import Link from 'next/link';
 
 interface Feature {
@@ -58,11 +57,8 @@ export default function Home() {
     ];
 
     return (
-        <div className="min-h-screen bg-gray-50 dark:bg-dark-bg">
-            <div className="bg-white dark:bg-dark-surface shadow-sm">
-                <Header />
-            </div>
-
+        // <div className="min-h-screen bg-gray-50 dark:bg-dark-bg">
+        <>
             <div className="relative bg-white dark:bg-dark-surface overflow-hidden">
                 <div className="max-w-7xl mx-auto">
                     <div className="relative z-10 pb-8 bg-white dark:bg-dark-surface sm:pb-16 md:pb-20 lg:max-w-2xl lg:w-full lg:pb-28 xl:pb-32">
@@ -84,16 +80,14 @@ export default function Home() {
                                     <div className="rounded-md shadow">
                                         <Link
                                             href="/signup"
-                                            className="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 md:py-4 md:text-lg md:px-10"
-                                        >
+                                            className="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 md:py-4 md:text-lg md:px-10">
                                             {t('hero.buttons.getStarted')}
                                         </Link>
                                     </div>
                                     <div className="mt-3 sm:mt-0 sm:ml-3">
                                         <Link
                                             href="/demo"
-                                            className="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-indigo-600 dark:text-indigo-400 bg-indigo-100 hover:bg-indigo-200 dark:bg-indigo-900 dark:hover:bg-indigo-800 md:py-4 md:text-lg md:px-10"
-                                        >
+                                            className="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-indigo-600 dark:text-indigo-400 bg-indigo-100 hover:bg-indigo-200 dark:bg-indigo-900 dark:hover:bg-indigo-800 md:py-4 md:text-lg md:px-10">
                                             {t('hero.buttons.liveDemo')}
                                         </Link>
                                     </div>
@@ -149,16 +143,12 @@ export default function Home() {
                     </p>
                     <Link
                         href="/signup"
-                        className="mt-8 w-full inline-flex items-center justify-center px-5 py-3 border border-transparent text-base font-medium rounded-md text-indigo-600 dark:text-indigo-300 bg-white hover:bg-indigo-50 dark:bg-indigo-800 dark:hover:bg-indigo-700 sm:w-auto"
-                    >
+                        className="mt-8 w-full inline-flex items-center justify-center px-5 py-3 border border-transparent text-base font-medium rounded-md text-indigo-600 dark:text-indigo-300 bg-white hover:bg-indigo-50 dark:bg-indigo-800 dark:hover:bg-indigo-700 sm:w-auto">
                         {t('cta.button')}
                     </Link>
                 </div>
             </div>
-
-            <div className="bg-gray-50 dark:bg-dark-surface">
-                <Footer />
-            </div>
-        </div>
+        </>
+        // </div>
     );
 }
