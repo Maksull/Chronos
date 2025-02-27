@@ -74,8 +74,14 @@ export type Dictionary = {
                 description: string;
                 color: string;
             };
+            // New entries
+            empty: string;
+            advanced: string;
+            defaultName: string;
+            nameRequired: string;
         };
     };
+
     settings: {
         backToAccount: string;
         backToSecurity: string;
