@@ -1,28 +1,41 @@
 import 'reflect-metadata';
 import 'dotenv/config';
+import cors from '@fastify/cors';
 import fastify, { FastifyInstance } from 'fastify';
 import { AppDataSource } from './database/data-source.js';
 import { authRoutes } from './routes/auth.routes';
+import { calendarRoutes } from './routes/calendar.routes.js';
+import { userRoutes } from './routes/user.routes.js';
 
 const app: FastifyInstance = fastify({
     logger: true,
 });
 
-authRoutes(app);
-
-// Register routes
-app.get('/', async (request, reply) => {
-    return { message: 'Hello, Fastify!' };
-});
-
 const start = async () => {
     try {
+        // Register CORS plugin
+        await app.register(cors, {
+            origin: ['http://localhost:3000'],
+            methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+            credentials: true,
+            allowedHeaders: ['Content-Type', 'Authorization'],
+        });
+
+        // Register routes
+        authRoutes(app);
+        userRoutes(app);
+        calendarRoutes(app);
+
+        app.get('/', async (request, reply) => {
+            return { message: 'Hello, Fastify!' };
+        });
+
         // Initialize TypeORM
         await AppDataSource.initialize();
         console.log('Database connection has been established successfully.');
 
         // Start Fastify server
-        const port = process.env.PORT ? parseInt(process.env.PORT) : 3000;
+        const port = process.env.PORT ? parseInt(process.env.PORT) : 3001;
         const host = process.env.HOST || '127.0.0.1';
 
         await app.listen({ port, host });

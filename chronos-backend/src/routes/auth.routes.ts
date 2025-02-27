@@ -50,6 +50,19 @@ const changeEmailSchema = {
     },
 } as const;
 
+const verifyEmailSchema = {
+    body: {
+        type: 'object',
+        required: ['code'],
+        properties: {
+            code: {
+                type: 'string',
+                pattern: '^[0-9]{6}$',
+            },
+        },
+    },
+};
+
 export async function authRoutes(app: FastifyInstance) {
     const authController = new AuthController();
 
@@ -57,29 +70,17 @@ export async function authRoutes(app: FastifyInstance) {
 
     app.post('/auth/login', { schema: loginSchema }, authController.login.bind(authController));
 
-    app.get(
-        '/auth/verify-email',
-        {
-            schema: {
-                querystring: {
-                    type: 'object',
-                    required: ['token'],
-                    properties: {
-                        token: { type: 'string' },
-                    },
-                },
-            },
-        },
-        authController.verifyEmail.bind(authController),
-    );
+    app.post('/auth/verify-email', { schema: verifyEmailSchema }, authController.verifyEmail.bind(authController));
 
-    app.post(
-        '/auth/resend-verification',
-        {
-            preHandler: [authenticateToken],
-        },
-        authController.resendVerification.bind(authController),
-    );
+    app.post('/auth/verify-email-change', { schema: verifyEmailSchema }, authController.confirmEmailChange.bind(authController));
+
+    // app.post(
+    //     '/auth/resend-verification',
+    //     {
+    //         preHandler: [authenticateToken],
+    //     },
+    //     authController.resendVerification.bind(authController),
+    // );
 
     app.put<{
         Body: ChangePasswordDto;
@@ -103,21 +104,11 @@ export async function authRoutes(app: FastifyInstance) {
         authController.initiateEmailChange.bind(authController),
     );
 
-    app.get<{
-        Querystring: { token: string };
-    }>(
-        '/auth/verify-email-change',
-        {
-            schema: {
-                querystring: {
-                    type: 'object',
-                    required: ['token'],
-                    properties: {
-                        token: { type: 'string' },
-                    },
-                },
-            },
+    app.get('/auth/verify', {
+        preHandler: authenticateToken,
+        handler: async (request, reply) => {
+            // If we get here, the token is valid (middleware passed)
+            return reply.send({ status: 'success' });
         },
-        authController.confirmEmailChange.bind(authController),
-    );
+    });
 }

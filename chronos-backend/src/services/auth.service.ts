@@ -2,11 +2,9 @@ import { User } from '@/entities';
 import { AppDataSource } from '@/database/data-source';
 import { RegisterUserDto, LoginDto, ChangeEmailDto, ChangePasswordDto } from '@/types/auth';
 import { hash, compare } from 'bcrypt';
-import { EntityManager } from 'typeorm';
 import jwt from 'jsonwebtoken';
 import { EmailService } from './email.service';
-import { randomBytes } from 'crypto';
-import { addHours } from 'date-fns';
+import { addHours, addMinutes } from 'date-fns';
 
 export class AuthService {
     private userRepository = AppDataSource.getRepository(User);
@@ -16,14 +14,12 @@ export class AuthService {
         this.emailService = new EmailService();
     }
 
-    private generateVerificationToken(): string {
-        return randomBytes(32).toString('hex');
+    private generateVerificationCode(): string {
+        return Math.floor(100000 + Math.random() * 900000).toString();
     }
 
-    async register(registerData: RegisterUserDto, entityManager?: EntityManager): Promise<{ user: User; token: string }> {
-        const repository = entityManager?.getRepository(User) || this.userRepository;
-
-        // Check if user already exists
+    async register(registerData: RegisterUserDto): Promise<{ user: User; token: string }> {
+        const repository = this.userRepository;
         const existingUser = await repository.findOne({
             where: [{ email: registerData.email }, { username: registerData.username }],
         });
@@ -36,22 +32,20 @@ export class AuthService {
         }
 
         const hashedPassword = await hash(registerData.password, 10);
-        const verificationToken = this.generateVerificationToken();
+        const verificationCode = this.generateVerificationCode();
 
         const user = repository.create({
             ...registerData,
             password: hashedPassword,
-            verificationToken,
-            verificationTokenExpiresAt: addHours(new Date(), 24),
+            verificationCode,
+            verificationCodeExpiresAt: addMinutes(new Date(), 15), // Code expires in 15 minutes
             isEmailVerified: false,
         });
 
         const savedUser = await repository.save(user);
-
-        // Send verification email
-        await this.emailService.sendVerificationEmail(savedUser.email, verificationToken);
-
+        await this.emailService.sendVerificationEmail(savedUser.email, verificationCode);
         const token = this.generateToken(savedUser);
+
         return { user: savedUser, token };
     }
 
@@ -91,53 +85,105 @@ export class AuthService {
         });
     }
 
-    async verifyEmail(token: string): Promise<User> {
+    async verifyEmail(code: string): Promise<User> {
         const user = await this.userRepository.findOne({
-            where: { verificationToken: token },
+            where: { verificationCode: code },
         });
 
         if (!user) {
-            throw new Error('Invalid verification token');
+            throw new Error('Invalid verification code');
         }
 
         if (user.isEmailVerified) {
             throw new Error('Email already verified');
         }
 
-        if (user.verificationTokenExpiresAt != null && user.verificationTokenExpiresAt < new Date()) {
-            throw new Error('Verification token has expired');
+        if (user.verificationCodeExpiresAt && user.verificationCodeExpiresAt < new Date()) {
+            throw new Error('Verification code has expired');
         }
 
-        // Update user
         user.isEmailVerified = true;
-        user.verificationToken = null;
-        user.verificationTokenExpiresAt = null;
+        user.verificationCode = null;
+        user.verificationCodeExpiresAt = null;
 
         return this.userRepository.save(user);
     }
 
-    async resendVerificationEmail(userId: string): Promise<void> {
-        const user = await this.userRepository.findOne({
-            where: { id: userId },
-        });
-
+    async initiateEmailChange(userId: string, data: ChangeEmailDto): Promise<void> {
+        const user = await this.userRepository.findOneBy({ id: userId });
         if (!user) {
             throw new Error('User not found');
         }
 
-        if (user.isEmailVerified) {
-            throw new Error('Email already verified');
+        const isPasswordValid = await compare(data.password, user.password);
+        if (!isPasswordValid) {
+            throw new Error('Password is incorrect');
         }
 
-        // Generate new verification token
-        user.verificationToken = this.generateVerificationToken();
-        user.verificationTokenExpiresAt = addHours(new Date(), 24);
+        const existingUser = await this.userRepository.findOne({
+            where: { email: data.newEmail },
+        });
+
+        if (existingUser) {
+            throw new Error('Email already in use');
+        }
+
+        const verificationCode = this.generateVerificationCode();
+        user.newEmail = data.newEmail;
+        user.emailChangeCode = verificationCode;
+        user.emailChangeCodeExpiresAt = addMinutes(new Date(), 15);
 
         await this.userRepository.save(user);
-
-        // Send new verification email
-        await this.emailService.sendVerificationEmail(user.email, user.verificationToken);
+        await this.emailService.sendEmailChangeVerification(data.newEmail, verificationCode);
     }
+
+    async confirmEmailChange(code: string): Promise<User> {
+        const user = await this.userRepository.findOne({
+            where: { emailChangeCode: code },
+        });
+
+        if (!user) {
+            throw new Error('Invalid verification code');
+        }
+
+        if (!user.newEmail || !user.emailChangeCodeExpiresAt) {
+            throw new Error('No email change was requested');
+        }
+
+        if (user.emailChangeCodeExpiresAt < new Date()) {
+            throw new Error('Verification code has expired');
+        }
+
+        user.email = user.newEmail;
+        user.newEmail = null;
+        user.emailChangeCode = null;
+        user.emailChangeCodeExpiresAt = null;
+
+        return this.userRepository.save(user);
+    }
+
+    // async resendVerificationEmail(userId: string): Promise<void> {
+    //     const user = await this.userRepository.findOne({
+    //         where: { id: userId },
+    //     });
+
+    //     if (!user) {
+    //         throw new Error('User not found');
+    //     }
+
+    //     if (user.isEmailVerified) {
+    //         throw new Error('Email already verified');
+    //     }
+
+    //     // Generate new verification token
+    //     user.verificationToken = this.generateVerificationToken();
+    //     user.verificationTokenExpiresAt = addHours(new Date(), 24);
+
+    //     await this.userRepository.save(user);
+
+    //     // Send new verification email
+    //     await this.emailService.sendVerificationEmail(user.email, user.verificationToken);
+    // }
 
     async changePassword(userId: string, data: ChangePasswordDto): Promise<void> {
         const user = await this.userRepository.findOneBy({ id: userId });
@@ -157,66 +203,5 @@ export class AuthService {
         user.password = hashedPassword;
 
         await this.userRepository.save(user);
-    }
-
-    async initiateEmailChange(userId: string, data: ChangeEmailDto): Promise<void> {
-        const user = await this.userRepository.findOneBy({ id: userId });
-
-        if (!user) {
-            throw new Error('User not found');
-        }
-
-        // Verify password
-        const isPasswordValid = await compare(data.password, user.password);
-        if (!isPasswordValid) {
-            throw new Error('Password is incorrect');
-        }
-
-        // Check if new email is already in use
-        const existingUser = await this.userRepository.findOne({
-            where: { email: data.newEmail },
-        });
-
-        if (existingUser) {
-            throw new Error('Email already in use');
-        }
-
-        // Generate verification token for new email
-        const verificationToken = this.generateVerificationToken();
-
-        user.newEmail = data.newEmail;
-        user.emailChangeToken = verificationToken;
-        user.emailChangeTokenExpiresAt = addHours(new Date(), 24);
-
-        await this.userRepository.save(user);
-
-        // Send verification email to new email address
-        await this.emailService.sendEmailChangeVerification(data.newEmail, verificationToken);
-    }
-
-    async confirmEmailChange(token: string): Promise<User> {
-        const user = await this.userRepository.findOne({
-            where: { emailChangeToken: token },
-        });
-
-        if (!user) {
-            throw new Error('Invalid verification token');
-        }
-
-        if (!user.newEmail || !user.emailChangeTokenExpiresAt) {
-            throw new Error('No email change was requested');
-        }
-
-        if (user.emailChangeTokenExpiresAt < new Date()) {
-            throw new Error('Verification token has expired');
-        }
-
-        // Update email
-        user.email = user.newEmail;
-        user.newEmail = null;
-        user.emailChangeToken = null;
-        user.emailChangeTokenExpiresAt = null;
-
-        return this.userRepository.save(user);
     }
 }

@@ -42,17 +42,17 @@ export class User {
     isEmailVerified!: boolean;
 
     @Column({ type: 'varchar', nullable: true })
-    verificationToken!: string | null;
-
-    @Column({ type: 'timestamp', nullable: true })
-    verificationTokenExpiresAt!: Date | null;
-
-    @Column({ type: 'varchar', nullable: true })
     newEmail!: string | null;
 
-    @Column({ type: 'varchar', nullable: true })
-    emailChangeToken!: string | null;
+    @Column({ type: 'varchar', length: 6, nullable: true })
+    verificationCode!: string | null;
 
     @Column({ type: 'timestamp', nullable: true })
-    emailChangeTokenExpiresAt!: Date | null;
+    verificationCodeExpiresAt!: Date | null;
+
+    @Column({ type: 'varchar', length: 6, nullable: true })
+    emailChangeCode!: string | null;
+
+    @Column({ type: 'timestamp', nullable: true })
+    emailChangeCodeExpiresAt!: Date | null;
 }

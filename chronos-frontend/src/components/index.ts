@@ -1,4 +1,5 @@
-export { Footer } from './Footer';
-export { Header } from './Header';
-export { ThemeToggle } from './ThemeToggle';
-export { LanguageToggler } from './LanguageToggler';
+export * from './Footer';
+export * from './Header';
+export * from './ThemeToggle';
+export * from './LanguageToggler';
+export * from './ProtectedRoute';

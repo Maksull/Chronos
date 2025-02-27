@@ -1,6 +1,8 @@
-import { useTranslations } from 'next-intl';
+// app/[lang]/page.tsx
 import { Calendar, Clock, Users, Target, Lock, Globe } from 'lucide-react';
 import Link from 'next/link';
+import { getDictionary } from '@/lib/dictionary';
+import { Locale } from '@/middleware';
 
 interface Feature {
     title: string;
@@ -8,48 +10,53 @@ interface Feature {
     icon: React.ReactNode;
 }
 
-export default function Home() {
-    const t = useTranslations('home');
+export default async function Home({
+    params,
+}: {
+    params: Promise<{ lang: Locale }>;
+}) {
+    const { lang } = await params;
+    const dict = await getDictionary(lang);
 
     const features: Feature[] = [
         {
-            title: t('features.items.calendarViews.title'),
-            description: t('features.items.calendarViews.description'),
+            title: dict.home.features.items.calendarViews.title,
+            description: dict.home.features.items.calendarViews.description,
             icon: (
                 <Calendar className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
             ),
         },
         {
-            title: t('features.items.categories.title'),
-            description: t('features.items.categories.description'),
+            title: dict.home.features.items.categories.title,
+            description: dict.home.features.items.categories.description,
             icon: (
                 <Target className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
             ),
         },
         {
-            title: t('features.items.collaboration.title'),
-            description: t('features.items.collaboration.description'),
+            title: dict.home.features.items.collaboration.title,
+            description: dict.home.features.items.collaboration.description,
             icon: (
                 <Users className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
             ),
         },
         {
-            title: t('features.items.holidays.title'),
-            description: t('features.items.holidays.description'),
+            title: dict.home.features.items.holidays.title,
+            description: dict.home.features.items.holidays.description,
             icon: (
                 <Globe className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
             ),
         },
         {
-            title: t('features.items.quickEvents.title'),
-            description: t('features.items.quickEvents.description'),
+            title: dict.home.features.items.quickEvents.title,
+            description: dict.home.features.items.quickEvents.description,
             icon: (
                 <Clock className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
             ),
         },
         {
-            title: t('features.items.privacy.title'),
-            description: t('features.items.privacy.description'),
+            title: dict.home.features.items.privacy.title,
+            description: dict.home.features.items.privacy.description,
             icon: (
                 <Lock className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
             ),
@@ -57,7 +64,6 @@ export default function Home() {
     ];
 
     return (
-        // <div className="min-h-screen bg-gray-50 dark:bg-dark-bg">
         <>
             <div className="relative bg-white dark:bg-dark-surface overflow-hidden">
                 <div className="max-w-7xl mx-auto">
@@ -66,29 +72,29 @@ export default function Home() {
                             <div className="sm:text-center lg:text-left">
                                 <h1 className="text-4xl tracking-tight font-extrabold text-gray-900 dark:text-white sm:text-5xl md:text-6xl">
                                     <span className="block xl:inline">
-                                        {t('hero.title.first')}
+                                        {dict.home.hero.title.first}
                                     </span>
                                     <span className="block text-indigo-600 dark:text-indigo-400 xl:inline">
                                         {' '}
-                                        {t('hero.title.second')}
+                                        {dict.home.hero.title.second}
                                     </span>
                                 </h1>
                                 <p className="mt-3 text-base text-gray-500 dark:text-gray-400 sm:mt-5 sm:text-lg sm:max-w-xl sm:mx-auto md:mt-5 md:text-xl lg:mx-0">
-                                    {t('hero.description')}
+                                    {dict.home.hero.description}
                                 </p>
                                 <div className="mt-5 sm:mt-8 sm:flex sm:justify-center lg:justify-start">
                                     <div className="rounded-md shadow">
                                         <Link
-                                            href="/signup"
+                                            href={`/${lang}/signup`}
                                             className="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 md:py-4 md:text-lg md:px-10">
-                                            {t('hero.buttons.getStarted')}
+                                            {dict.home.hero.buttons.getStarted}
                                         </Link>
                                     </div>
                                     <div className="mt-3 sm:mt-0 sm:ml-3">
                                         <Link
-                                            href="/demo"
+                                            href={`/${lang}/demo`}
                                             className="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-indigo-600 dark:text-indigo-400 bg-indigo-100 hover:bg-indigo-200 dark:bg-indigo-900 dark:hover:bg-indigo-800 md:py-4 md:text-lg md:px-10">
-                                            {t('hero.buttons.liveDemo')}
+                                            {dict.home.hero.buttons.liveDemo}
                                         </Link>
                                     </div>
                                 </div>
@@ -102,13 +108,13 @@ export default function Home() {
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="lg:text-center">
                         <h2 className="text-base text-indigo-600 dark:text-indigo-400 font-semibold tracking-wide uppercase">
-                            {t('features.title')}
+                            {dict.home.features.title}
                         </h2>
                         <p className="mt-2 text-3xl leading-8 font-extrabold tracking-tight text-gray-900 dark:text-white sm:text-4xl">
-                            {t('features.subtitle')}
+                            {dict.home.features.subtitle}
                         </p>
                         <p className="mt-4 max-w-2xl text-xl text-gray-500 dark:text-gray-400 lg:mx-auto">
-                            {t('features.description')}
+                            {dict.home.features.description}
                         </p>
                     </div>
 
@@ -135,20 +141,23 @@ export default function Home() {
             <div className="bg-indigo-700 dark:bg-indigo-900">
                 <div className="max-w-2xl mx-auto text-center py-16 px-4 sm:py-20 sm:px-6 lg:px-8">
                     <h2 className="text-3xl font-extrabold text-white sm:text-4xl">
-                        <span className="block">{t('cta.title.first')}</span>
-                        <span className="block">{t('cta.title.second')}</span>
+                        <span className="block">
+                            {dict.home.cta.title.first}
+                        </span>
+                        <span className="block">
+                            {dict.home.cta.title.second}
+                        </span>
                     </h2>
                     <p className="mt-4 text-lg leading-6 text-indigo-200">
-                        {t('cta.description')}
+                        {dict.home.cta.description}
                     </p>
                     <Link
-                        href="/signup"
+                        href={`/${lang}/signup`}
                         className="mt-8 w-full inline-flex items-center justify-center px-5 py-3 border border-transparent text-base font-medium rounded-md text-indigo-600 dark:text-indigo-300 bg-white hover:bg-indigo-50 dark:bg-indigo-800 dark:hover:bg-indigo-700 sm:w-auto">
-                        {t('cta.button')}
+                        {dict.home.cta.button}
                     </Link>
                 </div>
             </div>
         </>
-        // </div>
     );
 }
