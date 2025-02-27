@@ -1,0 +1,234 @@
+{
+    "navigation": {
+        "brand": "Chronos",
+        "calendar": "Calendar",
+        "tasks": "Tasks",
+        "events": "Events",
+        "notifications": "Notifications",
+        "settings": "Settings",
+        "profile": "Profile",
+        "login": "Sign in",
+        "register": "Register"
+    },
+    "account": {
+        "title": "Account Settings",
+        "settings": "Security Settings",
+        "errors": {
+            "generic": "Something went wrong. Please try again."
+        },
+        "common": {
+            "loading": "Loading..."
+        },
+        "profile": {
+            "title": "Profile Information",
+            "description": "Update your account profile information.",
+            "update": "Update Profile",
+            "updateSuccess": "Profile updated successfully"
+        },
+        "email": {
+            "title": "Email Settings",
+            "description": "Change your email address. A verification code will be sent to your new email.",
+            "change": "Change Email",
+            "verificationSent": "Verification email sent. Please check your inbox."
+        },
+        "password": {
+            "title": "Password Settings",
+            "description": "Change your account password. You'll need to provide your current password.",
+            "change": "Change Password",
+            "changeSuccess": "Password changed successfully"
+        },
+        "fields": {
+            "username": "Username",
+            "email": "Email Address",
+            "fullName": "Full Name",
+            "region": "Region",
+            "currentPassword": "Current Password",
+            "newPassword": "New Password",
+            "newEmail": "New Email Address"
+        },
+        "welcome": "Welcome, {name}",
+        "stats": {
+            "totalCalendars": "Total Calendars",
+            "region": "Your Region",
+            "noRegion": "Not Set",
+            "member": "Member Since"
+        },
+        "calendars": {
+            "title": "Your Calendars",
+            "create": "Create Calendar",
+            "cancel": "Cancel",
+            "createSubmit": "Create",
+            "createSuccess": "Calendar created successfully",
+            "deleteSuccess": "Calendar deleted successfully",
+            "deleteConfirm": "Are you sure you want to delete this calendar?",
+            "main": "Main",
+            "holidays": "Holidays",
+            "hide": "Hide calendar",
+            "show": "Show calendar",
+            "delete": "Delete calendar",
+            "fields": {
+                "name": "Calendar Name",
+                "description": "Description",
+                "color": "Calendar Color"
+            }
+        }
+    },
+    "settings": {
+        "backToAccount": "Back to Account",
+        "backToSecurity": "Back to Security Settings",
+        "title": "Security Settings",
+        "changeEmail": "Change Email Address",
+        "changeEmailDesc": "Update the email address associated with your account",
+        "changePassword": "Change Password",
+        "changePasswordDesc": "Update your account password",
+        "settings": "Security Settings",
+        "fields": {
+            "username": "Username",
+            "email": "Email Address",
+            "fullName": "Full Name",
+            "region": "Region",
+            "currentPassword": "Current Password",
+            "newPassword": "New Password",
+            "newEmail": "New Email Address"
+        },
+        "email": {
+            "title": "Email Settings",
+            "description": "Change your email address. A verification code will be sent to your new email.",
+            "change": "Change Email",
+            "verificationSent": "Verification email sent. Please check your inbox."
+        },
+        "password": {
+            "title": "Password Settings",
+            "description": "Change your account password. You'll need to provide your current password.",
+            "change": "Change Password",
+            "changeSuccess": "Password changed successfully"
+        },
+        "errors": {
+            "generic": "Something went wrong. Please try again."
+        },
+        "common": {
+            "loading": "Loading..."
+        }
+    },
+    "auth": {
+        "fields": {
+            "username": "Username",
+            "email": "Email address",
+            "password": "Password",
+            "fullName": "Full name (optional)",
+            "region": "Region (optional)"
+        },
+        "errors": {
+            "generic": "Something went wrong. Please try again.",
+            "invalidCode": "Invalid verification code. Please try again.",
+            "expiredCode": "Verification code has expired. Please request a new one.",
+            "alreadyVerified": "Email is already verified.",
+            "emailNotFound": "Email address not found."
+        },
+        "login": {
+            "title": "Sign in to your account",
+            "subtitle": "Don't have an account?",
+            "registerLink": "Register now",
+            "forgotPassword": "Forgot your password?",
+            "submit": "Sign in",
+            "loading": "Signing in...",
+            "pleaseLoginToContinue": "Please sign in to continue"
+        },
+        "register": {
+            "title": "Create your account",
+            "subtitle": "Already have an account?",
+            "loginLink": "Sign in",
+            "submit": "Create account",
+            "loading": "Creating account...",
+            "passwordRequirement": "Password must be at least 8 characters long",
+            "termsText": "By registering, you agree to our",
+            "termsLink": "Terms and Conditions"
+        },
+        "verifyEmail": {
+            "title": "Verify your email",
+            "description": "We've sent a 6-digit code to your email address.",
+            "subtitle": "Enter the verification code",
+            "checkSpam": "If you don't see the email, please check your spam folder.",
+            "backToLogin": "Back to login",
+            "codeExpiry": "Code expires in 15 minutes",
+            "enterCode": "Enter 6-digit code",
+            "resendCode": "Resend code",
+            "resending": "Sending...",
+            "codeSent": "New code sent!",
+            "submit": "Verify",
+            "loading": "Verifying...",
+            "success": "Email verified successfully!",
+            "waitResend": "Wait {seconds} seconds before requesting a new code"
+        },
+        "verify": {
+            "sent": {
+                "title": "Check your email",
+                "description": "We've sent a verification code to your email address. The code will expire in 15 minutes.",
+                "checkSpam": "If you don't see the email in your inbox, please check your spam folder.",
+                "enterCode": "Enter verification code"
+            }
+        }
+    },
+    "home": {
+        "hero": {
+            "title": {
+                "first": "Organize your time with",
+                "second": "Chronos"
+            },
+            "description": "Your all-in-one solution for managing meetings, tasks, and events. Create multiple calendars, invite collaborators, and stay organized across all time horizons.",
+            "buttons": {
+                "getStarted": "Get Started Free",
+                "liveDemo": "Live Demo"
+            }
+        },
+        "features": {
+            "title": "Features",
+            "subtitle": "Everything you need to stay organized",
+            "description": "Powerful features designed to help you manage time efficiently and collaborate seamlessly",
+            "items": {
+                "calendarViews": {
+                    "title": "Multiple Calendar Views",
+                    "description": "Switch between week, month, and year views. Track week numbers and manage multiple calendars simultaneously."
+                },
+                "categories": {
+                    "title": "Smart Event Categories",
+                    "description": "Organize events by type: arrangements, reminders, and tasks. Each with custom functionality and duration settings."
+                },
+                "collaboration": {
+                    "title": "Collaboration",
+                    "description": "Share calendars, invite friends via email, and manage team permissions for shared calendars."
+                },
+                "holidays": {
+                    "title": "Holiday Integration",
+                    "description": "Built-in calendar with national holidays based on your region, automatically synchronized."
+                },
+                "quickEvents": {
+                    "title": "Quick Event Creation",
+                    "description": "Create events directly from the calendar interface or use detailed forms for more complex scheduling."
+                },
+                "privacy": {
+                    "title": "Privacy Controls",
+                    "description": "Manage sharing permissions and event visibility with granular access controls."
+                }
+            }
+        },
+        "cta": {
+            "title": {
+                "first": "Ready to get started?",
+                "second": "Start your free trial today."
+            },
+            "description": "Join thousands of users who are already managing their time better with Chronos.",
+            "button": "Sign up for free"
+        }
+    },
+    "footer": {
+        "brand": "Chronos",
+        "description": "Chronos is your all-in-one solution for organizing meetings, tasks, and events. Our platform helps you manage time effectively with features like multiple calendar views, smart event categorization, and team collaboration tools.",
+        "copyright": "© {year} Chronos. All rights reserved."
+    },
+    "NotFound": {
+        "title": "Page not found",
+        "description": "The page you're looking for doesn't exist or has been moved.",
+        "backHome": "Back to Home"
+    }
+}
