@@ -81,7 +81,6 @@ export type Dictionary = {
             nameRequired: string;
         };
     };
-
     settings: {
         backToAccount: string;
         backToSecurity: string;
@@ -176,6 +175,29 @@ export type Dictionary = {
                 checkSpam: string;
                 enterCode: string;
             };
+        };
+    };
+    calendar?: {
+        backToAccount: string;
+        returnToAccount: string;
+        dayView: string;
+        weekView: string;
+        monthView: string;
+        today: string;
+        addEvent: string;
+        settings: string;
+        noCalendarSelected: string;
+        notFound: string;
+        errorOccurred: string;
+        weekdays: {
+            full: string[]; // Full weekday names: 'Sunday', 'Monday', etc.
+            short: string[]; // Short weekday names: 'Sun', 'Mon', etc.
+        };
+        timeFormat: {
+            am: string;
+            pm: string;
+            hours24: string; // Format for 24-hour time (e.g., "{hour}:00")
+            hours12: string; // Format for 12-hour time (e.g., "{hour} {period}")
         };
     };
     home: {

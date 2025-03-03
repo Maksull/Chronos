@@ -173,6 +173,45 @@
             }
         }
     },
+    "calendar": {
+        "backToAccount": "Back to Account",
+        "returnToAccount": "Return to Account",
+        "dayView": "Day",
+        "weekView": "Week",
+        "monthView": "Month",
+        "today": "Today",
+        "addEvent": "Add Event",
+        "settings": "Settings",
+        "errorOccurred": "An error occurred",
+        "noCalendarSelected": "No calendar selected",
+        "notFound": "Calendar not found",
+        "weekdays": {
+            "full": [
+                "Sunday",
+                "Monday",
+                "Tuesday",
+                "Wednesday",
+                "Thursday",
+                "Friday",
+                "Saturday"
+            ],
+            "short": [
+                "Sun",
+                "Mon",
+                "Tue",
+                "Wed",
+                "Thu",
+                "Fri",
+                "Sat"
+            ]
+        },
+        "timeFormat": {
+            "am": "AM",
+            "pm": "PM",
+            "hours24": "{hour}:00",
+            "hours12": "{hour} {period}"
+        }
+    },
     "home": {
         "hero": {
             "title": {

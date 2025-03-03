@@ -3,10 +3,11 @@
 
 import { createContext, useContext } from 'react';
 import type { Dictionary } from '@/lib/dictionary';
+import { Locale } from '@/middleware';
 
 type DictionaryContextType = {
     dict: Dictionary;
-    lang: string;
+    lang: Locale;
 };
 
 const DictionaryContext = createContext<DictionaryContextType | null>(null);
@@ -18,7 +19,7 @@ export function DictionaryProvider({
 }: {
     children: React.ReactNode;
     dict: Dictionary;
-    lang: string;
+    lang: Locale;
 }) {
     return (
         <DictionaryContext.Provider value={{ dict, lang }}>

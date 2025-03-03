@@ -3,10 +3,9 @@
 
 import React, { useState } from 'react';
 import { Calendar, Plus, X } from 'lucide-react';
-import { Dictionary } from '@/lib/dictionary';
 import { CalendarData, CalendarFormData } from '@/types/account';
-import { CalendarForm } from './CalendarForm';
-import { CalendarItem } from './CalendarItem';
+import { Dictionary } from '@/lib/dictionary';
+import { CalendarForm, CalendarItem } from '.';
 
 interface CalendarSectionProps {
     calendars: CalendarData[];

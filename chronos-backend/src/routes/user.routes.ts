@@ -1,7 +1,7 @@
 import { FastifyInstance } from 'fastify';
-import { UserController } from '@/controllers/user.controller';
 import { authenticateToken } from '@/middlewares/auth.middleware';
 import { UpdateProfileDto } from '@/types/user';
+import { UserController } from '@/controllers';
 
 const updateProfileSchema = {
     body: {

@@ -44,6 +44,27 @@ export class CalendarService {
         return [...ownedCalendars, ...sharedCalendars];
     }
 
+    async getCalendarById(userId: string, calendarId: string): Promise<Calendar> {
+        const calendar = await this.calendarRepository.findOne({
+            where: { id: calendarId },
+            relations: ['owner', 'participants'],
+        });
+
+        if (!calendar) {
+            throw new Error('Calendar not found');
+        }
+
+        // Check if user is owner or participant
+        const isOwner = calendar.owner.id === userId;
+        const isParticipant = calendar.participants?.some(participant => participant.id === userId) || false;
+
+        if (!isOwner && !isParticipant) {
+            throw new Error('Not authorized');
+        }
+
+        return calendar;
+    }
+
     async toggleCalendarVisibility(userId: string, calendarId: string, isVisible: boolean): Promise<Calendar> {
         const calendar = await this.calendarRepository.findOne({
             where: { id: calendarId },

@@ -1,7 +1,7 @@
 import { FastifyInstance } from 'fastify';
-import { AuthController } from '@/controllers/auth.controller';
 import { authenticateToken } from '@/middlewares/auth.middleware';
 import { ChangeEmailDto, ChangePasswordDto } from '@/types/auth';
+import { AuthController } from '@/controllers';
 
 const registerSchema = {
     body: {

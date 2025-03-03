@@ -46,7 +46,7 @@ export default function ChangeEmailPage() {
                 } else {
                     setError(dict.settings.errors.generic);
                 }
-            } catch (error) {
+            } catch {
                 setError(dict.settings.errors.generic);
             } finally {
                 setIsDataLoading(false);
