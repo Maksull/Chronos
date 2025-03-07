@@ -13,17 +13,23 @@ import {
     Calendar,
 } from 'lucide-react';
 import Link from 'next/link';
+import { EventModal } from '@/components/event/EventModal';
 
 export default function CalendarPage() {
     const params = useParams();
     const router = useRouter();
     const { dict, lang } = useDictionary();
+
     const calendarId = params.id as string;
     const [calendar, setCalendar] = useState<CalendarData | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [currentDate, setCurrentDate] = useState(new Date());
     const [view, setView] = useState<'month' | 'week' | 'day'>('month');
+
+    // Event modal state
+    const [isEventModalOpen, setIsEventModalOpen] = useState(false);
+    const [selectedDate, setSelectedDate] = useState<Date>(new Date());
 
     useEffect(() => {
         fetchCalendar();
@@ -92,6 +98,12 @@ export default function CalendarPage() {
         setCurrentDate(new Date());
     };
 
+    // Handle opening event modal
+    const handleAddEvent = (date?: Date) => {
+        setSelectedDate(date || currentDate);
+        setIsEventModalOpen(true);
+    };
+
     const formatDateTitle = () => {
         if (view === 'month') {
             return new Intl.DateTimeFormat(lang === 'uk' ? 'uk-UA' : 'en-US', {
@@ -103,6 +115,7 @@ export default function CalendarPage() {
             startOfWeek.setDate(currentDate.getDate() - currentDate.getDay());
             const endOfWeek = new Date(startOfWeek);
             endOfWeek.setDate(startOfWeek.getDate() + 6);
+
             const formatter = new Intl.DateTimeFormat(
                 lang === 'uk' ? 'uk-UA' : 'en-US',
                 {
@@ -110,6 +123,7 @@ export default function CalendarPage() {
                     month: 'short',
                 },
             );
+
             return `${formatter.format(startOfWeek)} - ${formatter.format(endOfWeek)}`;
         } else {
             return new Intl.DateTimeFormat(lang === 'uk' ? 'uk-UA' : 'en-US', {
@@ -290,6 +304,7 @@ export default function CalendarPage() {
 
                                 <div className="flex items-center space-x-3">
                                     <button
+                                        onClick={() => handleAddEvent()}
                                         className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors shadow-sm text-sm font-medium"
                                         title={
                                             dict.calendar?.addEvent ||
@@ -317,11 +332,23 @@ export default function CalendarPage() {
                                 calendar={calendar}
                                 dict={dict}
                                 lang={lang}
+                                onAddEvent={handleAddEvent}
                             />
                         </div>
                     </div>
                 </div>
             </div>
+
+            {/* Event creation modal */}
+            {isEventModalOpen && (
+                <EventModal
+                    isOpen={isEventModalOpen}
+                    onClose={() => setIsEventModalOpen(false)}
+                    calendarId={calendarId}
+                    date={selectedDate}
+                    onEventCreated={fetchCalendar}
+                />
+            )}
         </ProtectedRoute>
     );
 }

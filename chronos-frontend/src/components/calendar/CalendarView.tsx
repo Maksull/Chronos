@@ -1,4 +1,3 @@
-// src/components/calendar/CalendarView.tsx
 import React from 'react';
 import { CalendarData } from '@/types/account';
 import { Dictionary } from '@/lib/dictionary';
@@ -11,6 +10,7 @@ interface CalendarViewProps {
     calendar: CalendarData | null;
     dict: Dictionary;
     lang: Locale;
+    onAddEvent?: (date: Date) => void;
 }
 
 export const CalendarView: React.FC<CalendarViewProps> = ({
@@ -19,6 +19,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     calendar,
     dict,
     lang,
+    onAddEvent,
 }) => {
     if (!calendar) {
         return (
@@ -33,16 +34,42 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 
     switch (view) {
         case 'month':
-            return <MonthView currentDate={currentDate} dict={dict} />;
+            return (
+                <MonthView
+                    currentDate={currentDate}
+                    dict={dict}
+                    onAddEvent={onAddEvent}
+                    calendar={calendar}
+                />
+            );
         case 'week':
             return (
-                <WeekView currentDate={currentDate} dict={dict} lang={lang} />
+                <WeekView
+                    currentDate={currentDate}
+                    dict={dict}
+                    lang={lang}
+                    onAddEvent={onAddEvent}
+                    calendar={calendar}
+                />
             );
         case 'day':
             return (
-                <DayView currentDate={currentDate} dict={dict} lang={lang} />
+                <DayView
+                    currentDate={currentDate}
+                    dict={dict}
+                    lang={lang}
+                    onAddEvent={onAddEvent}
+                    calendar={calendar}
+                />
             );
         default:
-            return <MonthView currentDate={currentDate} dict={dict} />;
+            return (
+                <MonthView
+                    currentDate={currentDate}
+                    dict={dict}
+                    onAddEvent={onAddEvent}
+                    calendar={calendar}
+                />
+            );
     }
 };

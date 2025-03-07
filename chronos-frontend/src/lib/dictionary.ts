@@ -189,15 +189,53 @@ export type Dictionary = {
         noCalendarSelected: string;
         notFound: string;
         errorOccurred: string;
+        eventName: string;
+        eventCategory: string;
+        categoryArrangement: string;
+        categoryReminder: string;
+        categoryTask: string;
+        startDateTime: string;
+        endDateTime: string;
+        eventColor: string;
+        eventDescription: string;
+        eventCreated: string;
+        eventUpdated: string;
+        eventDeleted: string;
+        confirmDeleteEvent: string;
+        saveChanges: string;
+        deleteEvent: string;
+        editEvent: string;
+        viewEvent: string;
+        completedStatus: string;
+        markedComplete: string;
+        markedIncomplete: string;
+        allDay: string;
+        repeatEvent: string;
+        repeatOptions: {
+            never: string;
+            daily: string;
+            weekly: string;
+            monthly: string;
+            yearly: string;
+            custom: string;
+        };
+        selectDate: string;
+        selectTime: string;
+        duration: string;
+        minutes: string;
+        hours: string;
+        days: string;
+        noEvents: string;
+        moreEvents: string;
         weekdays: {
-            full: string[]; // Full weekday names: 'Sunday', 'Monday', etc.
-            short: string[]; // Short weekday names: 'Sun', 'Mon', etc.
+            full: string[];
+            short: string[];
         };
         timeFormat: {
             am: string;
             pm: string;
-            hours24: string; // Format for 24-hour time (e.g., "{hour}:00")
-            hours12: string; // Format for 12-hour time (e.g., "{hour} {period}")
+            hours24: string;
+            hours12: string;
         };
     };
     home: {
@@ -261,6 +299,23 @@ export type Dictionary = {
         title: string;
         description: string;
         backHome: string;
+    };
+    common: {
+        save: string;
+        cancel: string;
+        delete: string;
+        edit: string;
+        view: string;
+        create: string;
+        update: string;
+        loading: string;
+        saving: string;
+        deleting: string;
+        confirm: string;
+        success: string;
+        error: string;
+        warning: string;
+        info: string;
     };
 };
 
