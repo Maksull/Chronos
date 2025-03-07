@@ -2,9 +2,9 @@ import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateCol
 import { Calendar, User } from '.';
 
 export enum EventCategory {
-    ARRANGEMENT = 'arrangement',
-    REMINDER = 'reminder',
-    TASK = 'task',
+    ARRANGEMENT = 'ARRANGEMENT',
+    REMINDER = 'REMINDER',
+    TASK = 'TASK',
 }
 
 @Entity('events')

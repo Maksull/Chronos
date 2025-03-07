@@ -1,101 +1,336 @@
-import React from 'react';
+'use client';
+
+import React, { useEffect, useState, useRef } from 'react';
 import { Dictionary } from '@/lib/dictionary';
-import { Locale } from '@/middleware';
-import { Clock } from 'lucide-react';
+import { Plus, ChevronDown, ChevronUp } from 'lucide-react';
+import { CalendarData, EventData } from '@/types/account';
 
 interface DayViewProps {
     currentDate: Date;
     dict: Dictionary;
-    lang: Locale;
+    onAddEvent?: (date: Date) => void;
+    calendar: CalendarData;
+}
+
+interface TimeSlot {
+    hour: number;
+    minute: number;
+    label: string;
 }
 
 export const DayView: React.FC<DayViewProps> = ({
     currentDate,
     dict,
-    lang,
+    onAddEvent,
+    calendar,
 }) => {
-    const today = new Date();
+    const [events, setEvents] = useState<EventData[]>([]);
+    const [loading, setLoading] = useState(false);
+    const [currentTimePosition, setCurrentTimePosition] = useState<number>(0);
+    const [expandedHours, setExpandedHours] = useState<Set<number>>(new Set());
+    const timeGridRef = useRef<HTMLDivElement>(null);
+
+    // Clone the current date to ensure we're working with a clean time
+    const viewDate = new Date(currentDate);
+
+    // Set start and end of the day
+    const startOfDay = new Date(
+        viewDate.getFullYear(),
+        viewDate.getMonth(),
+        viewDate.getDate(),
+        0,
+        0,
+        0,
+        0,
+    );
+
+    const endOfDay = new Date(
+        viewDate.getFullYear(),
+        viewDate.getMonth(),
+        viewDate.getDate(),
+        23,
+        59,
+        59,
+        999,
+    );
+
+    // Check if this is today
     const isToday =
-        currentDate.getDate() === today.getDate() &&
-        currentDate.getMonth() === today.getMonth() &&
-        currentDate.getFullYear() === today.getFullYear();
+        viewDate.getDate() === new Date().getDate() &&
+        viewDate.getMonth() === new Date().getMonth() &&
+        viewDate.getFullYear() === new Date().getFullYear();
 
-    const hours = [];
-    for (let i = 5; i < 24; i++) {
-        hours.push(i);
-    }
+    // Format the date for display
+    const formattedDate = viewDate.toLocaleDateString(undefined, {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+    });
 
-    const formatHour = (hour: number) => {
-        if (lang === 'uk') {
-            return (dict.calendar?.timeFormat.hours24 || '{hour}:00').replace(
-                '{hour}',
-                hour.toString(),
+    useEffect(() => {
+        fetchEvents();
+        setExpandedHours(new Set());
+    }, [currentDate, calendar?.id]);
+
+    // Effect for current time indicator and auto-scrolling
+    useEffect(() => {
+        // Calculate and update current time position
+        const updateCurrentTimePosition = () => {
+            if (!isToday) return;
+
+            const now = new Date();
+            const hours = now.getHours();
+            const minutes = now.getMinutes();
+            // Calculate position as percentage of day
+            const percentage = ((hours * 60 + minutes) / (24 * 60)) * 100;
+            setCurrentTimePosition(percentage);
+        };
+
+        // Initial update
+        updateCurrentTimePosition();
+
+        // Update every minute
+        const intervalId = setInterval(updateCurrentTimePosition, 60000);
+
+        // Scroll to current time (with offset to show a few hours before)
+        if (timeGridRef.current && isToday) {
+            const now = new Date();
+            const currentHour = now.getHours();
+            // Find the element for the current hour (or 2 hours before if available)
+            const scrollToHour = Math.max(currentHour - 2, 0);
+            const hourHeight = 100; // Approximate height of an hour slot in pixels
+            timeGridRef.current.scrollTop = scrollToHour * hourHeight;
+        }
+
+        return () => clearInterval(intervalId);
+    }, [isToday]);
+
+    const fetchEvents = async () => {
+        if (!calendar?.id) return;
+        try {
+            setLoading(true);
+            const response = await fetch(
+                `http://localhost:3001/calendars/${calendar.id}/events?startDate=${startOfDay.toISOString()}&endDate=${endOfDay.toISOString()}`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${localStorage.getItem('token')}`,
+                    },
+                },
             );
-        } else {
-            const period =
-                hour >= 12
-                    ? dict.calendar?.timeFormat.pm || 'PM'
-                    : dict.calendar?.timeFormat.am || 'AM';
-            const displayHour = hour % 12 === 0 ? 12 : hour % 12;
-            return (dict.calendar?.timeFormat.hours12 || '{hour} {period}')
-                .replace('{hour}', displayHour.toString())
-                .replace('{period}', period);
+            if (response.ok) {
+                const data = await response.json();
+                if (data.status === 'success') {
+                    setEvents(data.data);
+                }
+            }
+        } catch (error) {
+            console.error('Error fetching events:', error);
+        } finally {
+            setLoading(false);
         }
     };
 
-    const currentHour = today.getHours();
-    const currentMinute = today.getMinutes();
-    const currentTimePosition = isToday
-        ? (currentHour - 5) * 64 + (currentMinute * 64) / 60
-        : -1;
+    // Generate time slots for the day (hourly from 0 to 23)
+    const getTimeSlots = (): TimeSlot[] => {
+        const slots: TimeSlot[] = [];
+
+        for (let hour = 0; hour < 24; hour++) {
+            slots.push({
+                hour,
+                minute: 0,
+                label: new Date(2000, 0, 1, hour, 0).toLocaleTimeString([], {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                }),
+            });
+        }
+
+        return slots;
+    };
+
+    const timeSlots = getTimeSlots();
+
+    const getEventsForHour = (hour: number) => {
+        return events.filter(event => {
+            const eventDate = new Date(event.startDate);
+            return eventDate.getHours() === hour;
+        });
+    };
+
+    // Toggle expansion of hour slots
+    const toggleExpandHour = (hour: number) => {
+        setExpandedHours(prevExpanded => {
+            const newExpanded = new Set(prevExpanded);
+            if (newExpanded.has(hour)) {
+                newExpanded.delete(hour);
+            } else {
+                newExpanded.add(hour);
+            }
+            return newExpanded;
+        });
+    };
+
+    // Check if an hour is expanded
+    const isHourExpanded = (hour: number) => {
+        return expandedHours.has(hour);
+    };
+
+    // Calculate event duration in minutes
+    const getEventDuration = (event: EventData) => {
+        const start = new Date(event.startDate);
+        const end = new Date(event.endDate);
+        return Math.max(30, (end.getTime() - start.getTime()) / (1000 * 60)); // Minimum 30 min
+    };
 
     return (
-        <div className="calendar-day-view overflow-y-auto max-h-[calc(100vh-240px)]">
-            <div className="flex flex-col">
-                <div
-                    className={`
-            text-center py-4 mb-4 border-b border-gray-200 dark:border-gray-700
-            ${isToday ? 'bg-indigo-50 dark:bg-indigo-900/20' : ''}
-          `}>
-                    <div
-                        className={`
-              text-xl font-medium
-              ${isToday ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-900 dark:text-white'}
-            `}>
-                        {new Intl.DateTimeFormat(
-                            lang === 'uk' ? 'uk-UA' : 'en-US',
-                            {
-                                weekday: 'long',
-                                month: 'long',
-                                day: 'numeric',
-                            },
-                        ).format(currentDate)}
-                    </div>
-                </div>
-                <div className="relative">
+        <div
+            className="calendar-day-view overflow-y-auto max-h-[calc(100vh-240px)]"
+            ref={timeGridRef}>
+            {/* Header with date information */}
+            <div className="border-b dark:border-gray-700 mb-4 pb-2">
+                <h2
+                    className={`text-xl font-semibold ${isToday ? 'text-indigo-600 dark:text-indigo-400' : ''}`}>
+                    {formattedDate}
                     {isToday && (
-                        <div
-                            className="absolute left-0 right-0 flex items-center z-10 pointer-events-none"
-                            style={{ top: `${currentTimePosition}px` }}>
-                            <div className="absolute -left-2 -top-2.5 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center">
-                                <Clock className="h-3 w-3 text-white" />
-                            </div>
-                            <div className="w-full border-t-2 border-red-500"></div>
-                        </div>
+                        <span className="ml-2 text-sm bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 px-2 py-1 rounded-full">
+                            Today
+                        </span>
                     )}
-                    {hours.map((hour, hourIndex) => (
-                        <div
-                            key={hourIndex}
-                            className="flex border-b border-gray-200 dark:border-gray-700 group hover:bg-gray-50 dark:hover:bg-gray-750">
-                            <div className="w-20 p-2 text-right pr-4 text-sm text-gray-500 dark:text-gray-400 flex-shrink-0 pt-3 group-hover:font-medium">
-                                {formatHour(hour)}
-                            </div>
-                            <div className="flex-grow h-16 border-l border-gray-200 dark:border-gray-700 relative">
-                                {}
-                            </div>
+                </h2>
+            </div>
+
+            {/* Time grid */}
+            <div className="grid grid-cols-[100px_1fr] gap-2 relative">
+                {/* Current time indicator */}
+                {isToday && (
+                    <div
+                        className="absolute left-0 right-0 flex items-center z-10 pointer-events-none"
+                        style={{ top: `${currentTimePosition}%` }}>
+                        <div className="min-w-12 h-5 bg-red-500 rounded-r-full flex items-center justify-center px-1">
+                            <span className="text-white text-xs font-bold whitespace-nowrap">
+                                {new Date().toLocaleTimeString([], {
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                })}
+                            </span>
                         </div>
-                    ))}
-                </div>
+                        <div className="flex-grow h-0.5 bg-red-500"></div>
+                    </div>
+                )}
+
+                {/* Time slots */}
+                {timeSlots.map((slot, index) => {
+                    const hourEvents = getEventsForHour(slot.hour);
+
+                    return (
+                        <React.Fragment key={index}>
+                            {/* Time label */}
+                            <div className="text-xs text-gray-500 dark:text-gray-400 pr-4 text-right py-2 sticky left-0">
+                                {slot.label}
+                            </div>
+
+                            {/* Event container */}
+                            <div className="relative border dark:border-gray-700 rounded-md min-h-24 bg-white dark:bg-gray-800 hover:shadow-sm transition-shadow">
+                                {/* Add event button */}
+                                <button
+                                    onClick={() => {
+                                        if (onAddEvent) {
+                                            const newDate = new Date(viewDate);
+                                            newDate.setHours(
+                                                slot.hour,
+                                                0,
+                                                0,
+                                                0,
+                                            );
+                                            onAddEvent(newDate);
+                                        }
+                                    }}
+                                    className="absolute top-1 right-1 opacity-0 hover:opacity-100 text-gray-400 hover:text-indigo-500 dark:text-gray-500 dark:hover:text-indigo-400 w-6 h-6 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-700">
+                                    <Plus className="w-4 h-4" />
+                                </button>
+
+                                {/* Events */}
+                                <div className="p-2 mt-4 space-y-2">
+                                    {!loading &&
+                                        hourEvents
+                                            .slice(
+                                                0,
+                                                isHourExpanded(slot.hour)
+                                                    ? hourEvents.length
+                                                    : 2,
+                                            )
+                                            .map(event => {
+                                                const duration =
+                                                    getEventDuration(event);
+                                                const startTime = new Date(
+                                                    event.startDate,
+                                                ).toLocaleTimeString([], {
+                                                    hour: '2-digit',
+                                                    minute: '2-digit',
+                                                });
+                                                const endTime = new Date(
+                                                    event.endDate,
+                                                ).toLocaleTimeString([], {
+                                                    hour: '2-digit',
+                                                    minute: '2-digit',
+                                                });
+
+                                                return (
+                                                    <div
+                                                        key={event.id}
+                                                        className="p-2 rounded-md text-sm transition-all hover:shadow-md"
+                                                        style={{
+                                                            backgroundColor: `${event.color}10`,
+                                                            borderLeft: `4px solid ${event.color}`,
+                                                            color: event.color,
+                                                            minHeight: `${Math.min(80, duration / 5)}px`,
+                                                        }}>
+                                                        <div className="font-medium">
+                                                            {event.name}
+                                                        </div>
+                                                        <div className="text-xs opacity-80">
+                                                            {startTime} -{' '}
+                                                            {endTime}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+
+                                    {/* Show more/less button */}
+                                    {hourEvents.length > 2 &&
+                                        !isHourExpanded(slot.hour) && (
+                                            <button
+                                                onClick={() =>
+                                                    toggleExpandHour(slot.hour)
+                                                }
+                                                className="flex items-center text-xs text-gray-500 dark:text-gray-400 hover:text-indigo-500 dark:hover:text-indigo-400 transition-colors w-full justify-center py-1 mt-1 border border-dashed border-gray-200 dark:border-gray-700 rounded-md">
+                                                <ChevronDown className="w-3 h-3 mr-1" />
+                                                Show {hourEvents.length - 2}{' '}
+                                                more
+                                            </button>
+                                        )}
+
+                                    {hourEvents.length > 2 &&
+                                        isHourExpanded(slot.hour) && (
+                                            <button
+                                                onClick={() =>
+                                                    toggleExpandHour(slot.hour)
+                                                }
+                                                className="flex items-center text-xs text-gray-500 dark:text-gray-400 hover:text-indigo-500 dark:hover:text-indigo-400 transition-colors w-full justify-center py-1 mt-1 border border-dashed border-gray-200 dark:border-gray-700 rounded-md">
+                                                <ChevronUp className="w-3 h-3 mr-1" />
+                                                Show less
+                                            </button>
+                                        )}
+
+                                    {hourEvents.length === 0 && (
+                                        <div className="h-4"></div>
+                                    )}
+                                </div>
+                            </div>
+                        </React.Fragment>
+                    );
+                })}
             </div>
         </div>
     );

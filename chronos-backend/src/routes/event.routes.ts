@@ -47,7 +47,7 @@ const createEventSchema = {
             name: { type: 'string' },
             category: {
                 type: 'string',
-                enum: ['arrangement', 'reminder', 'task'],
+                enum: ['ARRANGEMENT', 'REMINDER', 'TASK'],
             },
             startDate: { type: 'string', format: 'date-time' },
             endDate: { type: 'string', format: 'date-time' },
@@ -80,7 +80,7 @@ const updateEventSchema = {
             name: { type: 'string' },
             category: {
                 type: 'string',
-                enum: ['arrangement', 'reminder', 'task'],
+                enum: ['ARRANGEMENT', 'REMINDER', 'TASK'],
             },
             startDate: { type: 'string', format: 'date-time' },
             endDate: { type: 'string', format: 'date-time' },
