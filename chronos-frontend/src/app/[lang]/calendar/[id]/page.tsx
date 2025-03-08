@@ -3,7 +3,12 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useDictionary } from '@/contexts';
-import { CalendarView, EventModal, ProtectedRoute } from '@/components';
+import {
+    CalendarView,
+    EventModal,
+    ProtectedRoute,
+    CalendarEditModal,
+} from '@/components';
 import { CalendarData, EventData } from '@/types/account';
 import {
     ChevronLeft,
@@ -18,8 +23,8 @@ export default function CalendarPage() {
     const params = useParams();
     const router = useRouter();
     const { dict, lang } = useDictionary();
-
     const calendarId = params.id as string;
+
     const [calendar, setCalendar] = useState<CalendarData | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -35,6 +40,10 @@ export default function CalendarPage() {
     const [modalMode, setModalMode] = useState<'create' | 'view' | 'edit'>(
         'create',
     );
+
+    // Calendar edit modal state
+    const [isCalendarEditModalOpen, setIsCalendarEditModalOpen] =
+        useState(false);
 
     useEffect(() => {
         fetchCalendar();
@@ -103,13 +112,13 @@ export default function CalendarPage() {
         setCurrentDate(new Date());
     };
 
-    // Handle opening event modal
     const handleAddEvent = (date?: Date) => {
         setSelectedEvent(undefined);
         setModalMode('create');
         setSelectedDate(date || currentDate);
         setIsEventModalOpen(true);
     };
+
     const handleEventClick = (event: EventData) => {
         setSelectedEvent(event);
         setModalMode('view');
@@ -127,15 +136,10 @@ export default function CalendarPage() {
             startOfWeek.setDate(currentDate.getDate() - currentDate.getDay());
             const endOfWeek = new Date(startOfWeek);
             endOfWeek.setDate(startOfWeek.getDate() + 6);
-
             const formatter = new Intl.DateTimeFormat(
                 lang === 'uk' ? 'uk-UA' : 'en-US',
-                {
-                    day: 'numeric',
-                    month: 'short',
-                },
+                { day: 'numeric', month: 'short' },
             );
-
             return `${formatter.format(startOfWeek)} - ${formatter.format(endOfWeek)}`;
         } else {
             return new Intl.DateTimeFormat(lang === 'uk' ? 'uk-UA' : 'en-US', {
@@ -326,6 +330,9 @@ export default function CalendarPage() {
                                         {dict.calendar?.addEvent || 'Add Event'}
                                     </button>
                                     <button
+                                        onClick={() =>
+                                            setIsCalendarEditModalOpen(true)
+                                        }
                                         className="p-2 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                                         title={
                                             dict.calendar?.settings ||
@@ -352,7 +359,7 @@ export default function CalendarPage() {
                 </div>
             </div>
 
-            {/* Event creation modal */}
+            {/* Event modal */}
             {isEventModalOpen && (
                 <EventModal
                     isOpen={isEventModalOpen}
@@ -364,6 +371,17 @@ export default function CalendarPage() {
                     onEventCreated={fetchCalendar}
                     onEventUpdated={fetchCalendar}
                     onEventDeleted={fetchCalendar}
+                />
+            )}
+
+            {/* Calendar edit modal */}
+            {isCalendarEditModalOpen && calendar && (
+                <CalendarEditModal
+                    isOpen={isCalendarEditModalOpen}
+                    onClose={() => setIsCalendarEditModalOpen(false)}
+                    calendar={calendar}
+                    onCalendarUpdated={fetchCalendar}
+                    onCalendarDeleted={() => router.push(`/${lang}/account`)}
                 />
             )}
         </ProtectedRoute>
