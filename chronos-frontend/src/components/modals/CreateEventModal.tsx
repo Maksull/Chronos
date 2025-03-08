@@ -1,12 +1,12 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useDictionary } from '@/contexts';
 import { X, Calendar as CalendarIcon, Clock } from 'lucide-react';
 import { EventCategory } from '@/types/account';
 
-interface EventModalProps {
+interface CreateEventModalProps {
     isOpen: boolean;
     onClose: () => void;
     calendarId: string;
@@ -14,7 +14,7 @@ interface EventModalProps {
     onEventCreated?: () => void;
 }
 
-export const EventModal: React.FC<EventModalProps> = ({
+export const CreateEventModal: React.FC<CreateEventModalProps> = ({
     isOpen,
     onClose,
     calendarId,
@@ -22,8 +22,7 @@ export const EventModal: React.FC<EventModalProps> = ({
     onEventCreated,
 }) => {
     const router = useRouter();
-    const params = useParams();
-    const { dict, lang } = useDictionary();
+    const { dict } = useDictionary();
 
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
@@ -34,26 +33,33 @@ export const EventModal: React.FC<EventModalProps> = ({
     const [category, setCategory] = useState<EventCategory>(
         EventCategory.ARRANGEMENT,
     );
-    const [startDate, setStartDate] = useState<string>(
-        new Date(
-            date.getFullYear(),
-            date.getMonth(),
-            date.getDate(),
-            date.getHours(),
-        )
-            .toISOString()
-            .slice(0, 16),
-    );
-    const [endDate, setEndDate] = useState<string>(
-        new Date(
-            date.getFullYear(),
-            date.getMonth(),
-            date.getDate(),
-            date.getHours() + 1,
-        )
-            .toISOString()
-            .slice(0, 16),
-    );
+    // Inside CreateEventModal component, update the useState hooks for startDate and endDate:
+
+    const [startDate, setStartDate] = useState<string>(() => {
+        // Format date for datetime-local input using local timezone instead of UTC
+        const d = new Date(date);
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        const hours = String(d.getHours()).padStart(2, '0');
+        const minutes = String(d.getMinutes()).padStart(2, '0');
+
+        return `${year}-${month}-${day}T${hours}:${minutes}`;
+    });
+
+    const [endDate, setEndDate] = useState<string>(() => {
+        // Create a date one hour later and format for datetime-local input
+        const d = new Date(date);
+        d.setHours(d.getHours() + 1);
+
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        const hours = String(d.getHours()).padStart(2, '0');
+        const minutes = String(d.getMinutes()).padStart(2, '0');
+
+        return `${year}-${month}-${day}T${hours}:${minutes}`;
+    });
     const [description, setDescription] = useState('');
     const [color, setColor] = useState('#3B82F6');
 
@@ -168,10 +174,6 @@ export const EventModal: React.FC<EventModalProps> = ({
                                 className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                 {dict.calendar?.eventCategory || 'Category'}*
                             </label>
-                            {/* 
-                Note: We use uppercase enum values (EventCategory.ARRANGEMENT) to match 
-                what the backend API expects ('ARRANGEMENT')
-              */}
                             <select
                                 id="event-category"
                                 required

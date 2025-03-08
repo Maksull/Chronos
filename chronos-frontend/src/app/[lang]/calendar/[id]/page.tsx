@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useDictionary } from '@/contexts';
-import { CalendarView, ProtectedRoute } from '@/components';
+import { CalendarView, CreateEventModal, ProtectedRoute } from '@/components';
 import { CalendarData } from '@/types/account';
 import {
     ChevronLeft,
@@ -13,7 +13,6 @@ import {
     Calendar,
 } from 'lucide-react';
 import Link from 'next/link';
-import { EventModal } from '@/components/event/EventModal';
 
 export default function CalendarPage() {
     const params = useParams();
@@ -341,7 +340,7 @@ export default function CalendarPage() {
 
             {/* Event creation modal */}
             {isEventModalOpen && (
-                <EventModal
+                <CreateEventModal
                     isOpen={isEventModalOpen}
                     onClose={() => setIsEventModalOpen(false)}
                     calendarId={calendarId}

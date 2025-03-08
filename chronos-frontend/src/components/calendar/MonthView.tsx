@@ -241,9 +241,26 @@ export const MonthView: React.FC<MonthViewProps> = ({
                                 return (
                                     <div
                                         key={dayIndex}
+                                        onClick={() => {
+                                            if (
+                                                day.inCurrentMonth &&
+                                                onAddEvent
+                                            ) {
+                                                // Set time to 9:00 AM when creating from month view
+                                                const newDate = new Date(
+                                                    day.date,
+                                                );
+                                                newDate.setHours(9, 0, 0, 0);
+                                                onAddEvent(newDate);
+                                            }
+                                        }}
                                         className={`
                                             p-1 border dark:border-gray-700 rounded-md transition-all
-                                            ${day.inCurrentMonth ? 'bg-white dark:bg-gray-800 hover:shadow-md' : 'bg-gray-50 dark:bg-gray-700/50 text-gray-400 dark:text-gray-500'}
+                                            ${
+                                                day.inCurrentMonth
+                                                    ? 'bg-white dark:bg-gray-800 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 hover:shadow-md cursor-pointer active:bg-indigo-100 dark:active:bg-indigo-900/30'
+                                                    : 'bg-gray-50 dark:bg-gray-700/50 text-gray-400 dark:text-gray-500'
+                                            }
                                             ${day.isToday ? 'ring-2 ring-indigo-500 dark:ring-indigo-400' : 'hover:border-gray-300 dark:hover:border-gray-600'}
                                         `}>
                                         <div
@@ -262,7 +279,8 @@ export const MonthView: React.FC<MonthViewProps> = ({
 
                                             {day.inCurrentMonth && (
                                                 <button
-                                                    onClick={() => {
+                                                    onClick={e => {
+                                                        e.stopPropagation(); // Prevent triggering parent onClick
                                                         if (onAddEvent) {
                                                             // Set time to 9:00 AM when creating from month view
                                                             const newDate =
@@ -278,7 +296,7 @@ export const MonthView: React.FC<MonthViewProps> = ({
                                                             onAddEvent(newDate);
                                                         }
                                                     }}
-                                                    className="opacity-0 hover:opacity-100 text-gray-400 hover:text-indigo-500 dark:text-gray-500 dark:hover:text-indigo-400 w-5 h-5 flex items-center justify-center">
+                                                    className="opacity-0 group-hover:opacity-100 hover:opacity-100 text-gray-400 hover:text-indigo-500 dark:text-gray-500 dark:hover:text-indigo-400 w-5 h-5 flex items-center justify-center">
                                                     <Plus className="w-4 h-4" />
                                                 </button>
                                             )}
@@ -301,7 +319,11 @@ export const MonthView: React.FC<MonthViewProps> = ({
                                                                 backgroundColor: `${event.color}20`,
                                                                 borderLeft: `3px solid ${event.color}`,
                                                                 color: event.color,
-                                                            }}>
+                                                            }}
+                                                            onClick={e =>
+                                                                e.stopPropagation()
+                                                            } // Prevent triggering parent onClick
+                                                        >
                                                             {new Date(
                                                                 event.startDate,
                                                             ).toLocaleTimeString(
@@ -316,29 +338,46 @@ export const MonthView: React.FC<MonthViewProps> = ({
                                                     ))}
 
                                             {hasMoreEvents && !isExpanded && (
-                                                <button
-                                                    onClick={() =>
-                                                        toggleExpandRow(
-                                                            rowIndex,
-                                                        )
-                                                    }
-                                                    className="flex items-center text-xs text-gray-500 dark:text-gray-400 pl-2 hover:text-indigo-500 dark:hover:text-indigo-400 transition-colors">
-                                                    <ChevronDown className="w-3 h-3 mr-1" />
-                                                    +{dayEvents.length - 3} more
-                                                </button>
+                                                <div
+                                                    className="mt-2 p-1 -mx-1 text-center"
+                                                    onClick={e =>
+                                                        e.stopPropagation()
+                                                    } // Create a larger stop-propagation area
+                                                >
+                                                    <button
+                                                        onClick={e => {
+                                                            e.stopPropagation(); // Prevent triggering parent onClick
+                                                            toggleExpandRow(
+                                                                rowIndex,
+                                                            );
+                                                        }}
+                                                        className="w-full py-1 px-2 rounded bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 flex items-center justify-center text-xs text-gray-500 dark:text-gray-400 hover:text-indigo-500 dark:hover:text-indigo-400 transition-colors">
+                                                        <ChevronDown className="w-3 h-3 mr-1" />
+                                                        +{dayEvents.length - 3}{' '}
+                                                        more
+                                                    </button>
+                                                </div>
                                             )}
 
                                             {hasMoreEvents && isExpanded && (
-                                                <button
-                                                    onClick={() =>
-                                                        toggleExpandRow(
-                                                            rowIndex,
-                                                        )
-                                                    }
-                                                    className="flex items-center text-xs text-gray-500 dark:text-gray-400 pl-2 hover:text-indigo-500 dark:hover:text-indigo-400 transition-colors mt-2">
-                                                    <ChevronUp className="w-3 h-3 mr-1" />
-                                                    Show less
-                                                </button>
+                                                <div
+                                                    className="mt-2 p-1 -mx-1 text-center"
+                                                    onClick={e =>
+                                                        e.stopPropagation()
+                                                    } // Create a larger stop-propagation area
+                                                >
+                                                    <button
+                                                        onClick={e => {
+                                                            e.stopPropagation(); // Prevent triggering parent onClick
+                                                            toggleExpandRow(
+                                                                rowIndex,
+                                                            );
+                                                        }}
+                                                        className="w-full py-1 px-2 rounded bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 flex items-center justify-center text-xs text-gray-500 dark:text-gray-400 hover:text-indigo-500 dark:hover:text-indigo-400 transition-colors">
+                                                        <ChevronUp className="w-3 h-3 mr-1" />
+                                                        Show less
+                                                    </button>
+                                                </div>
                                             )}
                                         </div>
                                     </div>
