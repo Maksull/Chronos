@@ -187,7 +187,6 @@ export const DayView: React.FC<DayViewProps> = ({
         <div
             className="calendar-day-view overflow-y-auto max-h-[calc(100vh-240px)]"
             ref={timeGridRef}>
-            {/* Header with date information */}
             <div className="border-b dark:border-gray-700 mb-4 pb-2">
                 <h2
                     className={`text-xl font-semibold ${isToday ? 'text-indigo-600 dark:text-indigo-400' : ''}`}>
@@ -200,9 +199,7 @@ export const DayView: React.FC<DayViewProps> = ({
                 </h2>
             </div>
 
-            {/* Time grid */}
             <div className="grid grid-cols-[100px_1fr] gap-2 relative">
-                {/* Current time indicator */}
                 {isToday && (
                     <div
                         className="absolute left-0 right-0 flex items-center z-10 pointer-events-none"
@@ -219,24 +216,34 @@ export const DayView: React.FC<DayViewProps> = ({
                     </div>
                 )}
 
-                {/* Time slots */}
                 {timeSlots.map((slot, index) => {
                     const hourEvents = getEventsForHour(slot.hour);
-
                     return (
                         <React.Fragment key={index}>
-                            {/* Time label */}
                             <div className="text-xs text-gray-500 dark:text-gray-400 pr-4 text-right py-2 sticky left-0">
                                 {slot.label}
                             </div>
 
                             {/* Event container */}
-                            <div className="relative border dark:border-gray-700 rounded-md min-h-24 bg-white dark:bg-gray-800 hover:shadow-sm transition-shadow">
+                            <div
+                                className="relative border dark:border-gray-700 rounded-md min-h-24 bg-white dark:bg-gray-800 
+                                    hover:shadow-sm transition-shadow hover:bg-indigo-50 dark:hover:bg-indigo-900/20 cursor-pointer 
+                                    active:bg-indigo-100 dark:active:bg-indigo-900/30"
+                                onClick={() => {
+                                    if (onAddEvent) {
+                                        const newDate = new Date(viewDate);
+                                        // Set the hours to the slot's hour (which corresponds to the displayed time)
+                                        newDate.setHours(slot.hour, 0, 0, 0);
+                                        onAddEvent(newDate);
+                                    }
+                                }}>
                                 {/* Add event button */}
                                 <button
-                                    onClick={() => {
+                                    onClick={e => {
+                                        e.stopPropagation(); // Prevent triggering parent onClick
                                         if (onAddEvent) {
                                             const newDate = new Date(viewDate);
+                                            // Set the hours to the slot's hour (which corresponds to the displayed time)
                                             newDate.setHours(
                                                 slot.hour,
                                                 0,
@@ -246,11 +253,13 @@ export const DayView: React.FC<DayViewProps> = ({
                                             onAddEvent(newDate);
                                         }
                                     }}
-                                    className="absolute top-1 right-1 opacity-0 hover:opacity-100 text-gray-400 hover:text-indigo-500 dark:text-gray-500 dark:hover:text-indigo-400 w-6 h-6 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-700">
+                                    className="absolute top-1 right-1 opacity-0 hover:opacity-100 text-gray-400 
+                                        hover:text-indigo-500 dark:text-gray-500 dark:hover:text-indigo-400 
+                                        w-6 h-6 flex items-center justify-center rounded-full 
+                                        hover:bg-gray-100 dark:hover:bg-gray-700 z-10">
                                     <Plus className="w-4 h-4" />
                                 </button>
 
-                                {/* Events */}
                                 <div className="p-2 mt-4 space-y-2">
                                     {!loading &&
                                         hourEvents
@@ -275,7 +284,6 @@ export const DayView: React.FC<DayViewProps> = ({
                                                     hour: '2-digit',
                                                     minute: '2-digit',
                                                 });
-
                                                 return (
                                                     <div
                                                         key={event.id}
@@ -285,7 +293,11 @@ export const DayView: React.FC<DayViewProps> = ({
                                                             borderLeft: `4px solid ${event.color}`,
                                                             color: event.color,
                                                             minHeight: `${Math.min(80, duration / 5)}px`,
-                                                        }}>
+                                                        }}
+                                                        onClick={e =>
+                                                            e.stopPropagation()
+                                                        } // Prevent triggering parent onClick
+                                                    >
                                                         <div className="font-medium">
                                                             {event.name}
                                                         </div>
@@ -297,30 +309,55 @@ export const DayView: React.FC<DayViewProps> = ({
                                                 );
                                             })}
 
-                                    {/* Show more/less button */}
                                     {hourEvents.length > 2 &&
                                         !isHourExpanded(slot.hour) && (
-                                            <button
-                                                onClick={() =>
-                                                    toggleExpandHour(slot.hour)
-                                                }
-                                                className="flex items-center text-xs text-gray-500 dark:text-gray-400 hover:text-indigo-500 dark:hover:text-indigo-400 transition-colors w-full justify-center py-1 mt-1 border border-dashed border-gray-200 dark:border-gray-700 rounded-md">
-                                                <ChevronDown className="w-3 h-3 mr-1" />
-                                                Show {hourEvents.length - 2}{' '}
-                                                more
-                                            </button>
+                                            <div
+                                                className="mx-1 mb-1 mt-2"
+                                                onClick={e =>
+                                                    e.stopPropagation()
+                                                } // Create a larger stop-propagation area
+                                            >
+                                                <button
+                                                    onClick={e => {
+                                                        e.stopPropagation(); // Prevent triggering parent onClick
+                                                        toggleExpandHour(
+                                                            slot.hour,
+                                                        );
+                                                    }}
+                                                    className="w-full py-2 rounded bg-gray-100 dark:bg-gray-700 
+                                                    hover:bg-gray-200 dark:hover:bg-gray-600 flex items-center justify-center 
+                                                    text-xs text-gray-500 dark:text-gray-400 hover:text-indigo-500 
+                                                    dark:hover:text-indigo-400 transition-colors">
+                                                    <ChevronDown className="w-3 h-3 mr-1" />
+                                                    Show {hourEvents.length - 2}{' '}
+                                                    more
+                                                </button>
+                                            </div>
                                         )}
 
                                     {hourEvents.length > 2 &&
                                         isHourExpanded(slot.hour) && (
-                                            <button
-                                                onClick={() =>
-                                                    toggleExpandHour(slot.hour)
-                                                }
-                                                className="flex items-center text-xs text-gray-500 dark:text-gray-400 hover:text-indigo-500 dark:hover:text-indigo-400 transition-colors w-full justify-center py-1 mt-1 border border-dashed border-gray-200 dark:border-gray-700 rounded-md">
-                                                <ChevronUp className="w-3 h-3 mr-1" />
-                                                Show less
-                                            </button>
+                                            <div
+                                                className="mx-1 mb-1 mt-2"
+                                                onClick={e =>
+                                                    e.stopPropagation()
+                                                } // Create a larger stop-propagation area
+                                            >
+                                                <button
+                                                    onClick={e => {
+                                                        e.stopPropagation(); // Prevent triggering parent onClick
+                                                        toggleExpandHour(
+                                                            slot.hour,
+                                                        );
+                                                    }}
+                                                    className="w-full py-2 rounded bg-gray-100 dark:bg-gray-700 
+                                                    hover:bg-gray-200 dark:hover:bg-gray-600 flex items-center justify-center 
+                                                    text-xs text-gray-500 dark:text-gray-400 hover:text-indigo-500 
+                                                    dark:hover:text-indigo-400 transition-colors">
+                                                    <ChevronUp className="w-3 h-3 mr-1" />
+                                                    Show less
+                                                </button>
+                                            </div>
                                         )}
 
                                     {hourEvents.length === 0 && (

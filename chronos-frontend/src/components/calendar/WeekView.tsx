@@ -197,7 +197,6 @@ export const WeekView: React.FC<WeekViewProps> = ({
         <div
             className="calendar-week-view overflow-y-auto max-h-[calc(100vh-240px)]"
             ref={timeGridRef}>
-            {/* Header with day names and dates */}
             <div className="grid grid-cols-8 mb-2 border-b dark:border-gray-700">
                 <div className="p-3 text-center text-sm font-medium text-gray-500 dark:text-gray-400 border-r dark:border-gray-700">
                     Time
@@ -259,18 +258,28 @@ export const WeekView: React.FC<WeekViewProps> = ({
                                 return (
                                     <div
                                         key={dayIndex}
-                                        className={`
-                      p-1 border dark:border-gray-700 rounded-md transition-all relative
-                      ${
-                          day.isToday
-                              ? 'bg-indigo-50/50 dark:bg-indigo-900/10'
-                              : 'bg-white dark:bg-gray-800'
-                      }
-                      hover:shadow-md
-                    `}>
+                                        onClick={() => {
+                                            if (onAddEvent) {
+                                                const newDate = new Date(
+                                                    day.date,
+                                                );
+                                                newDate.setHours(
+                                                    timeSlot.hour,
+                                                    0,
+                                                    0,
+                                                    0,
+                                                );
+                                                onAddEvent(newDate);
+                                            }
+                                        }}
+                                        className={`p-1 border dark:border-gray-700 rounded-md transition-all relative 
+                                            ${day.isToday ? 'bg-indigo-50/50 dark:bg-indigo-900/10' : 'bg-white dark:bg-gray-800'} 
+                                            hover:bg-indigo-50 dark:hover:bg-indigo-900/20 hover:shadow-md cursor-pointer 
+                                            active:bg-indigo-100 dark:active:bg-indigo-900/30`}>
                                         {/* Add event button */}
                                         <button
-                                            onClick={() => {
+                                            onClick={e => {
+                                                e.stopPropagation(); // Prevent triggering parent onClick
                                                 if (onAddEvent) {
                                                     const newDate = new Date(
                                                         day.date,
@@ -306,7 +315,11 @@ export const WeekView: React.FC<WeekViewProps> = ({
                                                                 backgroundColor: `${event.color}20`,
                                                                 borderLeft: `3px solid ${event.color}`,
                                                                 color: event.color,
-                                                            }}>
+                                                            }}
+                                                            onClick={e =>
+                                                                e.stopPropagation()
+                                                            } // Prevent triggering parent onClick
+                                                        >
                                                             {new Date(
                                                                 event.startDate,
                                                             ).toLocaleTimeString(
@@ -321,30 +334,48 @@ export const WeekView: React.FC<WeekViewProps> = ({
                                                     ))}
 
                                             {hasMoreEvents && !isExpanded && (
-                                                <button
-                                                    onClick={() =>
-                                                        toggleExpandHour(
-                                                            timeSlot.hour,
-                                                        )
-                                                    }
-                                                    className="flex items-center text-xs text-gray-500 dark:text-gray-400 pl-2 hover:text-indigo-500 dark:hover:text-indigo-400 transition-colors">
-                                                    <ChevronDown className="w-3 h-3 mr-1" />
-                                                    +{dayHourEvents.length - 2}{' '}
-                                                    more
-                                                </button>
+                                                <div
+                                                    className="mt-2 p-1 -mx-1 text-center"
+                                                    onClick={e =>
+                                                        e.stopPropagation()
+                                                    } // Create a larger stop-propagation area
+                                                >
+                                                    <button
+                                                        onClick={e => {
+                                                            e.stopPropagation(); // Prevent triggering parent onClick
+                                                            toggleExpandHour(
+                                                                timeSlot.hour,
+                                                            );
+                                                        }}
+                                                        className="w-full py-1 px-2 rounded bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 flex items-center justify-center text-xs text-gray-500 dark:text-gray-400 hover:text-indigo-500 dark:hover:text-indigo-400 transition-colors">
+                                                        <ChevronDown className="w-3 h-3 mr-1" />
+                                                        +
+                                                        {dayHourEvents.length -
+                                                            2}{' '}
+                                                        more
+                                                    </button>
+                                                </div>
                                             )}
 
                                             {hasMoreEvents && isExpanded && (
-                                                <button
-                                                    onClick={() =>
-                                                        toggleExpandHour(
-                                                            timeSlot.hour,
-                                                        )
-                                                    }
-                                                    className="flex items-center text-xs text-gray-500 dark:text-gray-400 pl-2 hover:text-indigo-500 dark:hover:text-indigo-400 transition-colors mt-2">
-                                                    <ChevronUp className="w-3 h-3 mr-1" />
-                                                    Show less
-                                                </button>
+                                                <div
+                                                    className="mt-2 p-1 -mx-1 text-center"
+                                                    onClick={e =>
+                                                        e.stopPropagation()
+                                                    } // Create a larger stop-propagation area
+                                                >
+                                                    <button
+                                                        onClick={e => {
+                                                            e.stopPropagation(); // Prevent triggering parent onClick
+                                                            toggleExpandHour(
+                                                                timeSlot.hour,
+                                                            );
+                                                        }}
+                                                        className="w-full py-1 px-2 rounded bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 flex items-center justify-center text-xs text-gray-500 dark:text-gray-400 hover:text-indigo-500 dark:hover:text-indigo-400 transition-colors">
+                                                        <ChevronUp className="w-3 h-3 mr-1" />
+                                                        Show less
+                                                    </button>
+                                                </div>
                                             )}
                                         </div>
                                     </div>
