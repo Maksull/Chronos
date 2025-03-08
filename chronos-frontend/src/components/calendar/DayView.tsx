@@ -9,6 +9,7 @@ interface DayViewProps {
     currentDate: Date;
     dict: Dictionary;
     onAddEvent?: (date: Date) => void;
+    onEventClick?: (event: EventData) => void;
     calendar: CalendarData;
 }
 
@@ -21,8 +22,9 @@ interface TimeSlot {
 export const DayView: React.FC<DayViewProps> = ({
     currentDate,
     dict,
-    onAddEvent,
     calendar,
+    onAddEvent,
+    onEventClick,
 }) => {
     const [events, setEvents] = useState<EventData[]>([]);
     const [loading, setLoading] = useState(false);
@@ -287,17 +289,21 @@ export const DayView: React.FC<DayViewProps> = ({
                                                 return (
                                                     <div
                                                         key={event.id}
-                                                        className="p-2 rounded-md text-sm transition-all hover:shadow-md"
+                                                        className="p-2 rounded-md text-sm transition-all hover:shadow-md cursor-pointer" // Add cursor-pointer
                                                         style={{
                                                             backgroundColor: `${event.color}10`,
                                                             borderLeft: `4px solid ${event.color}`,
                                                             color: event.color,
                                                             minHeight: `${Math.min(80, duration / 5)}px`,
                                                         }}
-                                                        onClick={e =>
-                                                            e.stopPropagation()
-                                                        } // Prevent triggering parent onClick
-                                                    >
+                                                        onClick={e => {
+                                                            e.stopPropagation(); // Prevent triggering parent onClick
+                                                            if (onEventClick) {
+                                                                onEventClick(
+                                                                    event,
+                                                                ); // Call onEventClick with the event
+                                                            }
+                                                        }}>
                                                         <div className="font-medium">
                                                             {event.name}
                                                         </div>

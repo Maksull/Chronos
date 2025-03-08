@@ -9,6 +9,7 @@ interface MonthViewProps {
     currentDate: Date;
     dict: Dictionary;
     onAddEvent?: (date: Date) => void;
+    onEventClick?: (event: EventData) => void;
     calendar: CalendarData;
 }
 
@@ -25,6 +26,7 @@ export const MonthView: React.FC<MonthViewProps> = ({
     dict,
     onAddEvent,
     calendar,
+    onEventClick,
 }) => {
     const [events, setEvents] = useState<EventData[]>([]);
     const [loading, setLoading] = useState(false);
@@ -314,16 +316,22 @@ export const MonthView: React.FC<MonthViewProps> = ({
                                                     .map(event => (
                                                         <div
                                                             key={event.id}
-                                                            className="px-2 py-1 rounded-sm text-xs truncate"
+                                                            className="px-2 py-1 rounded-sm text-xs truncate cursor-pointer hover:brightness-90" // Add cursor-pointer and hover effect
                                                             style={{
                                                                 backgroundColor: `${event.color}20`,
                                                                 borderLeft: `3px solid ${event.color}`,
                                                                 color: event.color,
                                                             }}
-                                                            onClick={e =>
-                                                                e.stopPropagation()
-                                                            } // Prevent triggering parent onClick
-                                                        >
+                                                            onClick={e => {
+                                                                e.stopPropagation(); // Prevent triggering parent onClick
+                                                                if (
+                                                                    onEventClick
+                                                                ) {
+                                                                    onEventClick(
+                                                                        event,
+                                                                    ); // Call onEventClick with the event
+                                                                }
+                                                            }}>
                                                             {new Date(
                                                                 event.startDate,
                                                             ).toLocaleTimeString(

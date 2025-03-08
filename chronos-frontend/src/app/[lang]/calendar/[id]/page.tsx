@@ -3,8 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useDictionary } from '@/contexts';
-import { CalendarView, CreateEventModal, ProtectedRoute } from '@/components';
-import { CalendarData } from '@/types/account';
+import { CalendarView, EventModal, ProtectedRoute } from '@/components';
+import { CalendarData, EventData } from '@/types/account';
 import {
     ChevronLeft,
     ChevronRight,
@@ -29,6 +29,12 @@ export default function CalendarPage() {
     // Event modal state
     const [isEventModalOpen, setIsEventModalOpen] = useState(false);
     const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+    const [selectedEvent, setSelectedEvent] = useState<EventData | undefined>(
+        undefined,
+    );
+    const [modalMode, setModalMode] = useState<'create' | 'view' | 'edit'>(
+        'create',
+    );
 
     useEffect(() => {
         fetchCalendar();
@@ -99,7 +105,14 @@ export default function CalendarPage() {
 
     // Handle opening event modal
     const handleAddEvent = (date?: Date) => {
+        setSelectedEvent(undefined);
+        setModalMode('create');
         setSelectedDate(date || currentDate);
+        setIsEventModalOpen(true);
+    };
+    const handleEventClick = (event: EventData) => {
+        setSelectedEvent(event);
+        setModalMode('view');
         setIsEventModalOpen(true);
     };
 
@@ -332,6 +345,7 @@ export default function CalendarPage() {
                                 dict={dict}
                                 lang={lang}
                                 onAddEvent={handleAddEvent}
+                                onEventClick={handleEventClick}
                             />
                         </div>
                     </div>
@@ -340,12 +354,16 @@ export default function CalendarPage() {
 
             {/* Event creation modal */}
             {isEventModalOpen && (
-                <CreateEventModal
+                <EventModal
                     isOpen={isEventModalOpen}
                     onClose={() => setIsEventModalOpen(false)}
                     calendarId={calendarId}
+                    mode={modalMode}
                     date={selectedDate}
+                    event={selectedEvent}
                     onEventCreated={fetchCalendar}
+                    onEventUpdated={fetchCalendar}
+                    onEventDeleted={fetchCalendar}
                 />
             )}
         </ProtectedRoute>

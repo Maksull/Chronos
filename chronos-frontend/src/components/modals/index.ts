@@ -1,1 +1,1 @@
-export * from './CreateEventModal';
+export * from './EventModal';

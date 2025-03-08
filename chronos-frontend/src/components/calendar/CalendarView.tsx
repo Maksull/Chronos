@@ -1,5 +1,5 @@
 import React from 'react';
-import { CalendarData } from '@/types/account';
+import { CalendarData, EventData } from '@/types/account';
 import { Dictionary } from '@/lib/dictionary';
 import { Locale } from '@/middleware';
 import { DayView, MonthView, WeekView } from '.';
@@ -11,6 +11,7 @@ interface CalendarViewProps {
     dict: Dictionary;
     lang: Locale;
     onAddEvent?: (date: Date) => void;
+    onEventClick?: (event: EventData) => void;
 }
 
 export const CalendarView: React.FC<CalendarViewProps> = ({
@@ -20,6 +21,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     dict,
     lang,
     onAddEvent,
+    onEventClick,
 }) => {
     if (!calendar) {
         return (
@@ -39,6 +41,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                     currentDate={currentDate}
                     dict={dict}
                     onAddEvent={onAddEvent}
+                    onEventClick={onEventClick}
                     calendar={calendar}
                 />
             );
@@ -49,6 +52,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                     dict={dict}
                     lang={lang}
                     onAddEvent={onAddEvent}
+                    onEventClick={onEventClick}
                     calendar={calendar}
                 />
             );
@@ -59,6 +63,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                     dict={dict}
                     lang={lang}
                     onAddEvent={onAddEvent}
+                    onEventClick={onEventClick}
                     calendar={calendar}
                 />
             );
@@ -68,6 +73,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                     currentDate={currentDate}
                     dict={dict}
                     onAddEvent={onAddEvent}
+                    onEventClick={onEventClick}
                     calendar={calendar}
                 />
             );
