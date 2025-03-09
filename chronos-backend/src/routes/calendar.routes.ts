@@ -21,6 +21,12 @@ interface CalendarEventsQuery {
     endDate?: string;
 }
 
+interface UpdateCalendarBody {
+    name?: string;
+    description?: string;
+    color?: string;
+}
+
 const createCalendarSchema = {
     body: {
         type: 'object',
@@ -87,6 +93,24 @@ const getCalendarEventsSchema = {
     },
 } as const;
 
+const updateCalendarSchema = {
+    params: {
+        type: 'object',
+        required: ['id'],
+        properties: {
+            id: { type: 'string', format: 'uuid' },
+        },
+    },
+    body: {
+        type: 'object',
+        properties: {
+            name: { type: 'string' },
+            description: { type: 'string', nullable: true },
+            color: { type: 'string', pattern: '^#[0-9a-fA-F]{6}$' },
+        },
+    },
+} as const;
+
 export async function calendarRoutes(app: FastifyInstance) {
     const calendarController = new CalendarController();
 
@@ -112,6 +136,15 @@ export async function calendarRoutes(app: FastifyInstance) {
         '/calendars',
         { schema: createCalendarSchema, preHandler: [authenticateToken] },
         calendarController.createCalendar.bind(calendarController),
+    );
+
+    app.put<{ Params: CalendarParams; Body: UpdateCalendarBody }>(
+        '/calendars/:id',
+        {
+            schema: updateCalendarSchema,
+            preHandler: [authenticateToken],
+        },
+        calendarController.updateCalendar.bind(calendarController),
     );
 
     // Toggle calendar visibility

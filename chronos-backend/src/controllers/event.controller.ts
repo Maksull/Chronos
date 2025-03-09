@@ -52,7 +52,7 @@ export class EventController {
 
     async updateEvent(
         request: FastifyRequest<{
-            Params: { id: string };
+            Params: { id?: string; calendarId?: string };
             Body: {
                 name?: string;
                 category?: EventCategory;
@@ -67,12 +67,18 @@ export class EventController {
         reply: FastifyReply,
     ) {
         try {
-            const { id } = request.params;
+            // Extract the event ID from either the nested or direct route format
+            const eventId = request.params.id;
 
-            // Create a new object with the proper types for UpdateEventDto
+            if (!eventId) {
+                return reply.status(400).send({
+                    status: 'error',
+                    message: 'Event ID is required',
+                });
+            }
+
             const updateData: UpdateEventDto = {};
 
-            // Copy basic properties
             if (request.body.name !== undefined) updateData.name = request.body.name;
             if (request.body.category !== undefined) updateData.category = request.body.category;
             if (request.body.description !== undefined) updateData.description = request.body.description;
@@ -80,7 +86,6 @@ export class EventController {
             if (request.body.isCompleted !== undefined) updateData.isCompleted = request.body.isCompleted;
             if (request.body.invitees !== undefined) updateData.invitees = request.body.invitees;
 
-            // Convert dates
             if (request.body.startDate) {
                 updateData.startDate = new Date(request.body.startDate);
             }
@@ -89,39 +94,78 @@ export class EventController {
                 updateData.endDate = new Date(request.body.endDate);
             }
 
-            const event = await this.eventService.updateEvent(request.user!.userId, id, updateData);
+            const event = await this.eventService.updateEvent(request.user!.userId, eventId, updateData);
 
-            return reply.send({ status: 'success', data: event });
+            return reply.send({
+                status: 'success',
+                data: event,
+            });
         } catch (error) {
             if (error instanceof Error) {
                 if (error.message === 'Event not found') {
-                    return reply.status(404).send({ status: 'error', message: error.message });
+                    return reply.status(404).send({
+                        status: 'error',
+                        message: error.message,
+                    });
                 }
                 if (error.message === 'Not authorized') {
-                    return reply.status(403).send({ status: 'error', message: error.message });
+                    return reply.status(403).send({
+                        status: 'error',
+                        message: error.message,
+                    });
                 }
             }
             request.log.error(error);
-            return reply.status(500).send({ status: 'error', message: 'Internal server error' });
+            return reply.status(500).send({
+                status: 'error',
+                message: 'Internal server error',
+            });
         }
     }
 
-    async deleteEvent(request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) {
+    async deleteEvent(
+        request: FastifyRequest<{
+            Params: { id?: string; calendarId?: string };
+        }>,
+        reply: FastifyReply,
+    ) {
         try {
-            const { id } = request.params;
-            await this.eventService.deleteEvent(request.user!.userId, id);
-            return reply.send({ status: 'success', message: 'Event deleted successfully' });
+            // Extract the event ID from either the nested or direct route format
+            const eventId = request.params.id;
+
+            if (!eventId) {
+                return reply.status(400).send({
+                    status: 'error',
+                    message: 'Event ID is required',
+                });
+            }
+
+            await this.eventService.deleteEvent(request.user!.userId, eventId);
+
+            return reply.send({
+                status: 'success',
+                message: 'Event deleted successfully',
+            });
         } catch (error) {
             if (error instanceof Error) {
                 if (error.message === 'Event not found') {
-                    return reply.status(404).send({ status: 'error', message: error.message });
+                    return reply.status(404).send({
+                        status: 'error',
+                        message: error.message,
+                    });
                 }
                 if (error.message === 'Not authorized') {
-                    return reply.status(403).send({ status: 'error', message: error.message });
+                    return reply.status(403).send({
+                        status: 'error',
+                        message: error.message,
+                    });
                 }
             }
             request.log.error(error);
-            return reply.status(500).send({ status: 'error', message: 'Internal server error' });
+            return reply.status(500).send({
+                status: 'error',
+                message: 'Internal server error',
+            });
         }
     }
 }

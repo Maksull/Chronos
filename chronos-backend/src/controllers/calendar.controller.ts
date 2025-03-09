@@ -25,6 +25,46 @@ export class CalendarController {
         }
     }
 
+    async updateCalendar(
+        request: FastifyRequest<{
+            Params: { id: string };
+            Body: { name?: string; description?: string; color?: string };
+        }>,
+        reply: FastifyReply,
+    ) {
+        try {
+            const { id } = request.params;
+            const updateData = request.body;
+
+            const calendar = await this.calendarService.updateCalendar(request.user!.userId, id, updateData);
+
+            return reply.send({
+                status: 'success',
+                data: calendar,
+            });
+        } catch (error) {
+            if (error instanceof Error) {
+                if (error.message === 'Calendar not found') {
+                    return reply.status(404).send({
+                        status: 'error',
+                        message: error.message,
+                    });
+                }
+                if (error.message === 'Not authorized') {
+                    return reply.status(403).send({
+                        status: 'error',
+                        message: error.message,
+                    });
+                }
+            }
+            request.log.error(error);
+            return reply.status(500).send({
+                status: 'error',
+                message: 'Internal server error',
+            });
+        }
+    }
+
     async getUserCalendars(request: FastifyRequest, reply: FastifyReply) {
         try {
             const calendars = await this.calendarService.getUserCalendars(request.user!.userId);

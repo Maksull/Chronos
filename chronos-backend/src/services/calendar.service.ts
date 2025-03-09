@@ -7,6 +7,12 @@ interface CreateCalendarDto {
     color: string;
 }
 
+interface UpdateCalendarDto {
+    name?: string;
+    description?: string;
+    color?: string;
+}
+
 export class CalendarService {
     private calendarRepository = AppDataSource.getRepository(Calendar);
     private userRepository = AppDataSource.getRepository(User);
@@ -24,6 +30,28 @@ export class CalendarService {
             isHoliday: false,
             isVisible: true,
         });
+
+        return this.calendarRepository.save(calendar);
+    }
+
+    async updateCalendar(userId: string, calendarId: string, data: UpdateCalendarDto): Promise<Calendar> {
+        const calendar = await this.calendarRepository.findOne({
+            where: { id: calendarId },
+            relations: ['owner'],
+        });
+
+        if (!calendar) {
+            throw new Error('Calendar not found');
+        }
+
+        if (calendar.owner.id !== userId) {
+            throw new Error('Not authorized');
+        }
+
+        // Update only the fields that are provided
+        if (data.name !== undefined) calendar.name = data.name;
+        if (data.description !== undefined) calendar.description = data.description;
+        if (data.color !== undefined) calendar.color = data.color;
 
         return this.calendarRepository.save(calendar);
     }
