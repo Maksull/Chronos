@@ -7,6 +7,11 @@ interface EventParams {
     id: string;
 }
 
+interface CalendarEventParams {
+    calendarId: string;
+    id: string;
+}
+
 interface CalendarParams {
     calendarId: string;
 }
@@ -110,6 +115,45 @@ const deleteEventSchema = {
     },
 } as const;
 
+const updateCalendarEventSchema = {
+    params: {
+        type: 'object',
+        required: ['calendarId', 'id'],
+        properties: {
+            calendarId: { type: 'string', format: 'uuid' },
+            id: { type: 'string', format: 'uuid' },
+        },
+    },
+    body: {
+        type: 'object',
+        properties: {
+            name: { type: 'string' },
+            category: { type: 'string', enum: ['ARRANGEMENT', 'REMINDER', 'TASK'] },
+            startDate: { type: 'string', format: 'date-time' },
+            endDate: { type: 'string', format: 'date-time' },
+            description: { type: 'string', nullable: true },
+            color: { type: 'string', pattern: '^#[0-9a-fA-F]{6}$', nullable: true },
+            isCompleted: { type: 'boolean' },
+            invitees: {
+                type: 'array',
+                items: { type: 'string', format: 'uuid' },
+                nullable: true,
+            },
+        },
+    },
+} as const;
+
+const deleteCalendarEventSchema = {
+    params: {
+        type: 'object',
+        required: ['calendarId', 'id'],
+        properties: {
+            calendarId: { type: 'string', format: 'uuid' },
+            id: { type: 'string', format: 'uuid' },
+        },
+    },
+} as const;
+
 export async function eventRoutes(app: FastifyInstance) {
     const eventController = new EventController();
 
@@ -127,10 +171,28 @@ export async function eventRoutes(app: FastifyInstance) {
         eventController.updateEvent.bind(eventController),
     );
 
+    app.put<{ Params: CalendarEventParams; Body: UpdateEventBody }>(
+        '/calendars/:calendarId/events/:id',
+        {
+            schema: updateCalendarEventSchema,
+            preHandler: [authenticateToken],
+        },
+        eventController.updateEvent.bind(eventController),
+    );
+
     // Delete an event
     app.delete<{ Params: EventParams }>(
         '/events/:id',
         { schema: deleteEventSchema, preHandler: [authenticateToken] },
+        eventController.deleteEvent.bind(eventController),
+    );
+
+    app.delete<{ Params: CalendarEventParams }>(
+        '/calendars/:calendarId/events/:id',
+        {
+            schema: deleteCalendarEventSchema,
+            preHandler: [authenticateToken],
+        },
         eventController.deleteEvent.bind(eventController),
     );
 }

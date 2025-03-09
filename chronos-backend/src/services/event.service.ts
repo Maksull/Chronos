@@ -112,17 +112,16 @@ export class EventService {
     }
 
     async updateEvent(userId: string, eventId: string, data: UpdateEventDto): Promise<Event> {
-        // Find event with relations
+        // Add calendar.owner to the relations array to ensure it's loaded
         const event = await this.eventRepository.findOne({
             where: { id: eventId },
-            relations: ['calendar', 'creator', 'invitees'],
+            relations: ['calendar', 'calendar.owner', 'creator', 'invitees'],
         });
 
         if (!event) {
             throw new Error('Event not found');
         }
 
-        // Check if user is creator or calendar owner
         const isCreator = event.creator.id === userId;
         const isCalendarOwner = event.calendar.owner.id === userId;
 
@@ -130,13 +129,13 @@ export class EventService {
             throw new Error('Not authorized');
         }
 
-        // Update invitees if provided
         if (data.invitees) {
-            const invitees = await this.userRepository.findBy({ id: { $in: data.invitees } as any });
+            const invitees = await this.userRepository.findBy({
+                id: { $in: data.invitees } as any,
+            });
             event.invitees = invitees;
         }
 
-        // Update other fields
         Object.assign(event, {
             name: data.name ?? event.name,
             category: data.category ?? event.category,
@@ -151,17 +150,16 @@ export class EventService {
     }
 
     async deleteEvent(userId: string, eventId: string): Promise<void> {
-        // Find event with relations
+        // Add calendar.owner to the relations array to ensure it's loaded
         const event = await this.eventRepository.findOne({
             where: { id: eventId },
-            relations: ['calendar', 'creator'],
+            relations: ['calendar', 'calendar.owner', 'creator'],
         });
 
         if (!event) {
             throw new Error('Event not found');
         }
 
-        // Check if user is creator or calendar owner
         const isCreator = event.creator.id === userId;
         const isCalendarOwner = event.calendar.owner.id === userId;
 
