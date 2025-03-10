@@ -1,4 +1,3 @@
-// src/components/account/CalendarItem.tsx
 import React from 'react';
 import { Eye, EyeOff, Globe, Trash2 } from 'lucide-react';
 import { CalendarData } from '@/types/account';
@@ -8,7 +7,7 @@ import Link from 'next/link';
 interface CalendarItemProps {
     calendar: CalendarData;
     onToggleVisibility: (id: string, isVisible: boolean) => Promise<void>;
-    onDelete: (id: string) => Promise<void>;
+    onDelete: (calendar: CalendarData) => void;
     dict: Dictionary;
 }
 
@@ -21,9 +20,7 @@ export const CalendarItem: React.FC<CalendarItemProps> = ({
     return (
         <div
             className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/30 rounded-xl transition-all hover:shadow-sm"
-            style={{
-                borderLeft: `4px solid ${calendar.color}`,
-            }}>
+            style={{ borderLeft: `4px solid ${calendar.color}` }}>
             <Link
                 href={`/calendar/${calendar.id}`}
                 className="flex-1 cursor-pointer hover:opacity-80 transition-opacity">
@@ -51,7 +48,6 @@ export const CalendarItem: React.FC<CalendarItemProps> = ({
                     </p>
                 )}
             </Link>
-
             <div className="flex items-center gap-3">
                 <button
                     onClick={e => {
@@ -72,13 +68,12 @@ export const CalendarItem: React.FC<CalendarItemProps> = ({
                         <EyeOff className="h-5 w-5" />
                     )}
                 </button>
-
                 {!calendar.isMain && !calendar.isHoliday && (
                     <button
                         onClick={e => {
                             e.preventDefault();
                             e.stopPropagation();
-                            onDelete(calendar.id);
+                            onDelete(calendar);
                         }}
                         className="text-red-400 hover:text-red-600 dark:hover:text-red-300 transition-colors"
                         title={dict.account.calendars.delete}>
