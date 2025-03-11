@@ -1,6 +1,5 @@
 import { FastifyInstance } from 'fastify';
 import { authenticateToken } from '@/middlewares/auth.middleware';
-import { EventCategory } from '@/entities';
 import { EventController } from '@/controllers';
 
 interface EventParams {
@@ -18,7 +17,7 @@ interface CalendarParams {
 
 interface CreateEventBody {
     name: string;
-    category: EventCategory;
+    categoryId: string;
     startDate: string;
     endDate: string;
     description?: string;
@@ -28,7 +27,7 @@ interface CreateEventBody {
 
 interface UpdateEventBody {
     name?: string;
-    category?: EventCategory;
+    categoryId?: string;
     startDate?: string;
     endDate?: string;
     description?: string;
@@ -47,26 +46,15 @@ const createEventSchema = {
     },
     body: {
         type: 'object',
-        required: ['name', 'category', 'startDate', 'endDate'],
+        required: ['name', 'categoryId', 'startDate', 'endDate'],
         properties: {
             name: { type: 'string' },
-            category: {
-                type: 'string',
-                enum: ['ARRANGEMENT', 'REMINDER', 'TASK'],
-            },
+            categoryId: { type: 'string', format: 'uuid' },
             startDate: { type: 'string', format: 'date-time' },
             endDate: { type: 'string', format: 'date-time' },
             description: { type: 'string', nullable: true },
-            color: {
-                type: 'string',
-                pattern: '^#[0-9a-fA-F]{6}$',
-                nullable: true,
-            },
-            invitees: {
-                type: 'array',
-                items: { type: 'string', format: 'uuid' },
-                nullable: true,
-            },
+            color: { type: 'string', pattern: '^#[0-9a-fA-F]{6}$', nullable: true },
+            invitees: { type: 'array', items: { type: 'string', format: 'uuid' }, nullable: true },
         },
     },
 } as const;
@@ -83,24 +71,13 @@ const updateEventSchema = {
         type: 'object',
         properties: {
             name: { type: 'string' },
-            category: {
-                type: 'string',
-                enum: ['ARRANGEMENT', 'REMINDER', 'TASK'],
-            },
+            categoryId: { type: 'string', format: 'uuid' },
             startDate: { type: 'string', format: 'date-time' },
             endDate: { type: 'string', format: 'date-time' },
             description: { type: 'string', nullable: true },
-            color: {
-                type: 'string',
-                pattern: '^#[0-9a-fA-F]{6}$',
-                nullable: true,
-            },
+            color: { type: 'string', pattern: '^#[0-9a-fA-F]{6}$', nullable: true },
             isCompleted: { type: 'boolean' },
-            invitees: {
-                type: 'array',
-                items: { type: 'string', format: 'uuid' },
-                nullable: true,
-            },
+            invitees: { type: 'array', items: { type: 'string', format: 'uuid' }, nullable: true },
         },
     },
 } as const;
@@ -128,17 +105,13 @@ const updateCalendarEventSchema = {
         type: 'object',
         properties: {
             name: { type: 'string' },
-            category: { type: 'string', enum: ['ARRANGEMENT', 'REMINDER', 'TASK'] },
+            categoryId: { type: 'string', format: 'uuid' },
             startDate: { type: 'string', format: 'date-time' },
             endDate: { type: 'string', format: 'date-time' },
             description: { type: 'string', nullable: true },
             color: { type: 'string', pattern: '^#[0-9a-fA-F]{6}$', nullable: true },
             isCompleted: { type: 'boolean' },
-            invitees: {
-                type: 'array',
-                items: { type: 'string', format: 'uuid' },
-                nullable: true,
-            },
+            invitees: { type: 'array', items: { type: 'string', format: 'uuid' }, nullable: true },
         },
     },
 } as const;
@@ -157,17 +130,21 @@ const deleteCalendarEventSchema = {
 export async function eventRoutes(app: FastifyInstance) {
     const eventController = new EventController();
 
-    // Create a new event for a calendar
     app.post<{ Params: CalendarParams; Body: CreateEventBody }>(
         '/calendars/:calendarId/events',
-        { schema: createEventSchema, preHandler: [authenticateToken] },
+        {
+            schema: createEventSchema,
+            preHandler: [authenticateToken],
+        },
         eventController.createEvent.bind(eventController),
     );
 
-    // Update an event
     app.put<{ Params: EventParams; Body: UpdateEventBody }>(
         '/events/:id',
-        { schema: updateEventSchema, preHandler: [authenticateToken] },
+        {
+            schema: updateEventSchema,
+            preHandler: [authenticateToken],
+        },
         eventController.updateEvent.bind(eventController),
     );
 
@@ -180,10 +157,12 @@ export async function eventRoutes(app: FastifyInstance) {
         eventController.updateEvent.bind(eventController),
     );
 
-    // Delete an event
     app.delete<{ Params: EventParams }>(
         '/events/:id',
-        { schema: deleteEventSchema, preHandler: [authenticateToken] },
+        {
+            schema: deleteEventSchema,
+            preHandler: [authenticateToken],
+        },
         eventController.deleteEvent.bind(eventController),
     );
 

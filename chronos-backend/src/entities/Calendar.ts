@@ -1,5 +1,5 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, OneToMany, ManyToMany, JoinColumn } from 'typeorm';
-import { User, Event } from '.';
+import { User, Event, EventCategory } from '.';
 
 @Entity('calendars')
 export class Calendar {
@@ -33,6 +33,9 @@ export class Calendar {
 
     @OneToMany(() => Event, event => event.calendar)
     events!: Event[];
+
+    @OneToMany(() => EventCategory, category => category.calendar)
+    categories!: EventCategory[];
 
     @CreateDateColumn()
     createdAt!: Date;

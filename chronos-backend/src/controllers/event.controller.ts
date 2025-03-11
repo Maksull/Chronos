@@ -1,5 +1,4 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
-import { EventCategory } from '@/entities';
 import { EventService } from '@/services';
 import { UpdateEventDto } from '@/services/event.service';
 
@@ -15,7 +14,7 @@ export class EventController {
             Params: { calendarId: string };
             Body: {
                 name: string;
-                category: EventCategory;
+                categoryId: string;
                 startDate: string;
                 endDate: string;
                 description?: string;
@@ -38,7 +37,7 @@ export class EventController {
             return reply.status(201).send({ status: 'success', data: event });
         } catch (error) {
             if (error instanceof Error) {
-                if (error.message === 'Calendar not found' || error.message === 'User not found') {
+                if (error.message === 'Calendar not found' || error.message === 'User not found' || error.message === 'Category not found') {
                     return reply.status(404).send({ status: 'error', message: error.message });
                 }
                 if (error.message === 'Not authorized') {
@@ -55,7 +54,7 @@ export class EventController {
             Params: { id?: string; calendarId?: string };
             Body: {
                 name?: string;
-                category?: EventCategory;
+                categoryId?: string;
                 startDate?: string;
                 endDate?: string;
                 description?: string;
@@ -67,20 +66,14 @@ export class EventController {
         reply: FastifyReply,
     ) {
         try {
-            // Extract the event ID from either the nested or direct route format
             const eventId = request.params.id;
-
             if (!eventId) {
-                return reply.status(400).send({
-                    status: 'error',
-                    message: 'Event ID is required',
-                });
+                return reply.status(400).send({ status: 'error', message: 'Event ID is required' });
             }
 
             const updateData: UpdateEventDto = {};
-
             if (request.body.name !== undefined) updateData.name = request.body.name;
-            if (request.body.category !== undefined) updateData.category = request.body.category;
+            if (request.body.categoryId !== undefined) updateData.categoryId = request.body.categoryId;
             if (request.body.description !== undefined) updateData.description = request.body.description;
             if (request.body.color !== undefined) updateData.color = request.body.color;
             if (request.body.isCompleted !== undefined) updateData.isCompleted = request.body.isCompleted;
@@ -89,83 +82,47 @@ export class EventController {
             if (request.body.startDate) {
                 updateData.startDate = new Date(request.body.startDate);
             }
-
             if (request.body.endDate) {
                 updateData.endDate = new Date(request.body.endDate);
             }
 
             const event = await this.eventService.updateEvent(request.user!.userId, eventId, updateData);
 
-            return reply.send({
-                status: 'success',
-                data: event,
-            });
+            return reply.send({ status: 'success', data: event });
         } catch (error) {
             if (error instanceof Error) {
-                if (error.message === 'Event not found') {
-                    return reply.status(404).send({
-                        status: 'error',
-                        message: error.message,
-                    });
+                if (error.message === 'Event not found' || error.message === 'Category not found') {
+                    return reply.status(404).send({ status: 'error', message: error.message });
                 }
                 if (error.message === 'Not authorized') {
-                    return reply.status(403).send({
-                        status: 'error',
-                        message: error.message,
-                    });
+                    return reply.status(403).send({ status: 'error', message: error.message });
                 }
             }
             request.log.error(error);
-            return reply.status(500).send({
-                status: 'error',
-                message: 'Internal server error',
-            });
+            return reply.status(500).send({ status: 'error', message: 'Internal server error' });
         }
     }
 
-    async deleteEvent(
-        request: FastifyRequest<{
-            Params: { id?: string; calendarId?: string };
-        }>,
-        reply: FastifyReply,
-    ) {
+    async deleteEvent(request: FastifyRequest<{ Params: { id?: string; calendarId?: string } }>, reply: FastifyReply) {
         try {
-            // Extract the event ID from either the nested or direct route format
             const eventId = request.params.id;
-
             if (!eventId) {
-                return reply.status(400).send({
-                    status: 'error',
-                    message: 'Event ID is required',
-                });
+                return reply.status(400).send({ status: 'error', message: 'Event ID is required' });
             }
 
             await this.eventService.deleteEvent(request.user!.userId, eventId);
-
-            return reply.send({
-                status: 'success',
-                message: 'Event deleted successfully',
-            });
+            return reply.send({ status: 'success', message: 'Event deleted successfully' });
         } catch (error) {
             if (error instanceof Error) {
                 if (error.message === 'Event not found') {
-                    return reply.status(404).send({
-                        status: 'error',
-                        message: error.message,
-                    });
+                    return reply.status(404).send({ status: 'error', message: error.message });
                 }
                 if (error.message === 'Not authorized') {
-                    return reply.status(403).send({
-                        status: 'error',
-                        message: error.message,
-                    });
+                    return reply.status(403).send({ status: 'error', message: error.message });
                 }
             }
             request.log.error(error);
-            return reply.status(500).send({
-                status: 'error',
-                message: 'Internal server error',
-            });
+            return reply.status(500).send({ status: 'error', message: 'Internal server error' });
         }
     }
 }

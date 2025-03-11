@@ -1,11 +1,5 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, ManyToMany, JoinTable, JoinColumn } from 'typeorm';
-import { Calendar, User } from '.';
-
-export enum EventCategory {
-    ARRANGEMENT = 'ARRANGEMENT',
-    REMINDER = 'REMINDER',
-    TASK = 'TASK',
-}
+import { Calendar, User, EventCategory } from '.';
 
 @Entity('events')
 export class Event {
@@ -15,7 +9,8 @@ export class Event {
     @Column({ type: 'varchar' })
     name!: string;
 
-    @Column({ type: 'enum', enum: EventCategory })
+    @ManyToOne(() => EventCategory, category => category.events)
+    @JoinColumn({ name: 'category_id' })
     category!: EventCategory;
 
     @Column({ type: 'timestamp' })
