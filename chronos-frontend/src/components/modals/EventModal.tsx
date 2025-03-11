@@ -12,7 +12,8 @@ import {
     Check,
     ArrowLeft,
 } from 'lucide-react';
-import { EventCategory, EventData } from '@/types/account';
+import { CategoryData, EventData } from '@/types/account';
+import { CategorySelector } from '../calendar';
 
 interface EventModalProps {
     isOpen: boolean;
@@ -43,23 +44,55 @@ export const EventModal: React.FC<EventModalProps> = ({
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [deleteConfirm, setDeleteConfirm] = useState(false);
+    const [categories, setCategories] = useState<CategoryData[]>([]);
+    const [loadingCategories, setLoadingCategories] = useState(false);
 
     // Form state
     const [name, setName] = useState('');
-    const [category, setCategory] = useState<EventCategory>(
-        EventCategory.ARRANGEMENT,
-    );
+    const [categoryId, setCategoryId] = useState<string>('');
     const [startDate, setStartDate] = useState<string>('');
     const [endDate, setEndDate] = useState<string>('');
     const [description, setDescription] = useState('');
     const [color, setColor] = useState('#3B82F6');
+
+    // Fetch categories
+    useEffect(() => {
+        fetchCategories();
+    }, [calendarId]);
+
+    const fetchCategories = async () => {
+        setLoadingCategories(true);
+        try {
+            const response = await fetch(
+                `http://localhost:3001/calendars/${calendarId}/categories`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${localStorage.getItem('token')}`,
+                    },
+                },
+            );
+            const data = await response.json();
+            if (data.status === 'success') {
+                setCategories(data.data || []);
+                // If we have categories and no selection, select the first one
+                if (data.data && data.data.length > 0 && !categoryId) {
+                    setCategoryId(data.data[0].id);
+                }
+            } else {
+                console.error('Error fetching categories:', data.message);
+            }
+        } catch (error) {
+            console.error('Error fetching categories:', error);
+        } finally {
+            setLoadingCategories(false);
+        }
+    };
 
     // Initialize form values
     useEffect(() => {
         if (mode === 'create') {
             // Initialize for new event
             setName('');
-            setCategory(EventCategory.ARRANGEMENT);
 
             // Format date for datetime-local input using local timezone
             const formatDateForInput = (d: Date): string => {
@@ -81,10 +114,15 @@ export const EventModal: React.FC<EventModalProps> = ({
 
             setDescription('');
             setColor('#3B82F6');
+
+            // Select first category if available
+            if (categories.length > 0) {
+                setCategoryId(categories[0].id);
+            }
         } else if (event && (mode === 'view' || mode === 'edit')) {
             // Initialize from existing event
             setName(event.name);
-            setCategory(event.category as EventCategory);
+            setCategoryId(event.category.id);
 
             // Format dates for datetime-local input
             const formatEventDateForInput = (dateString: string): string => {
@@ -106,7 +144,7 @@ export const EventModal: React.FC<EventModalProps> = ({
 
         setDeleteConfirm(false);
         setError('');
-    }, [event, mode, date]);
+    }, [event, mode, date, categories]);
 
     if (!isOpen) return null;
 
@@ -122,10 +160,9 @@ export const EventModal: React.FC<EventModalProps> = ({
         setError('');
 
         try {
-            const categoryValue = category.toString();
             const eventData = {
                 name,
-                category: categoryValue,
+                categoryId, // Now using categoryId instead of category enum
                 startDate: formatDateForApi(startDate),
                 endDate: formatDateForApi(endDate),
                 description: description || undefined,
@@ -150,7 +187,6 @@ export const EventModal: React.FC<EventModalProps> = ({
                 );
                 successCallback = onEventCreated;
             } else if (mode === 'edit' && event) {
-                // Update an existing event
                 response = await fetch(
                     `http://localhost:3001/calendars/${calendarId}/events/${event.id}`,
                     {
@@ -168,7 +204,6 @@ export const EventModal: React.FC<EventModalProps> = ({
             }
 
             const data = await response.json();
-
             if (data.status === 'success') {
                 onClose();
                 if (successCallback) {
@@ -192,7 +227,6 @@ export const EventModal: React.FC<EventModalProps> = ({
 
     const handleDelete = async () => {
         if (!event) return;
-
         if (!deleteConfirm) {
             setDeleteConfirm(true);
             return;
@@ -213,7 +247,6 @@ export const EventModal: React.FC<EventModalProps> = ({
             );
 
             const data = await response.json();
-
             if (data.status === 'success') {
                 onClose();
                 if (onEventDeleted) {
@@ -236,7 +269,6 @@ export const EventModal: React.FC<EventModalProps> = ({
         }
     };
 
-    // Title based on mode
     let title = dict.calendar?.addEvent || 'Add Event';
     if (mode === 'view') title = dict.calendar?.viewEvent || 'View Event';
     if (mode === 'edit') title = dict.calendar?.editEvent || 'Edit Event';
@@ -297,7 +329,11 @@ export const EventModal: React.FC<EventModalProps> = ({
                                 className={`w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm 
                                    focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 
                                    bg-white dark:bg-gray-700 text-gray-900 dark:text-white
-                                   ${mode === 'view' ? 'opacity-80 cursor-default' : ''}`}
+                                   ${
+                                       mode === 'view'
+                                           ? 'opacity-80 cursor-default'
+                                           : ''
+                                   }`}
                             />
                         </div>
 
@@ -307,50 +343,27 @@ export const EventModal: React.FC<EventModalProps> = ({
                                 className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                 {dict.calendar?.eventCategory || 'Category'}*
                             </label>
-                            {mode === 'view' ? (
-                                <div className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white opacity-80">
-                                    {category === EventCategory.ARRANGEMENT &&
-                                        (dict.calendar?.categoryArrangement ||
-                                            'Arrangement')}
-                                    {category === EventCategory.REMINDER &&
-                                        (dict.calendar?.categoryReminder ||
-                                            'Reminder')}
-                                    {category === EventCategory.TASK &&
-                                        (dict.calendar?.categoryTask || 'Task')}
+
+                            {loadingCategories ? (
+                                <div className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-500 dark:text-gray-400">
+                                    {dict.account.common.loading ||
+                                        'Loading categories...'}
+                                </div>
+                            ) : categories.length === 0 ? (
+                                <div className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-500 dark:text-gray-400">
+                                    {dict.calendar?.noCategories ||
+                                        'No categories available'}
                                 </div>
                             ) : (
-                                <select
-                                    id="event-category"
-                                    required
-                                    value={category.toString()}
-                                    onChange={e => {
-                                        const value = e.target.value;
-                                        if (value === 'ARRANGEMENT')
-                                            setCategory(
-                                                EventCategory.ARRANGEMENT,
-                                            );
-                                        else if (value === 'REMINDER')
-                                            setCategory(EventCategory.REMINDER);
-                                        else if (value === 'TASK')
-                                            setCategory(EventCategory.TASK);
-                                    }}
-                                    disabled={mode === 'view'}
-                                    className={`w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm 
-                                       focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 
-                                       bg-white dark:bg-gray-700 text-gray-900 dark:text-white
-                                       ${mode === 'view' ? 'opacity-80 cursor-default' : ''}`}>
-                                    <option value="ARRANGEMENT">
-                                        {dict.calendar?.categoryArrangement ||
-                                            'Arrangement'}
-                                    </option>
-                                    <option value="REMINDER">
-                                        {dict.calendar?.categoryReminder ||
-                                            'Reminder'}
-                                    </option>
-                                    <option value="TASK">
-                                        {dict.calendar?.categoryTask || 'Task'}
-                                    </option>
-                                </select>
+                                <CategorySelector
+                                    categories={categories}
+                                    selectedCategoryId={categoryId}
+                                    onChange={setCategoryId}
+                                    calendarId={calendarId}
+                                    mode={mode}
+                                    dict={dict}
+                                    onCategoriesUpdated={fetchCategories}
+                                />
                             )}
                         </div>
 
@@ -384,8 +397,8 @@ export const EventModal: React.FC<EventModalProps> = ({
                                                 setStartDate(e.target.value)
                                             }
                                             className="w-full pl-10 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm 
-                                           focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 
-                                           bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                                focus:outline-none focus:ring-indigo-500 focus:border-indigo-500
+                                                bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                                         />
                                     </div>
                                 )}
@@ -420,8 +433,8 @@ export const EventModal: React.FC<EventModalProps> = ({
                                                 setEndDate(e.target.value)
                                             }
                                             className="w-full pl-10 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm 
-                                           focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 
-                                           bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                                focus:outline-none focus:ring-indigo-500 focus:border-indigo-500
+                                                bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                                         />
                                     </div>
                                 )}
@@ -449,8 +462,8 @@ export const EventModal: React.FC<EventModalProps> = ({
                                     value={color}
                                     onChange={e => setColor(e.target.value)}
                                     className="w-full h-10 px-1 py-1 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm 
-                                       focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 
-                                       bg-white dark:bg-gray-700"
+                                        focus:outline-none focus:ring-indigo-500 focus:border-indigo-500
+                                        bg-white dark:bg-gray-700"
                                 />
                             )}
                         </div>
@@ -480,8 +493,8 @@ export const EventModal: React.FC<EventModalProps> = ({
                                         setDescription(e.target.value)
                                     }
                                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm 
-                                       focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 
-                                       bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                        focus:outline-none focus:ring-indigo-500 focus:border-indigo-500
+                                        bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                                 />
                             )}
                         </div>
@@ -526,14 +539,16 @@ export const EventModal: React.FC<EventModalProps> = ({
                                 type="button"
                                 onClick={onClose}
                                 className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium 
-                                 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
+                                    text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
                                 {dict.common?.cancel || 'Cancel'}
                             </button>
 
                             {mode !== 'view' && (
                                 <button
                                     type="submit"
-                                    disabled={loading}
+                                    disabled={
+                                        loading || categories.length === 0
+                                    }
                                     className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium 
                                      text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 
                                      focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-70 disabled:cursor-not-allowed">
@@ -570,6 +585,3 @@ export const EventModal: React.FC<EventModalProps> = ({
         </div>
     );
 };
-
-// For backward compatibility
-export const CreateEventModal = EventModal;

@@ -1,5 +1,6 @@
 export { Calendar } from './Calendar';
 export { CalendarSettings } from './CalendarSettings';
-export { Event, EventCategory } from './Event';
+export { Event } from './Event';
 export { EventReminder } from './EventReminder';
 export { User } from './User';
+export { EventCategory } from './EventCategory';

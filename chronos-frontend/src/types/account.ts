@@ -16,6 +16,14 @@ export interface CalendarData {
     isMain: boolean;
     isHoliday: boolean;
     isVisible: boolean;
+    owner: {
+        id: string;
+        username: string;
+    };
+    events?: EventData[];
+    categories?: CategoryData[];
+    createdAt: string;
+    updatedAt: string;
 }
 
 export interface CalendarFormData {
@@ -24,35 +32,32 @@ export interface CalendarFormData {
     color: string;
 }
 
-export enum EventCategory {
-    ARRANGEMENT = 'ARRANGEMENT',
-    REMINDER = 'REMINDER',
-    TASK = 'TASK',
+export interface CategoryData {
+    id: string;
+    name: string;
+    description: string | null;
+    color: string;
+    createdAt: string;
+    updatedAt: string;
 }
 
 export interface EventData {
     id: string;
     name: string;
-    category: EventCategory;
+    category: CategoryData;
     startDate: string;
     endDate: string;
-    description?: string;
-    color: string;
-    isCompleted: boolean;
-    createdAt: string;
-    updatedAt: string;
-}
-
-// Make sure to add this to your CalendarData interface
-export interface CalendarData {
-    id: string;
-    name: string;
     description: string | null;
     color: string;
-    isMain: boolean;
-    isHoliday: boolean;
-    isVisible: boolean;
-    events?: EventData[];
+    isCompleted: boolean;
+    creator: {
+        id: string;
+        username: string;
+    };
+    invitees?: {
+        id: string;
+        username: string;
+    }[];
     createdAt: string;
     updatedAt: string;
 }

@@ -9,7 +9,7 @@ import {
     ProtectedRoute,
     CalendarEditModal,
 } from '@/components';
-import { CalendarData, EventData } from '@/types/account';
+import { CalendarData, EventData, CategoryData } from '@/types/account';
 import {
     ChevronLeft,
     ChevronRight,
@@ -26,12 +26,14 @@ export default function CalendarPage() {
     const calendarId = params.id as string;
 
     const [calendar, setCalendar] = useState<CalendarData | null>(null);
+    const [categories, setCategories] = useState<CategoryData[]>([]);
     const [loading, setLoading] = useState(true);
+    const [loadingCategories, setLoadingCategories] = useState(false);
     const [error, setError] = useState('');
+
     const [currentDate, setCurrentDate] = useState(new Date());
     const [view, setView] = useState<'month' | 'week' | 'day'>('month');
 
-    // Event modal state
     const [isEventModalOpen, setIsEventModalOpen] = useState(false);
     const [selectedDate, setSelectedDate] = useState<Date>(new Date());
     const [selectedEvent, setSelectedEvent] = useState<EventData | undefined>(
@@ -41,7 +43,6 @@ export default function CalendarPage() {
         'create',
     );
 
-    // Calendar edit modal state
     const [isCalendarEditModalOpen, setIsCalendarEditModalOpen] =
         useState(false);
 
@@ -73,6 +74,7 @@ export default function CalendarPage() {
             const data = await response.json();
             if (data.status === 'success') {
                 setCalendar(data.data);
+                fetchCategories(); // Fetch categories after calendar is loaded
             } else {
                 setError(data.message || dict.account.errors.generic);
             }
@@ -81,6 +83,31 @@ export default function CalendarPage() {
             setError(dict.account.errors.generic);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const fetchCategories = async () => {
+        setLoadingCategories(true);
+        try {
+            const response = await fetch(
+                `http://localhost:3001/calendars/${calendarId}/categories`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${localStorage.getItem('token')}`,
+                    },
+                },
+            );
+
+            const data = await response.json();
+            if (data.status === 'success') {
+                setCategories(data.data);
+            } else {
+                console.error('Error fetching categories:', data.message);
+            }
+        } catch (error) {
+            console.error('Error fetching categories:', error);
+        } finally {
+            setLoadingCategories(false);
         }
     };
 
@@ -138,9 +165,14 @@ export default function CalendarPage() {
             endOfWeek.setDate(startOfWeek.getDate() + 6);
             const formatter = new Intl.DateTimeFormat(
                 lang === 'uk' ? 'uk-UA' : 'en-US',
-                { day: 'numeric', month: 'short' },
+                {
+                    day: 'numeric',
+                    month: 'short',
+                },
             );
-            return `${formatter.format(startOfWeek)} - ${formatter.format(endOfWeek)}`;
+            return `${formatter.format(startOfWeek)} - ${formatter.format(
+                endOfWeek,
+            )}`;
         } else {
             return new Intl.DateTimeFormat(lang === 'uk' ? 'uk-UA' : 'en-US', {
                 weekday: 'long',

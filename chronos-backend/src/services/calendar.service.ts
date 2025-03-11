@@ -1,5 +1,6 @@
 import { AppDataSource } from '@/database/data-source';
 import { Calendar, User } from '@/entities';
+import { seedDefaultCategories } from '@/utils/seedDefaultCategories';
 
 interface CreateCalendarDto {
     name: string;
@@ -31,7 +32,12 @@ export class CalendarService {
             isVisible: true,
         });
 
-        return this.calendarRepository.save(calendar);
+        const savedCalendar = await this.calendarRepository.save(calendar);
+
+        // Seed default categories for the new calendar
+        await seedDefaultCategories(savedCalendar.id);
+
+        return savedCalendar;
     }
 
     async updateCalendar(userId: string, calendarId: string, data: UpdateCalendarDto): Promise<Calendar> {
@@ -48,7 +54,6 @@ export class CalendarService {
             throw new Error('Not authorized');
         }
 
-        // Update only the fields that are provided
         if (data.name !== undefined) calendar.name = data.name;
         if (data.description !== undefined) calendar.description = data.description;
         if (data.color !== undefined) calendar.color = data.color;
@@ -75,14 +80,13 @@ export class CalendarService {
     async getCalendarById(userId: string, calendarId: string): Promise<Calendar> {
         const calendar = await this.calendarRepository.findOne({
             where: { id: calendarId },
-            relations: ['owner', 'participants'],
+            relations: ['owner', 'participants', 'categories'],
         });
 
         if (!calendar) {
             throw new Error('Calendar not found');
         }
 
-        // Check if user is owner or participant
         const isOwner = calendar.owner.id === userId;
         const isParticipant = calendar.participants?.some(participant => participant.id === userId) || false;
 

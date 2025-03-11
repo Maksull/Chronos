@@ -4,32 +4,32 @@ import { LessThanOrEqual, MoreThanOrEqual } from 'typeorm';
 
 export interface CreateEventDto {
     name: string;
-    category: EventCategory;
+    categoryId: string;
     startDate: Date;
     endDate: Date;
     description?: string;
     color?: string;
-    invitees?: string[]; // Array of user IDs
+    invitees?: string[];
 }
 
 export interface UpdateEventDto {
     name?: string;
-    category?: EventCategory;
+    categoryId?: string;
     startDate?: Date;
     endDate?: Date;
     description?: string;
     color?: string;
     isCompleted?: boolean;
-    invitees?: string[]; // Array of user IDs
+    invitees?: string[];
 }
 
 export class EventService {
     private eventRepository = AppDataSource.getRepository(Event);
+    private categoryRepository = AppDataSource.getRepository(EventCategory);
     private calendarRepository = AppDataSource.getRepository(Calendar);
     private userRepository = AppDataSource.getRepository(User);
 
     async getEventsByCalendarId(userId: string, calendarId: string, startDate?: Date, endDate?: Date): Promise<Event[]> {
-        // First check if user has access to this calendar
         const calendar = await this.calendarRepository.findOne({
             where: { id: calendarId },
             relations: ['owner', 'participants'],
@@ -39,7 +39,6 @@ export class EventService {
             throw new Error('Calendar not found');
         }
 
-        // Check if user is owner or participant
         const isOwner = calendar.owner.id === userId;
         const isParticipant = calendar.participants?.some(participant => participant.id === userId) || false;
 
@@ -47,12 +46,11 @@ export class EventService {
             throw new Error('Not authorized');
         }
 
-        // Build query conditions
-        const conditions: any = { calendar: { id: calendarId } };
+        const conditions: any = {
+            calendar: { id: calendarId },
+        };
 
-        // Add date range conditions if provided
         if (startDate && endDate) {
-            // Events that overlap with the given date range
             conditions.startDate = LessThanOrEqual(endDate);
             conditions.endDate = MoreThanOrEqual(startDate);
         } else if (startDate) {
@@ -64,12 +62,11 @@ export class EventService {
         return this.eventRepository.find({
             where: conditions,
             order: { startDate: 'ASC' },
-            relations: ['creator', 'invitees'],
+            relations: ['creator', 'invitees', 'category'],
         });
     }
 
     async createEvent(userId: string, calendarId: string, data: CreateEventDto): Promise<Event> {
-        // Check if calendar exists and user can access it
         const calendar = await this.calendarRepository.findOne({
             where: { id: calendarId },
             relations: ['owner', 'participants'],
@@ -79,7 +76,6 @@ export class EventService {
             throw new Error('Calendar not found');
         }
 
-        // Check if user is owner or participant with write access
         const isOwner = calendar.owner.id === userId;
         const isParticipant = calendar.participants?.some(participant => participant.id === userId) || false;
 
@@ -87,22 +83,32 @@ export class EventService {
             throw new Error('Not authorized');
         }
 
-        // Find user for creator reference
         const creator = await this.userRepository.findOneBy({ id: userId });
         if (!creator) {
             throw new Error('User not found');
         }
 
-        // Find invitees if provided
+        const category = await this.categoryRepository.findOne({
+            where: { id: data.categoryId, calendar: { id: calendarId } },
+        });
+
+        if (!category) {
+            throw new Error('Category not found');
+        }
+
         let invitees: User[] = [];
         if (data.invitees && data.invitees.length > 0) {
             invitees = await this.userRepository.findBy({ id: { $in: data.invitees } as any });
         }
 
-        // Create event
         const event = this.eventRepository.create({
-            ...data,
+            name: data.name,
+            startDate: data.startDate,
+            endDate: data.endDate,
+            description: data.description,
+            color: data.color,
             calendar,
+            category,
             creator,
             invitees,
             isCompleted: false,
@@ -112,10 +118,9 @@ export class EventService {
     }
 
     async updateEvent(userId: string, eventId: string, data: UpdateEventDto): Promise<Event> {
-        // Add calendar.owner to the relations array to ensure it's loaded
         const event = await this.eventRepository.findOne({
             where: { id: eventId },
-            relations: ['calendar', 'calendar.owner', 'creator', 'invitees'],
+            relations: ['calendar', 'calendar.owner', 'creator', 'invitees', 'category'],
         });
 
         if (!event) {
@@ -129,16 +134,25 @@ export class EventService {
             throw new Error('Not authorized');
         }
 
-        if (data.invitees) {
-            const invitees = await this.userRepository.findBy({
-                id: { $in: data.invitees } as any,
+        if (data.categoryId) {
+            const category = await this.categoryRepository.findOne({
+                where: { id: data.categoryId, calendar: { id: event.calendar.id } },
             });
+
+            if (!category) {
+                throw new Error('Category not found');
+            }
+
+            event.category = category;
+        }
+
+        if (data.invitees) {
+            const invitees = await this.userRepository.findBy({ id: { $in: data.invitees } as any });
             event.invitees = invitees;
         }
 
         Object.assign(event, {
             name: data.name ?? event.name,
-            category: data.category ?? event.category,
             startDate: data.startDate ?? event.startDate,
             endDate: data.endDate ?? event.endDate,
             description: data.description ?? event.description,
@@ -150,7 +164,6 @@ export class EventService {
     }
 
     async deleteEvent(userId: string, eventId: string): Promise<void> {
-        // Add calendar.owner to the relations array to ensure it's loaded
         const event = await this.eventRepository.findOne({
             where: { id: eventId },
             relations: ['calendar', 'calendar.owner', 'creator'],
