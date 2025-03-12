@@ -1,5 +1,4 @@
 'use client';
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useDictionary } from '@/contexts';
@@ -8,6 +7,7 @@ import {
     EventModal,
     ProtectedRoute,
     CalendarEditModal,
+    CalendarParticipants,
 } from '@/components';
 import { CalendarData, EventData, CategoryData } from '@/types/account';
 import {
@@ -16,6 +16,7 @@ import {
     Plus,
     Settings,
     Calendar,
+    Users,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -24,16 +25,13 @@ export default function CalendarPage() {
     const router = useRouter();
     const { dict, lang } = useDictionary();
     const calendarId = params.id as string;
-
     const [calendar, setCalendar] = useState<CalendarData | null>(null);
     const [categories, setCategories] = useState<CategoryData[]>([]);
     const [loading, setLoading] = useState(true);
     const [loadingCategories, setLoadingCategories] = useState(false);
     const [error, setError] = useState('');
-
     const [currentDate, setCurrentDate] = useState(new Date());
     const [view, setView] = useState<'month' | 'week' | 'day'>('month');
-
     const [isEventModalOpen, setIsEventModalOpen] = useState(false);
     const [selectedDate, setSelectedDate] = useState<Date>(new Date());
     const [selectedEvent, setSelectedEvent] = useState<EventData | undefined>(
@@ -42,9 +40,14 @@ export default function CalendarPage() {
     const [modalMode, setModalMode] = useState<'create' | 'view' | 'edit'>(
         'create',
     );
-
     const [isCalendarEditModalOpen, setIsCalendarEditModalOpen] =
         useState(false);
+    const [showParticipants, setShowParticipants] = useState(false);
+    const [isUserOwner, setIsUserOwner] = useState(false);
+
+    const [activeModalTab, setActiveModalTab] = useState<
+        'general' | 'categories' | 'sharing'
+    >('general');
 
     useEffect(() => {
         fetchCalendar();
@@ -61,7 +64,6 @@ export default function CalendarPage() {
                     },
                 },
             );
-
             if (!response.ok) {
                 if (response.status === 404) {
                     setError(dict.calendar?.notFound || 'Calendar not found');
@@ -70,11 +72,13 @@ export default function CalendarPage() {
                 }
                 throw new Error('Failed to fetch calendar');
             }
-
             const data = await response.json();
             if (data.status === 'success') {
                 setCalendar(data.data);
-                fetchCategories(); // Fetch categories after calendar is loaded
+                // Check if current user is the owner
+                const userId = localStorage.getItem('userId');
+                setIsUserOwner(data.data.owner.id === userId);
+                fetchCategories();
             } else {
                 setError(data.message || dict.account.errors.generic);
             }
@@ -97,7 +101,6 @@ export default function CalendarPage() {
                     },
                 },
             );
-
             const data = await response.json();
             if (data.status === 'success') {
                 setCategories(data.data);
@@ -268,154 +271,230 @@ export default function CalendarPage() {
                         </Link>
                     </div>
 
-                    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden border border-gray-200 dark:border-gray-700">
-                        <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-                            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                                <div className="flex items-center">
-                                    <div
-                                        className="w-10 h-10 rounded-full mr-3 flex-shrink-0 flex items-center justify-center"
-                                        style={{
-                                            backgroundColor:
-                                                calendar?.color || '#3B82F6',
-                                        }}>
-                                        <Calendar className="h-5 w-5 text-white" />
-                                    </div>
-                                    <div>
-                                        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-                                            {calendar?.name}
-                                        </h1>
-                                        {calendar?.description && (
-                                            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                                                {calendar.description}
-                                            </p>
-                                        )}
-                                    </div>
-                                </div>
-
-                                <div className="flex items-center space-x-2 self-end sm:self-auto">
-                                    <div className="bg-gray-100 dark:bg-gray-700 p-1 rounded-lg flex">
-                                        <button
-                                            className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                                                view === 'day'
-                                                    ? 'bg-white dark:bg-gray-600 text-indigo-600 dark:text-indigo-400 shadow-sm'
-                                                    : 'text-gray-700 dark:text-gray-300 hover:bg-white dark:hover:bg-gray-600'
-                                            }`}
-                                            onClick={() => setView('day')}>
-                                            {dict.calendar?.dayView || 'Day'}
-                                        </button>
-                                        <button
-                                            className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                                                view === 'week'
-                                                    ? 'bg-white dark:bg-gray-600 text-indigo-600 dark:text-indigo-400 shadow-sm'
-                                                    : 'text-gray-700 dark:text-gray-300 hover:bg-white dark:hover:bg-gray-600'
-                                            }`}
-                                            onClick={() => setView('week')}>
-                                            {dict.calendar?.weekView || 'Week'}
-                                        </button>
-                                        <button
-                                            className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                                                view === 'month'
-                                                    ? 'bg-white dark:bg-gray-600 text-indigo-600 dark:text-indigo-400 shadow-sm'
-                                                    : 'text-gray-700 dark:text-gray-300 hover:bg-white dark:hover:bg-gray-600'
-                                            }`}
-                                            onClick={() => setView('month')}>
-                                            {dict.calendar?.monthView ||
-                                                'Month'}
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="flex flex-col sm:flex-row justify-between items-center mt-6 gap-4">
-                                <div className="flex items-center space-x-2">
-                                    <div className="bg-gray-100 dark:bg-gray-700 p-1 rounded-lg flex items-center">
-                                        <button
-                                            onClick={handlePrevious}
-                                            className="p-1.5 rounded-md hover:bg-white dark:hover:bg-gray-600 transition-colors">
-                                            <ChevronLeft className="h-5 w-5 text-gray-500 dark:text-gray-400" />
-                                        </button>
-                                        <button
-                                            onClick={handleToday}
-                                            className="px-3 py-1 text-sm bg-white dark:bg-gray-600 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-500 transition-colors shadow-sm mx-1">
-                                            {dict.calendar?.today || 'Today'}
-                                        </button>
-                                        <button
-                                            onClick={handleNext}
-                                            className="p-1.5 rounded-md hover:bg-white dark:hover:bg-gray-600 transition-colors">
-                                            <ChevronRight className="h-5 w-5 text-gray-500 dark:text-gray-400" />
-                                        </button>
-                                    </div>
-                                    <h2 className="text-lg font-semibold text-gray-900 dark:text-white ml-2">
-                                        {formatDateTitle()}
-                                    </h2>
-                                </div>
-
-                                <div className="flex items-center space-x-3">
-                                    <button
-                                        onClick={() => handleAddEvent()}
-                                        className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors shadow-sm text-sm font-medium"
-                                        title={
-                                            dict.calendar?.addEvent ||
-                                            'Add Event'
-                                        }>
-                                        <Plus className="h-4 w-4 mr-1" />
-                                        {dict.calendar?.addEvent || 'Add Event'}
-                                    </button>
-                                    <button
-                                        onClick={() =>
-                                            setIsCalendarEditModalOpen(true)
-                                        }
-                                        className="p-2 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                                        title={
-                                            dict.calendar?.settings ||
-                                            'Settings'
-                                        }>
-                                        <Settings className="h-5 w-5" />
-                                    </button>
-                                </div>
-                            </div>
+                    <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                        {/* Side panel - Only visible on large screens */}
+                        <div className="hidden lg:block">
+                            {/* Participants section */}
+                            {calendar && (
+                                <CalendarParticipants
+                                    calendar={calendar}
+                                    dict={dict}
+                                    onShowInviteModal={() => {
+                                        setShowParticipants(false); // For mobile view
+                                        setActiveModalTab('sharing');
+                                        setIsCalendarEditModalOpen(true);
+                                    }}
+                                    isOwner={isUserOwner}
+                                />
+                            )}
                         </div>
 
-                        <div className="p-4">
-                            <CalendarView
-                                view={view}
-                                currentDate={currentDate}
-                                calendar={calendar}
-                                dict={dict}
-                                lang={lang}
-                                onAddEvent={handleAddEvent}
-                                onEventClick={handleEventClick}
-                            />
+                        {/* Main calendar section */}
+                        <div className="lg:col-span-3">
+                            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden border border-gray-200 dark:border-gray-700">
+                                <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+                                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                                        <div className="flex items-center">
+                                            <div
+                                                className="w-10 h-10 rounded-full mr-3 flex-shrink-0 flex items-center justify-center"
+                                                style={{
+                                                    backgroundColor:
+                                                        calendar?.color ||
+                                                        '#3B82F6',
+                                                }}>
+                                                <Calendar className="h-5 w-5 text-white" />
+                                            </div>
+                                            <div>
+                                                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+                                                    {calendar?.name}
+                                                </h1>
+                                                {calendar?.description && (
+                                                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                                        {calendar.description}
+                                                    </p>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        <div className="flex items-center space-x-2 self-end sm:self-auto">
+                                            <div className="bg-gray-100 dark:bg-gray-700 p-1 rounded-lg flex">
+                                                <button
+                                                    className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                                                        view === 'day'
+                                                            ? 'bg-white dark:bg-gray-600 text-indigo-600 dark:text-indigo-400 shadow-sm'
+                                                            : 'text-gray-700 dark:text-gray-300 hover:bg-white dark:hover:bg-gray-600'
+                                                    }`}
+                                                    onClick={() =>
+                                                        setView('day')
+                                                    }>
+                                                    {dict.calendar?.dayView ||
+                                                        'Day'}
+                                                </button>
+                                                <button
+                                                    className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                                                        view === 'week'
+                                                            ? 'bg-white dark:bg-gray-600 text-indigo-600 dark:text-indigo-400 shadow-sm'
+                                                            : 'text-gray-700 dark:text-gray-300 hover:bg-white dark:hover:bg-gray-600'
+                                                    }`}
+                                                    onClick={() =>
+                                                        setView('week')
+                                                    }>
+                                                    {dict.calendar?.weekView ||
+                                                        'Week'}
+                                                </button>
+                                                <button
+                                                    className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                                                        view === 'month'
+                                                            ? 'bg-white dark:bg-gray-600 text-indigo-600 dark:text-indigo-400 shadow-sm'
+                                                            : 'text-gray-700 dark:text-gray-300 hover:bg-white dark:hover:bg-gray-600'
+                                                    }`}
+                                                    onClick={() =>
+                                                        setView('month')
+                                                    }>
+                                                    {dict.calendar?.monthView ||
+                                                        'Month'}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex flex-col sm:flex-row justify-between items-center mt-6 gap-4">
+                                        <div className="flex items-center space-x-2">
+                                            <div className="bg-gray-100 dark:bg-gray-700 p-1 rounded-lg flex items-center">
+                                                <button
+                                                    onClick={handlePrevious}
+                                                    className="p-1.5 rounded-md hover:bg-white dark:hover:bg-gray-600 transition-colors">
+                                                    <ChevronLeft className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+                                                </button>
+                                                <button
+                                                    onClick={handleToday}
+                                                    className="px-3 py-1 text-sm bg-white dark:bg-gray-600 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-500 transition-colors shadow-sm mx-1">
+                                                    {dict.calendar?.today ||
+                                                        'Today'}
+                                                </button>
+                                                <button
+                                                    onClick={handleNext}
+                                                    className="p-1.5 rounded-md hover:bg-white dark:hover:bg-gray-600 transition-colors">
+                                                    <ChevronRight className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+                                                </button>
+                                            </div>
+                                            <h2 className="text-lg font-semibold text-gray-900 dark:text-white ml-2">
+                                                {formatDateTitle()}
+                                            </h2>
+                                        </div>
+
+                                        <div className="flex items-center space-x-3">
+                                            {/* Participants button - mobile only */}
+                                            <button
+                                                onClick={() =>
+                                                    setShowParticipants(
+                                                        !showParticipants,
+                                                    )
+                                                }
+                                                className="lg:hidden p-2 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                                                title={
+                                                    dict.calendar
+                                                        ?.participants ||
+                                                    'Participants'
+                                                }>
+                                                <Users className="h-5 w-5" />
+                                            </button>
+
+                                            <button
+                                                onClick={() => handleAddEvent()}
+                                                className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors shadow-sm text-sm font-medium"
+                                                title={
+                                                    dict.calendar?.addEvent ||
+                                                    'Add Event'
+                                                }>
+                                                <Plus className="h-4 w-4 mr-1" />
+                                                {dict.calendar?.addEvent ||
+                                                    'Add Event'}
+                                            </button>
+                                            <button
+                                                onClick={() =>
+                                                    setIsCalendarEditModalOpen(
+                                                        true,
+                                                    )
+                                                }
+                                                className="p-2 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                                                title={
+                                                    dict.calendar?.settings ||
+                                                    'Settings'
+                                                }>
+                                                <Settings className="h-5 w-5" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Mobile Participants panel - only visible when toggled */}
+                                {showParticipants && (
+                                    <div className="lg:hidden p-4 border-b border-gray-200 dark:border-gray-700">
+                                        {calendar && (
+                                            <CalendarParticipants
+                                                calendar={calendar}
+                                                dict={dict}
+                                                onShowInviteModal={() => {
+                                                    setShowParticipants(false); // For mobile view
+                                                    setActiveModalTab(
+                                                        'sharing',
+                                                    );
+                                                    setIsCalendarEditModalOpen(
+                                                        true,
+                                                    );
+                                                }}
+                                                isOwner={isUserOwner}
+                                            />
+                                        )}
+                                    </div>
+                                )}
+
+                                <div className="p-4">
+                                    <CalendarView
+                                        view={view}
+                                        currentDate={currentDate}
+                                        calendar={calendar}
+                                        dict={dict}
+                                        lang={lang}
+                                        onAddEvent={handleAddEvent}
+                                        onEventClick={handleEventClick}
+                                    />
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
+
+                {/* Event modal */}
+                {isEventModalOpen && (
+                    <EventModal
+                        isOpen={isEventModalOpen}
+                        onClose={() => setIsEventModalOpen(false)}
+                        calendarId={calendarId}
+                        mode={modalMode}
+                        date={selectedDate}
+                        event={selectedEvent}
+                        onEventCreated={fetchCalendar}
+                        onEventUpdated={fetchCalendar}
+                        onEventDeleted={fetchCalendar}
+                    />
+                )}
+
+                {/* Calendar edit modal */}
+                {isCalendarEditModalOpen && calendar && (
+                    <CalendarEditModal
+                        isOpen={isCalendarEditModalOpen}
+                        onClose={() => setIsCalendarEditModalOpen(false)}
+                        calendar={calendar}
+                        onCalendarUpdated={fetchCalendar}
+                        onCalendarDeleted={() =>
+                            router.push(`/${lang}/account`)
+                        }
+                        initialTab={activeModalTab}
+                    />
+                )}
             </div>
-
-            {/* Event modal */}
-            {isEventModalOpen && (
-                <EventModal
-                    isOpen={isEventModalOpen}
-                    onClose={() => setIsEventModalOpen(false)}
-                    calendarId={calendarId}
-                    mode={modalMode}
-                    date={selectedDate}
-                    event={selectedEvent}
-                    onEventCreated={fetchCalendar}
-                    onEventUpdated={fetchCalendar}
-                    onEventDeleted={fetchCalendar}
-                />
-            )}
-
-            {/* Calendar edit modal */}
-            {isCalendarEditModalOpen && calendar && (
-                <CalendarEditModal
-                    isOpen={isCalendarEditModalOpen}
-                    onClose={() => setIsCalendarEditModalOpen(false)}
-                    calendar={calendar}
-                    onCalendarUpdated={fetchCalendar}
-                    onCalendarDeleted={() => router.push(`/${lang}/account`)}
-                />
-            )}
         </ProtectedRoute>
     );
 }
