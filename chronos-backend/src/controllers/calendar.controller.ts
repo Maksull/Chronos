@@ -163,4 +163,151 @@ export class CalendarController {
             return reply.status(500).send({ status: 'error', message: 'Internal server error' });
         }
     }
+
+    async createInviteLink(
+        request: FastifyRequest<{
+            Params: { id: string };
+            Body: { expireInDays?: number };
+        }>,
+        reply: FastifyReply,
+    ) {
+        try {
+            const { id } = request.params;
+            const { expireInDays } = request.body;
+
+            const inviteLink = await this.calendarService.createInviteLink(request.user!.userId, id, expireInDays);
+
+            // Format for frontend to create a shareable URL
+            const inviteUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/calendar/invite/${inviteLink.id}`;
+
+            return reply.status(201).send({
+                status: 'success',
+                data: {
+                    ...inviteLink,
+                    inviteUrl,
+                },
+            });
+        } catch (error) {
+            if (error instanceof Error) {
+                if (error.message === 'Calendar not found') {
+                    return reply.status(404).send({ status: 'error', message: error.message });
+                }
+                if (error.message === 'Only the calendar owner can create invite links') {
+                    return reply.status(403).send({ status: 'error', message: error.message });
+                }
+            }
+            request.log.error(error);
+            return reply.status(500).send({ status: 'error', message: 'Internal server error' });
+        }
+    }
+
+    async getInviteLinks(request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) {
+        try {
+            const { id } = request.params;
+
+            const inviteLinks = await this.calendarService.getCalendarInviteLinks(request.user!.userId, id);
+
+            // Format for frontend to create shareable URLs
+            const formattedLinks = inviteLinks.map(link => ({
+                ...link,
+                inviteUrl: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/calendar/invite/${link.id}`,
+            }));
+
+            return reply.send({
+                status: 'success',
+                data: formattedLinks,
+            });
+        } catch (error) {
+            if (error instanceof Error) {
+                if (error.message === 'Calendar not found') {
+                    return reply.status(404).send({ status: 'error', message: error.message });
+                }
+                if (error.message === 'Only the calendar owner can view invite links') {
+                    return reply.status(403).send({ status: 'error', message: error.message });
+                }
+            }
+            request.log.error(error);
+            return reply.status(500).send({ status: 'error', message: 'Internal server error' });
+        }
+    }
+
+    async acceptInvite(request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) {
+        try {
+            const { id } = request.params; // This is the invite link ID
+
+            const calendar = await this.calendarService.acceptInvite(request.user!.userId, id);
+
+            return reply.send({
+                status: 'success',
+                message: `You've been added to "${calendar.name}" calendar`,
+                data: calendar,
+            });
+        } catch (error) {
+            if (error instanceof Error) {
+                if (error.message === 'Invite link not found or invalid') {
+                    return reply.status(404).send({ status: 'error', message: error.message });
+                }
+                if (error.message === 'Invite link has expired') {
+                    return reply.status(410).send({ status: 'error', message: error.message });
+                }
+                if (error.message === 'User not found') {
+                    return reply.status(404).send({ status: 'error', message: error.message });
+                }
+                if (error.message === 'You are already the owner of this calendar' || error.message === 'You are already a participant in this calendar') {
+                    return reply.status(409).send({ status: 'error', message: error.message });
+                }
+            }
+            request.log.error(error);
+            return reply.status(500).send({ status: 'error', message: 'Internal server error' });
+        }
+    }
+
+    async deleteInviteLink(request: FastifyRequest<{ Params: { calendarId: string; linkId: string } }>, reply: FastifyReply) {
+        try {
+            const { linkId } = request.params;
+
+            await this.calendarService.deleteInviteLink(request.user!.userId, linkId);
+
+            return reply.send({
+                status: 'success',
+                message: 'Invite link deleted successfully',
+            });
+        } catch (error) {
+            if (error instanceof Error) {
+                if (error.message === 'Invite link not found') {
+                    return reply.status(404).send({ status: 'error', message: error.message });
+                }
+                if (error.message === 'Only the calendar owner can delete invite links') {
+                    return reply.status(403).send({ status: 'error', message: error.message });
+                }
+            }
+            request.log.error(error);
+            return reply.status(500).send({ status: 'error', message: 'Internal server error' });
+        }
+    }
+
+    async getInviteLinkInfo(request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) {
+        try {
+            const { id } = request.params;
+
+            const calendarInfo = await this.calendarService.getInviteLinkInfo(id);
+
+            return reply.send({
+                status: 'success',
+                data: calendarInfo,
+            });
+        } catch (error) {
+            if (error instanceof Error) {
+                if (
+                    error.message === 'Invite link not found or invalid' ||
+                    error.message === 'Invite link has expired' ||
+                    error.message === 'Calendar associated with this invite link was not found'
+                ) {
+                    return reply.status(404).send({ status: 'error', message: error.message });
+                }
+            }
+            request.log.error(error);
+            return reply.status(500).send({ status: 'error', message: 'Internal server error' });
+        }
+    }
 }

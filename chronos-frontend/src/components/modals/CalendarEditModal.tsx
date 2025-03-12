@@ -1,5 +1,4 @@
 'use client';
-
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useDictionary } from '@/contexts';
@@ -8,9 +7,10 @@ import {
     Trash2,
     Calendar as CalendarIcon,
     AlertTriangle,
+    Link as LinkIcon,
 } from 'lucide-react';
 import { CalendarData } from '@/types/account';
-import { CategoryManagement } from '../calendar';
+import { CalendarInviteManagement, CategoryManagement } from '../calendar';
 
 interface CalendarEditModalProps {
     isOpen: boolean;
@@ -18,6 +18,7 @@ interface CalendarEditModalProps {
     calendar: CalendarData;
     onCalendarUpdated?: () => void;
     onCalendarDeleted?: () => void;
+    initialTab?: 'general' | 'categories' | 'sharing';
 }
 
 export const CalendarEditModal: React.FC<CalendarEditModalProps> = ({
@@ -26,6 +27,7 @@ export const CalendarEditModal: React.FC<CalendarEditModalProps> = ({
     calendar,
     onCalendarUpdated,
     onCalendarDeleted,
+    initialTab = 'general',
 }) => {
     const router = useRouter();
     const { dict, lang } = useDictionary();
@@ -37,9 +39,9 @@ export const CalendarEditModal: React.FC<CalendarEditModalProps> = ({
     const [name, setName] = useState(calendar?.name || '');
     const [description, setDescription] = useState(calendar?.description || '');
     const [color, setColor] = useState(calendar?.color || '#3B82F6');
-    const [activeTab, setActiveTab] = useState<'general' | 'categories'>(
-        'general',
-    );
+    const [activeTab, setActiveTab] = useState<
+        'general' | 'categories' | 'sharing'
+    >(initialTab);
 
     useEffect(() => {
         if (calendar) {
@@ -51,7 +53,8 @@ export const CalendarEditModal: React.FC<CalendarEditModalProps> = ({
         setDeleteConfirmInput('');
         setShowDeleteForm(false);
         setError('');
-    }, [calendar]);
+        setActiveTab(initialTab);
+    }, [calendar, initialTab]);
 
     if (!isOpen) return null;
 
@@ -59,14 +62,12 @@ export const CalendarEditModal: React.FC<CalendarEditModalProps> = ({
         e.preventDefault();
         setLoading(true);
         setError('');
-
         try {
             const calendarData = {
                 name,
                 description: description || undefined,
                 color,
             };
-
             const response = await fetch(
                 `http://localhost:3001/calendars/${calendar.id}`,
                 {
@@ -78,7 +79,6 @@ export const CalendarEditModal: React.FC<CalendarEditModalProps> = ({
                     body: JSON.stringify(calendarData),
                 },
             );
-
             const data = await response.json();
             if (data.status === 'success') {
                 onClose();
@@ -103,12 +103,10 @@ export const CalendarEditModal: React.FC<CalendarEditModalProps> = ({
 
     const handleDelete = async () => {
         if (!calendar) return;
-
         if (!deleteConfirm) {
             setShowDeleteForm(true);
             return;
         }
-
         if (deleteConfirmInput !== calendar.name) {
             setError(
                 dict.calendar?.deleteConfirmationError ||
@@ -116,10 +114,8 @@ export const CalendarEditModal: React.FC<CalendarEditModalProps> = ({
             );
             return;
         }
-
         setLoading(true);
         setError('');
-
         try {
             const response = await fetch(
                 `http://localhost:3001/calendars/${calendar.id}`,
@@ -130,7 +126,6 @@ export const CalendarEditModal: React.FC<CalendarEditModalProps> = ({
                     },
                 },
             );
-
             const data = await response.json();
             if (data.status === 'success') {
                 onClose();
@@ -190,10 +185,22 @@ export const CalendarEditModal: React.FC<CalendarEditModalProps> = ({
                             }`}>
                             {dict.calendar?.categoriesTab || 'Categories'}
                         </button>
+                        <button
+                            onClick={() => setActiveTab('sharing')}
+                            className={`py-3 px-4 font-medium text-sm border-b-2 focus:outline-none ${
+                                activeTab === 'sharing'
+                                    ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400'
+                                    : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'
+                            }`}>
+                            <span className="flex items-center">
+                                <LinkIcon className="h-4 w-4 mr-1" />
+                                {dict.calendar?.sharingTab || 'Sharing'}
+                            </span>
+                        </button>
                     </nav>
                 </div>
 
-                <div className="p-4">
+                <div className="p-4 max-h-[calc(100vh-200px)] overflow-y-auto">
                     {error && (
                         <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-md text-sm">
                             {error}
@@ -290,7 +297,6 @@ export const CalendarEditModal: React.FC<CalendarEditModalProps> = ({
                                                     'This action cannot be undone. All events in this calendar will be permanently deleted.'}
                                             </p>
                                         </div>
-
                                         <div className="mb-3">
                                             <label
                                                 htmlFor="delete-confirm"
@@ -313,7 +319,6 @@ export const CalendarEditModal: React.FC<CalendarEditModalProps> = ({
                                                     bg-white dark:bg-gray-800 text-red-900 dark:text-red-200"
                                             />
                                         </div>
-
                                         <button
                                             type="button"
                                             onClick={() => {
@@ -325,8 +330,7 @@ export const CalendarEditModal: React.FC<CalendarEditModalProps> = ({
                                                 calendar.name
                                             }
                                             className="w-full px-4 py-2 bg-red-600 text-white rounded-md 
-                                                hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500
-                                                disabled:opacity-50 disabled:cursor-not-allowed">
+                                                hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed">
                                             {dict.calendar?.confirmDelete ||
                                                 'Permanently Delete Calendar'}
                                         </button>
@@ -342,7 +346,6 @@ export const CalendarEditModal: React.FC<CalendarEditModalProps> = ({
                                         text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
                                     {dict.common?.cancel || 'Cancel'}
                                 </button>
-
                                 <button
                                     type="submit"
                                     disabled={loading}
@@ -380,6 +383,13 @@ export const CalendarEditModal: React.FC<CalendarEditModalProps> = ({
 
                     {activeTab === 'categories' && (
                         <CategoryManagement
+                            calendarId={calendar.id}
+                            dict={dict}
+                        />
+                    )}
+
+                    {activeTab === 'sharing' && (
+                        <CalendarInviteManagement
                             calendarId={calendar.id}
                             dict={dict}
                         />
