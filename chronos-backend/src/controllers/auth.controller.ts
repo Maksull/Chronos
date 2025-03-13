@@ -81,35 +81,23 @@ export class AuthController {
         }
     }
 
-    async verifyEmail(request: FastifyRequest<{ Querystring: { token: string } }>, reply: FastifyReply) {
+    // Update your request type to accept the code in the body
+    async verifyEmail(request: FastifyRequest<{ Body: { code: string } }>, reply: FastifyReply) {
         try {
-            await this.authService.verifyEmail(request.query.token);
-
-            return reply.send({
-                status: 'success',
-                message: 'Email verified successfully',
-            });
+            const { code } = request.body;
+            await this.authService.verifyEmail(code);
+            return reply.send({ status: 'success', message: 'Email verified successfully' });
         } catch (error) {
             if (error instanceof Error) {
-                if (error.message === 'Invalid verification token' || error.message === 'Verification token has expired') {
-                    return reply.status(400).send({
-                        status: 'error',
-                        message: error.message,
-                    });
+                if (error.message === 'Invalid verification code' || error.message === 'Verification code has expired') {
+                    return reply.status(400).send({ status: 'error', message: error.message });
                 }
                 if (error.message === 'Email already verified') {
-                    return reply.status(409).send({
-                        status: 'error',
-                        message: error.message,
-                    });
+                    return reply.status(409).send({ status: 'error', message: error.message });
                 }
             }
-
             request.log.error(error);
-            return reply.status(500).send({
-                status: 'error',
-                message: 'Internal server error',
-            });
+            return reply.status(500).send({ status: 'error', message: 'Internal server error' });
         }
     }
 
