@@ -1,12 +1,11 @@
-// src/components/account/CalendarSection.tsx
 'use client';
 
 import React, { useState } from 'react';
 import { Calendar, Plus, X } from 'lucide-react';
-import { Dictionary } from '@/lib/dictionary';
 import { CalendarData, CalendarFormData } from '@/types/account';
-import { CalendarForm } from './CalendarForm';
-import { CalendarItem } from './CalendarItem';
+import { Dictionary } from '@/lib/dictionary';
+import { CalendarForm, CalendarItem } from '.';
+import { DeleteConfirmationModal } from '..';
 
 interface CalendarSectionProps {
     calendars: CalendarData[];
@@ -31,15 +30,21 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
         color: '#3B82F6',
     });
 
+    // Modal state
+    const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+    const [calendarToDelete, setCalendarToDelete] = useState<{
+        id: string;
+        name: string;
+    } | null>(null);
+
     const createEmptyCalendar = async () => {
         setError('');
         setSuccess('');
         setIsLoading(true);
-
         try {
-            // Generate a default name based on the number of calendars
-            const defaultName = `${dict.account.calendars.defaultName || 'New Calendar'} ${calendars.length + 1}`;
-
+            const defaultName = `${dict.account.calendars.defaultName || 'New Calendar'} ${
+                calendars.length + 1
+            }`;
             const response = await fetch('http://localhost:3001/calendars', {
                 method: 'POST',
                 headers: {
@@ -49,16 +54,14 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
                 body: JSON.stringify({
                     name: defaultName,
                     description: '',
-                    color: '#3B82F6', // Default blue color
+                    color: '#3B82F6',
                 }),
             });
-
             const data = await response.json();
             if (data.status === 'error') {
                 setError(data.message || dict.account.errors.generic);
                 return;
             }
-
             setSuccess(dict.account.calendars.createSuccess);
             refreshCalendars();
         } catch (error) {
@@ -75,7 +78,6 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
         setSuccess('');
         setIsLoading(true);
 
-        // Validate required fields
         if (!newCalendarData.name.trim()) {
             setError(
                 dict.account.calendars.nameRequired ||
@@ -106,7 +108,11 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
             }
 
             setSuccess(dict.account.calendars.createSuccess);
-            setNewCalendarData({ name: '', description: '', color: '#3B82F6' });
+            setNewCalendarData({
+                name: '',
+                description: '',
+                color: '#3B82F6',
+            });
             setIsCreatingCalendar(false);
             refreshCalendars();
         } catch (error) {
@@ -133,13 +139,11 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
                     body: JSON.stringify({ isVisible }),
                 },
             );
-
             const data = await response.json();
             if (data.status === 'error') {
                 setError(data.message || dict.account.errors.generic);
                 return;
             }
-
             refreshCalendars();
         } catch (error) {
             setError(dict.account.errors.generic);
@@ -147,12 +151,19 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
         }
     };
 
-    const deleteCalendar = async (calendarId: string) => {
-        if (!window.confirm(dict.account.calendars.deleteConfirm)) return;
+    // Handle opening the delete modal
+    const handleDeleteRequest = (calendar: CalendarData) => {
+        setCalendarToDelete({ id: calendar.id, name: calendar.name });
+        setDeleteModalOpen(true);
+    };
+
+    // Handle the actual delete operation
+    const deleteCalendar = async () => {
+        if (!calendarToDelete) return;
 
         try {
             const response = await fetch(
-                `http://localhost:3001/calendars/${calendarId}`,
+                `http://localhost:3001/calendars/${calendarToDelete.id}`,
                 {
                     method: 'DELETE',
                     headers: {
@@ -160,18 +171,20 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
                     },
                 },
             );
-
             const data = await response.json();
             if (data.status === 'error') {
                 setError(data.message || dict.account.errors.generic);
                 return;
             }
-
             refreshCalendars();
             setSuccess(dict.account.calendars.deleteSuccess);
         } catch (error) {
             setError(dict.account.errors.generic);
             console.error('Error deleting calendar:', error);
+        } finally {
+            // Close the modal regardless of outcome
+            setDeleteModalOpen(false);
+            setCalendarToDelete(null);
         }
     };
 
@@ -186,7 +199,6 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
                                 {dict.account.calendars.title}
                             </h2>
                         </div>
-
                         <div className="flex gap-2">
                             <button
                                 onClick={createEmptyCalendar}
@@ -196,7 +208,6 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
                                 {dict.account.calendars.create ||
                                     'Create Calendar'}
                             </button>
-
                             <button
                                 onClick={() =>
                                     setIsCreatingCalendar(!isCreatingCalendar)
@@ -243,7 +254,9 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
                                     onToggleVisibility={
                                         toggleCalendarVisibility
                                     }
-                                    onDelete={deleteCalendar}
+                                    onDelete={() =>
+                                        handleDeleteRequest(calendar)
+                                    }
                                     dict={dict}
                                 />
                             ))
@@ -251,6 +264,18 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
                     </div>
                 </div>
             </div>
+
+            {/* Delete Confirmation Modal */}
+            <DeleteConfirmationModal
+                isOpen={deleteModalOpen}
+                onClose={() => {
+                    setDeleteModalOpen(false);
+                    setCalendarToDelete(null);
+                }}
+                onConfirm={deleteCalendar}
+                calendarName={calendarToDelete?.name || ''}
+                dict={dict}
+            />
         </div>
     );
 };

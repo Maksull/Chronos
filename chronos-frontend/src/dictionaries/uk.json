@@ -185,6 +185,83 @@
             "newPasswordSuccess": "Пароль було успішно змінено."
         }
     },
+    "calendar": {
+        "backToAccount": "Назад до Облікового запису",
+        "returnToAccount": "Повернутися до Облікового запису",
+        "dayView": "День",
+        "weekView": "Тиждень",
+        "monthView": "Місяць",
+        "today": "Сьогодні",
+        "addEvent": "Додати подію",
+        "settings": "Налаштування",
+        "errorOccurred": "Сталася помилка",
+        "noCalendarSelected": "Календар не вибрано",
+        "notFound": "Календар не знайдено",
+        "eventName": "Назва події",
+        "eventCategory": "Категорія",
+        "categoryArrangement": "Зустріч",
+        "categoryReminder": "Нагадування",
+        "categoryTask": "Завдання",
+        "startDateTime": "Дата і час початку",
+        "endDateTime": "Дата і час завершення",
+        "eventColor": "Колір",
+        "eventDescription": "Опис",
+        "eventCreated": "Подію успішно створено",
+        "eventUpdated": "Подію успішно оновлено",
+        "eventDeleted": "Подію успішно видалено",
+        "confirmDeleteEvent": "Ви впевнені, що хочете видалити цю подію?",
+        "saveChanges": "Зберегти зміни",
+        "deleteEvent": "Видалити подію",
+        "editEvent": "Редагувати подію",
+        "viewEvent": "Переглянути подію",
+        "completedStatus": "Статус виконання",
+        "markedComplete": "Позначено як виконане",
+        "markedIncomplete": "Позначено як невиконане",
+        "allDay": "Весь день",
+        "repeatEvent": "Повторювати",
+        "repeatOptions": {
+            "never": "Ніколи",
+            "daily": "Щодня",
+            "weekly": "Щотижня",
+            "monthly": "Щомісяця",
+            "yearly": "Щороку",
+            "custom": "Власне налаштування"
+        },
+        "selectDate": "Виберіть дату",
+        "selectTime": "Виберіть час",
+        "duration": "Тривалість",
+        "minutes": "хвилин",
+        "hours": "годин",
+        "days": "днів",
+        "noEvents": "Немає подій на цей день",
+        "moreEvents": "+ ще {count}",
+        "weekdays": {
+            "full": [
+                "Неділя",
+                "Понеділок",
+                "Вівторок",
+                "Середа",
+                "Четвер",
+                "П'ятниця",
+                "Субота"
+            ],
+            "short": [
+                "Нд",
+                "Пн",
+                "Вт",
+                "Ср",
+                "Чт",
+                "Пт",
+                "Сб"
+            ]
+        },
+        "timeFormat": {
+            "am": "AM",
+            "pm": "PM",
+            "hours24": "{hour}:00",
+            "hours12": "{hour} {period}"
+        }
+    },
     "home": {
         "hero": {
             "title": {
@@ -246,5 +323,22 @@
         "title": "Сторінку не знайдено",
         "description": "Сторінка, яку ви шукаєте, не існує або була переміщена.",
         "backHome": "На головну"
+    },
+    "common": {
+        "save": "Зберегти",
+        "cancel": "Скасувати",
+        "delete": "Видалити",
+        "edit": "Редагувати",
+        "view": "Переглянути",
+        "create": "Створити",
+        "update": "Оновити",
+        "loading": "Завантаження...",
+        "saving": "Збереження...",
+        "deleting": "Видалення...",
+        "confirm": "Підтвердити",
+        "success": "Успішно",
+        "error": "Помилка",
+        "warning": "Попередження",
+        "info": "Інформація"
     }
 }

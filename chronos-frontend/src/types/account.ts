@@ -16,10 +16,48 @@ export interface CalendarData {
     isMain: boolean;
     isHoliday: boolean;
     isVisible: boolean;
+    owner: {
+        id: string;
+        username: string;
+    };
+    events?: EventData[];
+    categories?: CategoryData[];
+    createdAt: string;
+    updatedAt: string;
 }
 
 export interface CalendarFormData {
     name: string;
     description: string;
     color: string;
+}
+
+export interface CategoryData {
+    id: string;
+    name: string;
+    description: string | null;
+    color: string;
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface EventData {
+    id: string;
+    name: string;
+    category: CategoryData;
+    startDate: string;
+    endDate: string;
+    description: string | null;
+    color: string;
+    isCompleted: boolean;
+    creator: {
+        id: string;
+        username: string;
+    };
+    invitees?: {
+        id: string;
+        username: string;
+    }[];
+    createdAt: string;
+    updatedAt: string;
 }

@@ -185,6 +185,83 @@
             "newPasswordSuccess": "Password has been reseted succesfully."
         }
     },
+    "calendar": {
+        "backToAccount": "Back to Account",
+        "returnToAccount": "Return to Account",
+        "dayView": "Day",
+        "weekView": "Week",
+        "monthView": "Month",
+        "today": "Today",
+        "addEvent": "Add Event",
+        "settings": "Settings",
+        "errorOccurred": "An error occurred",
+        "noCalendarSelected": "No calendar selected",
+        "notFound": "Calendar not found",
+        "eventName": "Event Name",
+        "eventCategory": "Category",
+        "categoryArrangement": "Arrangement",
+        "categoryReminder": "Reminder",
+        "categoryTask": "Task",
+        "startDateTime": "Start Date & Time",
+        "endDateTime": "End Date & Time",
+        "eventColor": "Color",
+        "eventDescription": "Description",
+        "eventCreated": "Event created successfully",
+        "eventUpdated": "Event updated successfully",
+        "eventDeleted": "Event deleted successfully",
+        "confirmDeleteEvent": "Are you sure you want to delete this event?",
+        "saveChanges": "Save Changes",
+        "deleteEvent": "Delete Event",
+        "editEvent": "Edit Event",
+        "viewEvent": "View Event",
+        "completedStatus": "Completed Status",
+        "markedComplete": "Marked as completed",
+        "markedIncomplete": "Marked as incomplete",
+        "allDay": "All day",
+        "repeatEvent": "Repeat",
+        "repeatOptions": {
+            "never": "Never",
+            "daily": "Daily",
+            "weekly": "Weekly",
+            "monthly": "Monthly",
+            "yearly": "Yearly",
+            "custom": "Custom"
+        },
+        "selectDate": "Select Date",
+        "selectTime": "Select Time",
+        "duration": "Duration",
+        "minutes": "minutes",
+        "hours": "hours",
+        "days": "days",
+        "noEvents": "No events for this day",
+        "moreEvents": "+ {count} more",
+        "weekdays": {
+            "full": [
+                "Sunday",
+                "Monday",
+                "Tuesday",
+                "Wednesday",
+                "Thursday",
+                "Friday",
+                "Saturday"
+            ],
+            "short": [
+                "Sun",
+                "Mon",
+                "Tue",
+                "Wed",
+                "Thu",
+                "Fri",
+                "Sat"
+            ]
+        },
+        "timeFormat": {
+            "am": "AM",
+            "pm": "PM",
+            "hours24": "{hour}:00",
+            "hours12": "{hour} {period}"
+        }
+    },
     "home": {
         "hero": {
             "title": {
@@ -246,5 +323,22 @@
         "title": "Page not found",
         "description": "The page you're looking for doesn't exist or has been moved.",
         "backHome": "Back to Home"
+    },
+    "common": {
+        "save": "Save",
+        "cancel": "Cancel",
+        "delete": "Delete",
+        "edit": "Edit",
+        "view": "View",
+        "create": "Create",
+        "update": "Update",
+        "loading": "Loading...",
+        "saving": "Saving...",
+        "deleting": "Deleting...",
+        "confirm": "Confirm",
+        "success": "Success",
+        "error": "Error",
+        "warning": "Warning",
+        "info": "Information"
     }
 }

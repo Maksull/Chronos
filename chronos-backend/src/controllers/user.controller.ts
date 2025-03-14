@@ -1,6 +1,6 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
-import { UserService } from '@/services/user.service';
 import { UpdateProfileDto } from '@/types/user';
+import { UserService } from '@/services';
 
 export class UserController {
     private userService: UserService;

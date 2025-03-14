@@ -3,9 +3,9 @@ import { AppDataSource } from '@/database/data-source';
 import { RegisterUserDto, LoginDto, ChangeEmailDto, ChangePasswordDto } from '@/types/auth';
 import { hash, compare } from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import { EmailService } from './email.service';
 import { addHours, addMinutes } from 'date-fns';
 import { TokenBlacklist } from '@/middlewares/auth.middleware';
+import { EmailService } from '.';
 
 export class AuthService {
     private userRepository = AppDataSource.getRepository(User);

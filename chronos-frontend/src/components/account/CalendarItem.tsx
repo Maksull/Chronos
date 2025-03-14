@@ -1,13 +1,13 @@
-// src/components/account/CalendarItem.tsx
 import React from 'react';
 import { Eye, EyeOff, Globe, Trash2 } from 'lucide-react';
-import { Dictionary } from '@/lib/dictionary';
 import { CalendarData } from '@/types/account';
+import { Dictionary } from '@/lib/dictionary';
+import Link from 'next/link';
 
 interface CalendarItemProps {
     calendar: CalendarData;
     onToggleVisibility: (id: string, isVisible: boolean) => Promise<void>;
-    onDelete: (id: string) => Promise<void>;
+    onDelete: (calendar: CalendarData) => void;
     dict: Dictionary;
 }
 
@@ -20,10 +20,10 @@ export const CalendarItem: React.FC<CalendarItemProps> = ({
     return (
         <div
             className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/30 rounded-xl transition-all hover:shadow-sm"
-            style={{
-                borderLeft: `4px solid ${calendar.color}`,
-            }}>
-            <div className="flex-1">
+            style={{ borderLeft: `4px solid ${calendar.color}` }}>
+            <Link
+                href={`/calendar/${calendar.id}`}
+                className="flex-1 cursor-pointer hover:opacity-80 transition-opacity">
                 <div className="flex items-center gap-2">
                     {calendar.isHoliday && (
                         <Globe className="h-4 w-4 text-gray-400" />
@@ -47,13 +47,14 @@ export const CalendarItem: React.FC<CalendarItemProps> = ({
                         {calendar.description}
                     </p>
                 )}
-            </div>
-
+            </Link>
             <div className="flex items-center gap-3">
                 <button
-                    onClick={() =>
-                        onToggleVisibility(calendar.id, !calendar.isVisible)
-                    }
+                    onClick={e => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        onToggleVisibility(calendar.id, !calendar.isVisible);
+                    }}
                     className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
                     disabled={calendar.isMain}
                     title={
@@ -67,10 +68,13 @@ export const CalendarItem: React.FC<CalendarItemProps> = ({
                         <EyeOff className="h-5 w-5" />
                     )}
                 </button>
-
                 {!calendar.isMain && !calendar.isHoliday && (
                     <button
-                        onClick={() => onDelete(calendar.id)}
+                        onClick={e => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            onDelete(calendar);
+                        }}
                         className="text-red-400 hover:text-red-600 dark:hover:text-red-300 transition-colors"
                         title={dict.account.calendars.delete}>
                         <Trash2 className="h-5 w-5" />

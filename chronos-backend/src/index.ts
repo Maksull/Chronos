@@ -6,6 +6,8 @@ import { AppDataSource } from './database/data-source.js';
 import { authRoutes } from './routes/auth.routes';
 import { calendarRoutes } from './routes/calendar.routes.js';
 import { userRoutes } from './routes/user.routes.js';
+import { eventRoutes } from './routes/event.routes.js';
+import { categoryRoutes } from './routes/category.routes.js';
 
 const app: FastifyInstance = fastify({
     logger: true,
@@ -25,6 +27,8 @@ const start = async () => {
         authRoutes(app);
         userRoutes(app);
         calendarRoutes(app);
+        eventRoutes(app);
+        categoryRoutes(app);
 
         app.get('/', async (request, reply) => {
             return { message: 'Hello, Fastify!' };
