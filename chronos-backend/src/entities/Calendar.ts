@@ -1,5 +1,5 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, OneToMany, ManyToMany, JoinColumn } from 'typeorm';
-import { User, Event, EventCategory } from '.';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, OneToMany, JoinColumn } from 'typeorm';
+import { User, Event, EventCategory, CalendarParticipant } from '.';
 
 @Entity('calendars')
 export class Calendar {
@@ -28,8 +28,8 @@ export class Calendar {
     @JoinColumn({ name: 'owner_id' })
     owner!: User;
 
-    @ManyToMany(() => User, user => user.sharedCalendars)
-    participants!: User[];
+    @OneToMany(() => CalendarParticipant, participant => participant.calendar)
+    participantRoles!: CalendarParticipant[];
 
     @OneToMany(() => Event, event => event.calendar)
     events!: Event[];

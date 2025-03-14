@@ -65,7 +65,6 @@ export const CalendarInvitePage = () => {
     const handleAcceptInvite = async () => {
         setAccepting(true);
         setError('');
-
         try {
             const response = await fetch(
                 `http://localhost:3001/calendar-invites/${inviteId}/accept`,
@@ -73,12 +72,12 @@ export const CalendarInvitePage = () => {
                     method: 'POST',
                     headers: {
                         Authorization: `Bearer ${localStorage.getItem('token')}`,
+                        'Content-Type': 'application/json',
                     },
+                    body: JSON.stringify({}),
                 },
             );
-
             const data = await response.json();
-
             if (data.status === 'success') {
                 setSuccess(true);
                 setCalendarInfo(data.data);

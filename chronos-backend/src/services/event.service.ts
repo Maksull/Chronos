@@ -1,5 +1,5 @@
 import { AppDataSource } from '@/database/data-source';
-import { Event, EventCategory, Calendar, User } from '@/entities';
+import { Event, EventCategory, Calendar, User, CalendarParticipant, ParticipantRole } from '@/entities';
 import { LessThanOrEqual, MoreThanOrEqual } from 'typeorm';
 
 export interface CreateEventDto {
@@ -28,27 +28,33 @@ export class EventService {
     private categoryRepository = AppDataSource.getRepository(EventCategory);
     private calendarRepository = AppDataSource.getRepository(Calendar);
     private userRepository = AppDataSource.getRepository(User);
+    private participantRepository = AppDataSource.getRepository(CalendarParticipant);
 
     async getEventsByCalendarId(userId: string, calendarId: string, startDate?: Date, endDate?: Date): Promise<Event[]> {
         const calendar = await this.calendarRepository.findOne({
             where: { id: calendarId },
-            relations: ['owner', 'participants'],
+            relations: ['owner'],
         });
 
         if (!calendar) {
             throw new Error('Calendar not found');
         }
 
+        // Check if user is the owner
         const isOwner = calendar.owner.id === userId;
-        const isParticipant = calendar.participants?.some(participant => participant.id === userId) || false;
 
-        if (!isOwner && !isParticipant) {
-            throw new Error('Not authorized');
+        // If not owner, check if they're a participant
+        if (!isOwner) {
+            const participantRole = await this.participantRepository.findOne({
+                where: { calendarId, userId },
+            });
+
+            if (!participantRole) {
+                throw new Error('Not authorized');
+            }
         }
 
-        const conditions: any = {
-            calendar: { id: calendarId },
-        };
+        const conditions: any = { calendar: { id: calendarId } };
 
         if (startDate && endDate) {
             conditions.startDate = LessThanOrEqual(endDate);
@@ -69,18 +75,26 @@ export class EventService {
     async createEvent(userId: string, calendarId: string, data: CreateEventDto): Promise<Event> {
         const calendar = await this.calendarRepository.findOne({
             where: { id: calendarId },
-            relations: ['owner', 'participants'],
+            relations: ['owner'],
         });
 
         if (!calendar) {
             throw new Error('Calendar not found');
         }
 
+        // Check if user is the owner
         const isOwner = calendar.owner.id === userId;
-        const isParticipant = calendar.participants?.some(participant => participant.id === userId) || false;
 
-        if (!isOwner && !isParticipant) {
-            throw new Error('Not authorized');
+        // If not owner, check if they're a participant with appropriate permissions
+        if (!isOwner) {
+            const participantRole = await this.participantRepository.findOne({
+                where: { calendarId, userId },
+            });
+
+            // Only ADMIN and CREATOR roles can create events
+            if (!participantRole || (participantRole.role !== ParticipantRole.ADMIN && participantRole.role !== ParticipantRole.CREATOR)) {
+                throw new Error('Not authorized');
+            }
         }
 
         const creator = await this.userRepository.findOneBy({ id: userId });
@@ -127,11 +141,29 @@ export class EventService {
             throw new Error('Event not found');
         }
 
+        // Check permissions:
+        // 1. Creator of the event can update it
         const isCreator = event.creator.id === userId;
+        // 2. Calendar owner can update any event
         const isCalendarOwner = event.calendar.owner.id === userId;
 
+        let userRole = null;
+
         if (!isCreator && !isCalendarOwner) {
-            throw new Error('Not authorized');
+            const participantRole = await this.participantRepository.findOne({
+                where: { calendarId: event.calendar.id, userId },
+            });
+
+            if (!participantRole) {
+                throw new Error('Not authorized');
+            }
+
+            userRole = participantRole.role;
+
+            // ADMIN can update any event, CREATOR can only update their own events, READER can't update events
+            if (userRole !== ParticipantRole.ADMIN && (userRole !== ParticipantRole.CREATOR || event.creator.id !== userId)) {
+                throw new Error('Not authorized to update this event');
+            }
         }
 
         if (data.categoryId) {
@@ -173,11 +205,21 @@ export class EventService {
             throw new Error('Event not found');
         }
 
+        // Check permissions:
+        // 1. Creator of the event can delete it
         const isCreator = event.creator.id === userId;
+        // 2. Calendar owner can delete any event
         const isCalendarOwner = event.calendar.owner.id === userId;
 
         if (!isCreator && !isCalendarOwner) {
-            throw new Error('Not authorized');
+            const participantRole = await this.participantRepository.findOne({
+                where: { calendarId: event.calendar.id, userId },
+            });
+
+            // Only ADMIN can delete others' events
+            if (!participantRole || participantRole.role !== ParticipantRole.ADMIN) {
+                throw new Error('Not authorized');
+            }
         }
 
         await this.eventRepository.remove(event);
