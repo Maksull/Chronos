@@ -623,7 +623,6 @@ export default function CalendarPage() {
                         onEventCreated={fetchCalendar}
                         onEventUpdated={fetchCalendar}
                         onEventDeleted={fetchCalendar}
-                        // Fix this line - currently all Creators can edit any event
                         canEdit={
                             isUserOwner ||
                             currentUserRole === ParticipantRole.ADMIN ||

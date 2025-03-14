@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Mail } from 'lucide-react';
 import { useDictionary } from '@/contexts';
@@ -20,11 +20,14 @@ export default function ResetPasswordPage() {
         setIsSubmitting(true);
 
         try {
-            const response = await fetch('http://localhost:3001/auth/reset-password', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email }),
-            });
+            const response = await fetch(
+                'http://localhost:3001/auth/reset-password',
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email }),
+                },
+            );
 
             const data = await response.json();
 
@@ -33,7 +36,10 @@ export default function ResetPasswordPage() {
                 return;
             }
 
-            setTimeout(() => router.push(`/${lang}/verify-reset-password`), 2000);
+            setTimeout(
+                () => router.push(`/${lang}/verify-reset-password`),
+                2000,
+            );
             setSuccess(true);
         } catch {
             setError(dict.auth.errors.generic);
@@ -113,4 +119,3 @@ export default function ResetPasswordPage() {
         </div>
     );
 }
-

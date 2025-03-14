@@ -20,37 +20,40 @@ export default function ResetPasswordPage() {
         e.preventDefault();
         setError('');
         setIsSubmitting(true);
-    
+
         if (newPassword.length < 8) {
             setError('Password must be at least 8 characters long.');
             setIsSubmitting(false);
             return;
         }
-    
+
         try {
             if (!token || !newPassword) {
-                console.error("Token and newPassword are required!");
+                console.error('Token and newPassword are required!');
                 setIsSubmitting(false);
                 return;
             }
-            const response = await fetch('http://localhost:3001/auth/reset-password-with-token', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ token, newPassword }),
-            });
-    
+            const response = await fetch(
+                'http://localhost:3001/auth/reset-password-with-token',
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ token, newPassword }),
+                },
+            );
+
             const data = await response.json();
-    
+
             if (!response.ok) {
-                if (data.code === "FST_ERR_VALIDATION") {
-                    setError("Password must be at least 8 characters long.");
+                if (data.code === 'FST_ERR_VALIDATION') {
+                    setError('Password must be at least 8 characters long.');
                 } else {
                     setError(data.message || dict.auth.errors.generic);
                 }
                 setIsSubmitting(false);
                 return;
             }
-    
+
             setSuccess(true);
             setTimeout(() => router.push(`/${lang}/login`), 1500);
         } catch {
@@ -59,7 +62,6 @@ export default function ResetPasswordPage() {
             setIsSubmitting(false);
         }
     };
-    
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setNewPassword(e.target.value);
@@ -132,4 +134,3 @@ export default function ResetPasswordPage() {
         </div>
     );
 }
-

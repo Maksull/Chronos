@@ -154,7 +154,6 @@ export default function VerifyEmailChangePage() {
         }
     };
 
-    // If verification is successful, show success UI
     if (isVerified) {
         return (
             <ProtectedRoute>
@@ -194,7 +193,6 @@ export default function VerifyEmailChangePage() {
         );
     }
 
-    // Show verification UI (manual code entry)
     return (
         <ProtectedRoute>
             <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-12">
