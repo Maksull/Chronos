@@ -11,14 +11,16 @@ export default function SecuritySettingsPage() {
         <ProtectedRoute>
             <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-12">
                 <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="mb-8 flex items-center gap-4">
-                        <Link
-                            href={`/${lang}/account`}
-                            className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">
-                            <ArrowLeft className="h-5 w-5" />
-                            {dict.settings.backToAccount}
-                        </Link>
-                        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+                    <div className="mb-8">
+                        <div className="flex items-center gap-4">
+                            <Link
+                                href={`/${lang}/account`}
+                                className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">
+                                <ArrowLeft className="h-5 w-5" />
+                                {dict.settings.backToAccount}
+                            </Link>
+                        </div>
+                        <h1 className="mt-4 text-3xl font-bold text-gray-900 dark:text-white">
                             {dict.settings.title}
                         </h1>
                     </div>

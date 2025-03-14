@@ -8,6 +8,7 @@
         "settings": "Settings",
         "profile": "Profile",
         "login": "Sign in",
+        "logout": "Log out",
         "register": "Register"
     },
     "account": {
@@ -171,6 +172,17 @@
                 "checkSpam": "If you don't see the email in your inbox, please check your spam folder.",
                 "enterCode": "Enter verification code"
             }
+        },
+        "resetPassword": {
+            "title": "Reset Password",
+            "subtitle": "Remember your password?",
+            "loginLink": "Login",
+            "submit": "Reset Password",
+            "loading": "Resetting...",
+            "success": "Password reset email has been sent to your email address.",
+            "newPasswordTitle": "Enter New Password",
+            "newPasswordField": "New Password",
+            "newPasswordSuccess": "Password has been reseted succesfully."
         }
     },
     "home": {

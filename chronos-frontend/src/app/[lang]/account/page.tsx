@@ -12,9 +12,11 @@ import {
     StatsSection,
 } from '@/components';
 import { ProfileData, CalendarData } from '@/types/account';
+import {useRouter} from 'next/navigation';
 
 export default function AccountPage() {
     const { dict, lang } = useDictionary();
+    const router = useRouter();
     const [profileData, setProfileData] = useState<ProfileData>({
         username: '',
         fullName: '',
@@ -116,57 +118,58 @@ export default function AccountPage() {
                                 {dict.account.welcome.replace(
                                     '{name}',
                                     profileData.fullName ||
-                                        profileData.username,
+                                    profileData.username,
                                 )}
                             </h1>
                             <p className="mt-2 text-gray-600 dark:text-gray-400">
                                 {dict.account.stats.member}{' '}
                                 {profileData.createdAt
                                     ? new Date(
-                                          profileData.createdAt,
-                                      ).toLocaleDateString()
+                                        profileData.createdAt,
+                                    ).toLocaleDateString()
                                     : ''}
                             </p>
                         </div>
 
-                        <Link
-                            href={`/${lang}/account/settings`}
-                            className="flex items-center gap-2 bg-white dark:bg-gray-800 px-4 py-2 rounded-lg shadow-sm hover:shadow-md transition-all text-gray-700 dark:text-gray-200">
-                            <Shield className="h-5 w-5" />
-                            {dict.account.settings}
-                        </Link>
-                    </div>
+                        <button
+                            type="button"
+                            onClick={() => router.push(`/${lang}/account/settings`)}
+                            className="flex items-center gap-2 bg-white dark:bg-gray-800 px-4 py-2 rounded-lg shadow-sm hover:shadow-md text-gray-700 dark:text-gray-200">
+                        <Shield className="h-5 w-5" />
+                        {dict.account.settings}
+                    </button>
+                </div>
 
-                    {error && <AlertMessage type="error" message={error} />}
-                    {success && (
-                        <AlertMessage type="success" message={success} />
-                    )}
+                {error && <AlertMessage type="error" message={error} />}
+                {success && (
+                    <AlertMessage type="success" message={success} />
+                )}
 
-                    <StatsSection
+                <StatsSection
+                    profileData={profileData}
+                    calendarCount={calendars.length}
+                    dict={dict}
+                />
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <ProfileSection
                         profileData={profileData}
-                        calendarCount={calendars.length}
+                        setProfileData={setProfileData}
+                        onUpdate={handleProfileUpdate}
+                        isLoading={isLoading}
                         dict={dict}
                     />
 
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                        <ProfileSection
-                            profileData={profileData}
-                            setProfileData={setProfileData}
-                            onUpdate={handleProfileUpdate}
-                            isLoading={isLoading}
-                            dict={dict}
-                        />
-
-                        <CalendarSection
-                            calendars={calendars}
-                            refreshCalendars={fetchUserCalendars}
-                            setError={setError}
-                            setSuccess={setSuccess}
-                            dict={dict}
-                        />
-                    </div>
+                    <CalendarSection
+                        calendars={calendars}
+                        refreshCalendars={fetchUserCalendars}
+                        setError={setError}
+                        setSuccess={setSuccess}
+                        dict={dict}
+                    />
                 </div>
             </div>
-        </ProtectedRoute>
+        </div>
+        </ProtectedRoute >
     );
 }

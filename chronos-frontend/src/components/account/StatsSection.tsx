@@ -20,7 +20,7 @@ export const StatsSection: React.FC<StatsSectionProps> = ({
 }) => {
     return (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 transition-all hover:shadow-md">
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6  hover:shadow-md">
                 <div className="flex items-center gap-4">
                     <div className="bg-blue-100 dark:bg-blue-900/50 p-3 rounded-lg">
                         <Calendar className="h-6 w-6 text-blue-600 dark:text-blue-400" />
@@ -36,7 +36,7 @@ export const StatsSection: React.FC<StatsSectionProps> = ({
                 </div>
             </div>
 
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 transition-all hover:shadow-md">
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6  hover:shadow-md">
                 <div className="flex items-center gap-4">
                     <div className="bg-purple-100 dark:bg-purple-900/50 p-3 rounded-lg">
                         <Globe className="h-6 w-6 text-purple-600 dark:text-purple-400" />
@@ -52,7 +52,7 @@ export const StatsSection: React.FC<StatsSectionProps> = ({
                 </div>
             </div>
 
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 transition-all hover:shadow-md">
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 hover:shadow-md">
                 <div className="flex items-center gap-4">
                     <div className="bg-green-100 dark:bg-green-900/50 p-3 rounded-lg">
                         <UserCircle className="h-6 w-6 text-green-600 dark:text-green-400" />

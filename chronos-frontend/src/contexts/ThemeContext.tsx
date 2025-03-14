@@ -31,7 +31,6 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         }
 
         setMounted(true);
-        document.body.classList.add('transitioning');
     }, []);
 
     const toggleTheme = () => {
