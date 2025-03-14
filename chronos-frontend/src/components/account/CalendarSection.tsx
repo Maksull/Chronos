@@ -203,7 +203,7 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
                             <button
                                 onClick={createEmptyCalendar}
                                 disabled={isLoading}
-                                className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 disabled:opacity-50 transition-colors">
+                                className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 disabled:opacity-50">
                                 <Plus className="h-4 w-4" />
                                 {dict.account.calendars.create ||
                                     'Create Calendar'}
@@ -212,7 +212,7 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
                                 onClick={() =>
                                     setIsCreatingCalendar(!isCreatingCalendar)
                                 }
-                                className="flex items-center gap-2 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors">
+                                className="flex items-center gap-2 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-100 dark:hover:bg-indigo-900/50 ">
                                 {isCreatingCalendar ? (
                                     <>
                                         <X className="h-4 w-4" />

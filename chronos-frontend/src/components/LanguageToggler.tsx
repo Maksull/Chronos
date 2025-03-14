@@ -1,5 +1,6 @@
-'use client';
+"use client";
 
+import { useRouter } from "next/navigation";
 import { Globe } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -11,6 +12,7 @@ interface LanguageTogglerProps {
 
 export function LanguageToggler({ currentLang }: LanguageTogglerProps) {
     const pathname = usePathname();
+    const router = useRouter();
 
     // Get the path without the language prefix
     const pathnameWithoutLang = pathname?.split('/').slice(2).join('/') || '';
@@ -18,24 +20,22 @@ export function LanguageToggler({ currentLang }: LanguageTogglerProps) {
     return (
         <div className="flex items-center justify-center gap-2">
             <Globe className="h-4 w-4 text-gray-400 dark:text-gray-500" />
-            <div className="flex rounded-lg border border-gray-200 dark:border-dark-border">
-                {locales.map((locale, index) => (
-                    <Link
-                        key={locale}
-                        href={`/${locale}/${pathnameWithoutLang}`}
-                        className={`px-3 py-1 text-sm transition-colors ${
-                            index > 0
-                                ? 'border-l border-gray-200 dark:border-dark-border'
-                                : ''
-                        } ${
-                            currentLang === locale
-                                ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400'
-                                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-dark-bg'
-                        }`}>
+            <div className="flex">
+                {locales.map((locale) => (
+                    <button
+                        key={locale} // Add a key to prevent rendering issues
+                        type="button"
+                        onClick={() => router.push(`/${locale}/${pathnameWithoutLang}`)}
+                        className={`px-3 py-1 rounded-lg hover:bg-indigo-200 ${currentLang === locale
+                                ? "bg-indigo-50 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400  dark:hover:bg-indigo-800"
+                                : "text-gray-600 dark:text-gray-400 dark:hover:bg-dark-bg"
+                            }`}
+                    >
                         {locale.toUpperCase()}
-                    </Link>
+                    </button>
                 ))}
             </div>
         </div>
+
     );
 }

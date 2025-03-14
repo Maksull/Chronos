@@ -51,6 +51,12 @@ export class User {
     verificationCodeExpiresAt!: Date | null;
 
     @Column({ type: 'varchar', length: 6, nullable: true })
+    resetPasswordToken!: string | null;
+
+    @Column({ type: 'timestamp', nullable: true })
+    resetPasswordTokenExpiresAt!: Date | null;
+
+    @Column({ type: 'varchar', length: 6, nullable: true })
     emailChangeCode!: string | null;
 
     @Column({ type: 'timestamp', nullable: true })

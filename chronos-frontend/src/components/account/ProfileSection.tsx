@@ -74,7 +74,7 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
                                             fullName: e.target.value,
                                         }))
                                     }
-                                    className="w-full rounded-lg border border-gray-300 dark:border-gray-600 px-4 py-2.5 text-gray-900 dark:text-white dark:bg-gray-700"
+                                    className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 px-4 py-2.5 text-gray-900 dark:text-white"
                                 />
                             </div>
 
@@ -91,7 +91,7 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
                                             region: e.target.value,
                                         }))
                                     }
-                                    className="w-full rounded-lg border border-gray-300 dark:border-gray-600 px-4 py-2.5 text-gray-900 dark:text-white dark:bg-gray-700"
+                                    className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 px-4 py-2.5 text-gray-900 dark:text-white"
                                 />
                             </div>
                         </div>
@@ -99,7 +99,7 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
                         <button
                             type="submit"
                             disabled={isLoading}
-                            className="w-full bg-indigo-600 text-white px-4 py-2.5 rounded-lg font-medium hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 disabled:opacity-50 transition-colors">
+                            className="w-full bg-indigo-600 text-white px-4 py-2.5 rounded-lg font-medium hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 disabled:opacity-50">
                             {isLoading
                                 ? dict.account.common.loading
                                 : dict.account.profile.update}

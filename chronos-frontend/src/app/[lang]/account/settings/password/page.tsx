@@ -55,7 +55,7 @@ export default function ChangePasswordPage() {
                 <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="mb-8">
                         <Link
-                            href={`/${lang}/settings`}
+                            href={`/${lang}/account/settings`}
                             className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white mb-4">
                             <ArrowLeft className="h-5 w-5" />
                             {dict.settings.backToSecurity}

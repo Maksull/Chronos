@@ -11,6 +11,7 @@ export type Dictionary = {
         settings: string;
         profile: string;
         login: string;
+        logout: string;
         register: string;
     };
     account: {
@@ -175,6 +176,17 @@ export type Dictionary = {
                 checkSpam: string;
                 enterCode: string;
             };
+        };
+        resetPassword: {
+            title: string;
+            subtitle: string;
+            loginLink: string;
+            submit: string;
+            loading: string;
+            success: string;
+            newPasswordTitle: string;
+            newPasswordField: string;
+            newPasswordSuccess:string;
         };
     };
     calendar?: {

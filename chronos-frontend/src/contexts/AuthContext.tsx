@@ -104,11 +104,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
     };
 
-    const logout = () => {
-        localStorage.removeItem('token');
-        setUser(null);
-        setIsAuthenticated(false);
-        router.push(`/${lang}/login`);
+    const logout = async () => {
+        const token = localStorage.getItem('token');
+        if (!token) {
+            setIsAuthenticated(false);
+            setUser(null);
+            router.push(`/${lang}/login`);
+            return;
+        }
+
+        try {
+            const response = await fetch('http://localhost:3001/auth/logout', {
+                method: 'POST',
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+
+            if (response.ok) {
+                localStorage.removeItem('token');
+                setUser(null);
+                setIsAuthenticated(false);
+                router.push(`/${lang}/login`);
+            } else {
+                console.error('Logout failed');
+            }
+        } catch (error) {
+            console.error('Error logging out:', error);
+        }
     };
 
     return (

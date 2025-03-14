@@ -63,6 +63,27 @@ const verifyEmailSchema = {
     },
 };
 
+const checkResetTokeSchema = {
+    body: {
+        type: 'object',
+        required: ['token'],
+        properties: {
+            token: { type: 'string' },
+        },
+    },
+};
+
+const resetPasswordWithTokenSchema = {
+    body: {
+        type: 'object',
+        required: ['token', 'newPassword'],
+        properties: {
+            token: { type: 'string' },
+            newPassword: { type: 'string', minLength: 8 },
+        },
+    },
+};
+
 export async function authRoutes(app: FastifyInstance) {
     const authController = new AuthController();
 
@@ -70,9 +91,23 @@ export async function authRoutes(app: FastifyInstance) {
 
     app.post('/auth/login', { schema: loginSchema }, authController.login.bind(authController));
 
+    app.post('/auth/logout', {
+        preHandler: [authenticateToken],
+    }, authController.logout.bind(authController));
+
+
     app.post('/auth/verify-email', { schema: verifyEmailSchema }, authController.verifyEmail.bind(authController));
 
     app.post('/auth/verify-email-change', { schema: verifyEmailSchema }, authController.confirmEmailChange.bind(authController));
+
+    app.post('/auth/reset-password', authController.resetPassword.bind(authController));
+
+    app.post('/auth/reset-password-with-token', { schema: resetPasswordWithTokenSchema }, authController.resetPasswordWithToken.bind(authController));
+
+    app.post('/auth/check-reset-token', { schema: checkResetTokeSchema }, authController.checkResetToken.bind(authController));
+
+
+
 
     // app.post(
     //     '/auth/resend-verification',

@@ -10,7 +10,7 @@ import { useDictionary } from '@/contexts';
 export default function VerifyEmailPage() {
     const { dict, lang } = useDictionary();
     const router = useRouter();
-    const [code, setCode] = useState(['', '', '', '', '', '']);
+    const [token, setToken] = useState(['', '', '', '', '', '']);
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [isResending, setIsResending] = useState(false);
@@ -36,8 +36,8 @@ export default function VerifyEmailPage() {
         }
     }, [resendTimer]);
 
-    const handleResendCode = async () => {
-        // ... (rest of the handleResendCode function remains the same)
+    const handleResendToken = async () => {
+        // ... (rest of the handleResendToken function remains the same)
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -46,17 +46,17 @@ export default function VerifyEmailPage() {
         setIsLoading(true);
         setResendSuccess(false);
 
-        const verificationCode = code.join('');
+        const verificationToken = token.join('');
 
         try {
             const response = await fetch(
-                'http://localhost:3001/auth/verify-email',
+                'http://localhost:3001/auth/check-reset-token',
                 {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ code: verificationCode }),
+                    body: JSON.stringify({ token: verificationToken }),
                 },
             );
 
@@ -68,7 +68,7 @@ export default function VerifyEmailPage() {
             }
 
             setResendSuccess(true);
-            setTimeout(() => router.push(`/${lang}/login`), 1500);
+            setTimeout(() => router.push(`/${lang}/set-new-password?token=${verificationToken}`), 1500);
         } catch {
             setError(dict.auth.errors.generic);
         } finally {
@@ -76,12 +76,12 @@ export default function VerifyEmailPage() {
         }
     };
 
-    const handleCodeChange = (index: number, value: string) => {
+    const handleTokenChange = (index: number, value: string) => {
         if (value.length > 1) {
             const newValue = value.slice(0, 1);
-            const newCode = [...code];
-            newCode[index] = newValue;
-            setCode(newCode);
+            const newToken = [...token];
+            newToken[index] = newValue;
+            setToken(newToken);
 
             if (index < 5) {
                 inputRefs[index + 1].current?.focus();
@@ -91,9 +91,9 @@ export default function VerifyEmailPage() {
                 return;
             }
 
-            const newCode = [...code];
-            newCode[index] = value;
-            setCode(newCode);
+            const newToken = [...token];
+            newToken[index] = value;
+            setToken(newToken);
 
             if (value && index < 5) {
                 inputRefs[index + 1].current?.focus();
@@ -105,16 +105,16 @@ export default function VerifyEmailPage() {
         e.preventDefault();
         const pastedText = e.clipboardData.getData('text/plain');
         const digits = pastedText.replace(/\D/g, '').slice(0, 6);
-        const newCode = digits.split('').slice(0, 6);
-        setCode(newCode);
-        inputRefs[newCode.length - 1].current?.focus();
+        const newToken = digits.split('').slice(0, 6);
+        setToken(newToken);
+        inputRefs[newToken.length - 1].current?.focus();
     };
 
     const handleKeyDown = (
         index: number,
         e: React.KeyboardEvent<HTMLInputElement>,
     ) => {
-        if (e.key === 'Backspace' && !code[index] && index > 0) {
+        if (e.key === 'Backspace' && !token[index] && index > 0) {
             inputRefs[index - 1].current?.focus();
         } else if (e.key === 'ArrowLeft' && index > 0) {
             inputRefs[index - 1].current?.focus();
@@ -156,7 +156,7 @@ export default function VerifyEmailPage() {
                                 {dict.auth.verifyEmail.enterCode}
                             </label>
                             <div className="flex justify-center space-x-2">
-                                {code.map((digit, index) => (
+                                {token.map((digit, index) => (
                                     <input
                                         key={index}
                                         ref={inputRefs[index]}
@@ -164,7 +164,7 @@ export default function VerifyEmailPage() {
                                         maxLength={1}
                                         value={digit}
                                         onChange={e =>
-                                            handleCodeChange(
+                                            handleTokenChange(
                                                 index,
                                                 e.target.value,
                                             )
@@ -182,7 +182,7 @@ export default function VerifyEmailPage() {
 
                         <button
                             type="submit"
-                            disabled={isLoading || code.some(digit => !digit)}
+                            disabled={isLoading || token.some(digit => !digit)}
                             className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:bg-indigo-500 dark:hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed">
                             {isLoading
                                 ? dict.auth.verifyEmail.loading
@@ -192,7 +192,7 @@ export default function VerifyEmailPage() {
                         <div className="text-center">
                             <button
                                 type="button"
-                                onClick={handleResendCode}
+                                onClick={handleResendToken}
                                 disabled={isResending || resendTimer > 0}
                                 className="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed">
                                 {isResending
@@ -208,7 +208,7 @@ export default function VerifyEmailPage() {
 
                         <div className="text-center">
                             <Link
-                                href={`/${lang}/login`}
+                                href={`/${lang}/reset-password`}
                                 className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-500">
                                 {dict.auth.verifyEmail.backToLogin}
                             </Link>

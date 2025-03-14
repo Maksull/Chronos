@@ -81,6 +81,36 @@ export class AuthController {
         }
     }
 
+    async logout(request: FastifyRequest, reply: FastifyReply) {
+        try {
+            // Log the headers for debugging
+            console.log('Request headers:', request.headers);
+    
+            const token = request.headers.authorization?.split(' ')[1];
+     
+            if (!token) {
+                return reply.status(400).send({
+                    status: 'error',
+                    message: 'No token provided',
+                });
+            }
+     
+            await this.authService.logout(token);
+     
+            return reply.send({
+                status: 'success',
+                message: 'Logged out successfully',
+            });
+        } catch (error) {
+            request.log.error(error);
+            return reply.status(500).send({
+                status: 'error',
+                message: 'Internal server error',
+            });
+        }
+    }
+    
+    
     // Update your request type to accept the code in the body
     async verifyEmail(request: FastifyRequest<{ Body: { code: string } }>, reply: FastifyReply) {
         try {
@@ -165,6 +195,32 @@ export class AuthController {
         }
     }
 
+    async resetPassword(request: FastifyRequest<{ Body: { email: string } }>, reply: FastifyReply) {
+        try {
+            await this.authService.resetPassword(request.body.email);
+            return reply.send({
+                status: 'success',
+                message: 'Reset password email sent',
+            });
+        } catch (error) {
+            if (error instanceof Error) {
+                if (error.message === 'User not found') {
+                    return reply.status(404).send({
+                        status: 'error',
+                        message: error.message,
+                    });
+                }
+            }
+    
+            request.log.error(error);
+            return reply.status(500).send({
+                status: 'error',
+                message: 'Internal server error',
+            });
+        }
+    }
+    
+
     async initiateEmailChange(request: FastifyRequest<{ Body: ChangeEmailDto }>, reply: FastifyReply) {
         try {
             await this.authService.initiateEmailChange(request.user!.userId, request.body);
@@ -202,6 +258,59 @@ export class AuthController {
             });
         }
     }
+    
+    async checkResetToken(request: FastifyRequest<{ Body: { token: string } }>, reply: FastifyReply) {
+        try {
+            await this.authService.checkResetToken(request.body.token);
+    
+            return reply.send({
+                status: 'success',
+                message: 'Reset token is valid',
+            });
+        } catch (error) {
+            if (error instanceof Error) {
+                if (error.message === 'Invalid reset password token' || error.message === 'Reset password token has expired') {
+                    return reply.status(400).send({
+                        status: 'error',
+                        message: error.message,
+                    });
+                }
+            }
+    
+            request.log.error(error);
+            return reply.status(500).send({
+                status: 'error',
+                message: 'Internal server error',
+            });
+        }
+    }
+
+    
+    async resetPasswordWithToken(request: FastifyRequest<{ Body: { token: string; newPassword: string } }>, reply: FastifyReply) {
+        try {
+            await this.authService.resetPasswordWithToken(request.body.token, request.body.newPassword);
+            return reply.send({
+                status: 'success',
+                message: 'Password reset successfully',
+            });
+        } catch (error) {
+            if (error instanceof Error) {
+                if (error.message === 'Invalid reset password token' || error.message === 'Reset password token has expired') {
+                    return reply.status(400).send({
+                        status: 'error',
+                        message: error.message,
+                    });
+                }
+            }
+    
+            request.log.error(error);
+            return reply.status(500).send({
+                status: 'error',
+                message: 'Internal server error',
+            });
+        }
+    }
+    
 
     async confirmEmailChange(request: FastifyRequest<{ Querystring: { token: string } }>, reply: FastifyReply) {
         try {

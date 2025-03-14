@@ -1,11 +1,10 @@
 'use client';
 
 import { Calendar } from 'lucide-react';
-import { LanguageToggler } from '.';
 import { useDictionary } from '@/contexts/DictionaryContext';
 
 export function Footer() {
-    const { dict, lang } = useDictionary();
+    const { dict } = useDictionary();
 
     return (
         <footer className="bg-gradient-to-b from-gray-50 to-gray-100 dark:from-dark-surface dark:to-dark-bg w-full">
@@ -23,7 +22,7 @@ export function Footer() {
                                 {dict.footer.description}
                             </p>
                         </div>
-                        <LanguageToggler currentLang={lang} />
+                        
                     </div>
                 </div>
                 <div className="w-full border-t border-gray-200 dark:border-dark-border">
