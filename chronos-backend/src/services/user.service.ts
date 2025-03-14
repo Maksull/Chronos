@@ -1,14 +1,15 @@
 import { AppDataSource } from '@/database/data-source';
-import { User } from '@/entities';
+import { User, CalendarParticipant } from '@/entities';
 import { UpdateProfileDto } from '@/types/user';
 
 export class UserService {
     private userRepository = AppDataSource.getRepository(User);
+    private participantRepository = AppDataSource.getRepository(CalendarParticipant);
 
     async getUserProfile(userId: string): Promise<User> {
         const user = await this.userRepository.findOne({
             where: { id: userId },
-            relations: ['ownedCalendars', 'sharedCalendars'],
+            relations: ['ownedCalendars'],
         });
 
         if (!user) {
