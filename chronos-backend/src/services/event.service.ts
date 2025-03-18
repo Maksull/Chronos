@@ -1,6 +1,6 @@
 import { AppDataSource } from '@/database/data-source';
 import { Event, EventCategory, Calendar, User, CalendarParticipant, ParticipantRole } from '@/entities';
-import { LessThanOrEqual, MoreThanOrEqual } from 'typeorm';
+import { In, LessThanOrEqual, MoreThanOrEqual } from 'typeorm';
 
 export interface CreateEventDto {
     name: string;
@@ -30,7 +30,13 @@ export class EventService {
     private userRepository = AppDataSource.getRepository(User);
     private participantRepository = AppDataSource.getRepository(CalendarParticipant);
 
-    async getEventsByCalendarId(userId: string, calendarId: string, startDate?: Date, endDate?: Date): Promise<Event[]> {
+    async getEventsByCalendarId(
+        userId: string,
+        calendarId: string,
+        startDate?: Date,
+        endDate?: Date,
+        categoryIds?: string[], // Changed to array of category IDs
+    ): Promise<Event[]> {
         const calendar = await this.calendarRepository.findOne({
             where: { id: calendarId },
             relations: ['owner'],
@@ -40,10 +46,8 @@ export class EventService {
             throw new Error('Calendar not found');
         }
 
-        // Check if user is the owner
         const isOwner = calendar.owner.id === userId;
 
-        // If not owner, check if they're a participant
         if (!isOwner) {
             const participantRole = await this.participantRepository.findOne({
                 where: { calendarId, userId },
@@ -54,8 +58,17 @@ export class EventService {
             }
         }
 
-        const conditions: any = { calendar: { id: calendarId } };
+        const conditions: any = {
+            calendar: { id: calendarId },
+        };
 
+        // Add category filter if provided
+        if (categoryIds && categoryIds.length > 0) {
+            // Use In operator to filter events with any of the selected category IDs
+            conditions.category = { id: In(categoryIds) };
+        }
+
+        // Handle date conditions
         if (startDate && endDate) {
             conditions.startDate = LessThanOrEqual(endDate);
             conditions.endDate = MoreThanOrEqual(startDate);

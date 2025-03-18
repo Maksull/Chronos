@@ -20,6 +20,7 @@ interface CalendarParams {
 interface CalendarEventsQuery {
     startDate?: string;
     endDate?: string;
+    categoryId?: string | string[];
 }
 
 interface UpdateCalendarBody {
@@ -82,18 +83,26 @@ const getCalendarSchema = {
 } as const;
 
 const getCalendarEventsSchema = {
+    querystring: {
+        type: 'object',
+        properties: {
+            startDate: { type: 'string', format: 'date-time', nullable: true },
+            endDate: { type: 'string', format: 'date-time', nullable: true },
+            categoryId: {
+                type: ['string', 'array', 'null'],
+                items: {
+                    type: 'string',
+                    format: 'uuid',
+                },
+                format: 'uuid',
+            },
+        },
+    },
     params: {
         type: 'object',
         required: ['id'],
         properties: {
             id: { type: 'string', format: 'uuid' },
-        },
-    },
-    querystring: {
-        type: 'object',
-        properties: {
-            startDate: { type: 'string', format: 'date-time' },
-            endDate: { type: 'string', format: 'date-time' },
         },
     },
 } as const;
@@ -256,7 +265,10 @@ export async function calendarRoutes(app: FastifyInstance) {
 
     app.get<{ Params: CalendarParams; Querystring: CalendarEventsQuery }>(
         '/calendars/:id/events',
-        { schema: getCalendarEventsSchema, preHandler: [authenticateToken] },
+        {
+            schema: getCalendarEventsSchema,
+            preHandler: [authenticateToken],
+        },
         calendarController.getCalendarEvents.bind(calendarController),
     );
 

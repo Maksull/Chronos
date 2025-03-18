@@ -1,9 +1,10 @@
 'use client';
-
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Dictionary } from '@/lib/dictionary';
 import { Plus, ChevronDown, ChevronUp } from 'lucide-react';
-import { CalendarData, EventData } from '@/types/account';
+import { CalendarData, EventData, CategoryData } from '@/types/account';
+import { CategoryFilter } from './CategoryFilter';
+import { Locale } from '@/middleware';
 
 interface WeekViewProps {
     currentDate: Date;
@@ -11,6 +12,7 @@ interface WeekViewProps {
     onAddEvent?: (date: Date) => void;
     onEventClick?: (event: EventData) => void;
     calendar: CalendarData;
+    lang: Locale;
 }
 
 interface TimeSlot {
@@ -36,77 +38,103 @@ export const WeekView: React.FC<WeekViewProps> = ({
     const [events, setEvents] = useState<EventData[]>([]);
     const [loading, setLoading] = useState(false);
     const [expandedHours, setExpandedHours] = useState<Set<number>>(new Set());
-    const timeGridRef = React.useRef<HTMLDivElement>(null);
+    const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>(
+        [],
+    );
+    const [categories, setCategories] = useState<CategoryData[]>([]);
+    const timeGridRef = useRef<HTMLDivElement>(null);
     const [currentTimePosition, setCurrentTimePosition] = useState<number>(0);
 
-    // Generate the start and end dates for the week view
     const getWeekDates = () => {
         const date = new Date(currentDate);
-        const day = date.getDay(); // 0 = Sunday, 1 = Monday, etc.
-
-        // Set to the first day of the week (Sunday)
+        const day = date.getDay();
         const firstDayOfWeek = new Date(date);
         firstDayOfWeek.setDate(date.getDate() - day);
         firstDayOfWeek.setHours(0, 0, 0, 0);
-
-        // Set to the last day of the week (Saturday)
         const lastDayOfWeek = new Date(firstDayOfWeek);
         lastDayOfWeek.setDate(firstDayOfWeek.getDate() + 6);
         lastDayOfWeek.setHours(23, 59, 59, 999);
-
         return { firstDayOfWeek, lastDayOfWeek };
     };
 
     const { firstDayOfWeek, lastDayOfWeek } = getWeekDates();
 
     useEffect(() => {
+        fetchCategories();
         fetchEvents();
         setExpandedHours(new Set());
     }, [currentDate, calendar?.id]);
 
-    // Effect to handle current time indicator and scrolling
     useEffect(() => {
-        // Calculate current time position
+        fetchEvents();
+    }, [selectedCategoryId]);
+
+    useEffect(() => {
         const updateCurrentTimePosition = () => {
             const now = new Date();
             const hours = now.getHours();
             const minutes = now.getMinutes();
-            // Calculate position as percentage through the day (0-100%)
             const percentage = ((hours * 60 + minutes) / (24 * 60)) * 100;
             setCurrentTimePosition(percentage);
         };
 
-        // Initial update
         updateCurrentTimePosition();
-
-        // Set up interval to update position every minute
         const intervalId = setInterval(updateCurrentTimePosition, 60000);
 
-        // Scroll to current time (with offset to show a few hours before)
         if (timeGridRef.current) {
             const now = new Date();
             const currentHour = now.getHours();
-            // Find the element for the current hour (or 2 hours before if available)
             const scrollToHour = Math.max(currentHour - 2, 0);
-            const hourHeight = 72; // Approximate height of an hour slot in pixels
+            const hourHeight = 72;
             timeGridRef.current.scrollTop = scrollToHour * hourHeight;
         }
 
         return () => clearInterval(intervalId);
     }, []);
 
-    const fetchEvents = async () => {
+    const fetchCategories = async () => {
         if (!calendar?.id) return;
         try {
-            setLoading(true);
             const response = await fetch(
-                `http://localhost:3001/calendars/${calendar.id}/events?startDate=${firstDayOfWeek.toISOString()}&endDate=${lastDayOfWeek.toISOString()}`,
+                `http://localhost:3001/calendars/${calendar.id}/categories`,
                 {
                     headers: {
                         Authorization: `Bearer ${localStorage.getItem('token')}`,
                     },
                 },
             );
+            if (response.ok) {
+                const data = await response.json();
+                if (data.status === 'success') {
+                    setCategories(data.data);
+                }
+            }
+        } catch (error) {
+            console.error('Error fetching categories:', error);
+        }
+    };
+
+    const fetchEvents = async () => {
+        if (!calendar?.id) return;
+        try {
+            setLoading(true);
+
+            // Build URL with query parameters
+            let url = `http://localhost:3001/calendars/${calendar.id}/events?startDate=${firstDayOfWeek.toISOString()}&endDate=${lastDayOfWeek.toISOString()}`;
+
+            // Add category filter if selected
+            if (selectedCategoryIds.length > 0) {
+                selectedCategoryIds.forEach(categoryId => {
+                    url += `&categoryId=${categoryId}`;
+                });
+            }
+
+            const response = await fetch(url, {
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem('token')}`,
+                },
+            });
+
             if (response.ok) {
                 const data = await response.json();
                 if (data.status === 'success') {
@@ -120,7 +148,10 @@ export const WeekView: React.FC<WeekViewProps> = ({
         }
     };
 
-    // Generate day columns for the week
+    const handleCategoryChange = (categoryIds: string[]) => {
+        setSelectedCategoryIds(categoryIds);
+    };
+
     const getDayColumns = (): DayColumn[] => {
         const columns: DayColumn[] = [];
         const today = new Date();
@@ -129,7 +160,6 @@ export const WeekView: React.FC<WeekViewProps> = ({
         for (let i = 0; i < 7; i++) {
             const date = new Date(firstDayOfWeek);
             date.setDate(firstDayOfWeek.getDate() + i);
-
             const isToday =
                 date.getDate() === today.getDate() &&
                 date.getMonth() === today.getMonth() &&
@@ -146,7 +176,6 @@ export const WeekView: React.FC<WeekViewProps> = ({
         return columns;
     };
 
-    // Generate time slots for the day (hourly from 0 to 23)
     const getTimeSlots = (): TimeSlot[] => {
         const slots: TimeSlot[] = [];
 
@@ -199,6 +228,13 @@ export const WeekView: React.FC<WeekViewProps> = ({
         <div
             className="calendar-week-view overflow-y-auto max-h-[calc(100vh-240px)]"
             ref={timeGridRef}>
+            {/* Category Filter Component */}
+            <CategoryFilter
+                categories={categories}
+                selectedCategoryIds={selectedCategoryIds}
+                onCategoryChange={handleCategoryChange}
+            />
+
             <div className="grid grid-cols-8 mb-2 border-b dark:border-gray-700">
                 <div className="p-3 text-center text-sm font-medium text-gray-500 dark:text-gray-400 border-r dark:border-gray-700">
                     Time
@@ -274,10 +310,11 @@ export const WeekView: React.FC<WeekViewProps> = ({
                                                 onAddEvent(newDate);
                                             }
                                         }}
-                                        className={`p-1 border dark:border-gray-700 rounded-md transition-all relative 
-                                            ${day.isToday ? 'bg-indigo-50/50 dark:bg-indigo-900/10' : 'bg-white dark:bg-gray-800'} 
-                                            hover:bg-indigo-50 dark:hover:bg-indigo-900/20 hover:shadow-md cursor-pointer 
-                                            active:bg-indigo-100 dark:active:bg-indigo-900/30`}>
+                                        className={`p-1 border dark:border-gray-700 rounded-md transition-all relative ${
+                                            day.isToday
+                                                ? 'bg-indigo-50/50 dark:bg-indigo-900/10'
+                                                : 'bg-white dark:bg-gray-800'
+                                        } hover:bg-indigo-50 dark:hover:bg-indigo-900/20 hover:shadow-md cursor-pointer active:bg-indigo-100 dark:active:bg-indigo-900/30`}>
                                         {/* Add event button */}
                                         <button
                                             onClick={e => {
@@ -312,7 +349,7 @@ export const WeekView: React.FC<WeekViewProps> = ({
                                                     .map(event => (
                                                         <div
                                                             key={event.id}
-                                                            className="px-2 py-1 rounded-sm text-xs truncate cursor-pointer hover:brightness-90" // Add cursor-pointer
+                                                            className="px-2 py-1 rounded-sm text-xs truncate cursor-pointer hover:brightness-90"
                                                             style={{
                                                                 backgroundColor: `${event.color}20`,
                                                                 borderLeft: `3px solid ${event.color}`,
@@ -346,8 +383,7 @@ export const WeekView: React.FC<WeekViewProps> = ({
                                                     className="mt-2 p-1 -mx-1 text-center"
                                                     onClick={e =>
                                                         e.stopPropagation()
-                                                    } // Create a larger stop-propagation area
-                                                >
+                                                    }>
                                                     <button
                                                         onClick={e => {
                                                             e.stopPropagation(); // Prevent triggering parent onClick
@@ -370,8 +406,7 @@ export const WeekView: React.FC<WeekViewProps> = ({
                                                     className="mt-2 p-1 -mx-1 text-center"
                                                     onClick={e =>
                                                         e.stopPropagation()
-                                                    } // Create a larger stop-propagation area
-                                                >
+                                                    }>
                                                     <button
                                                         onClick={e => {
                                                             e.stopPropagation(); // Prevent triggering parent onClick
@@ -392,6 +427,7 @@ export const WeekView: React.FC<WeekViewProps> = ({
                         </div>
                     );
                 })}
+
                 {/* Current time indicator */}
                 {firstDayOfWeek.getDate() <= new Date().getDate() &&
                     new Date().getDate() <= lastDayOfWeek.getDate() && (
