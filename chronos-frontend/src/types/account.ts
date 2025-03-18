@@ -1,5 +1,18 @@
 // src/types/account.ts
 
+export enum ParticipantRole {
+    ADMIN = 'admin',
+    CREATOR = 'creator',
+    READER = 'reader',
+}
+
+export interface ParticipantData {
+    userId: string;
+    username: string;
+    email: string;
+    role: ParticipantRole;
+}
+
 export interface ProfileData {
     username: string;
     fullName: string;
@@ -11,7 +24,7 @@ export interface ProfileData {
 export interface CalendarData {
     id: string;
     name: string;
-    description: string | null;
+    description: string;
     color: string;
     isMain: boolean;
     isHoliday: boolean;
@@ -20,9 +33,10 @@ export interface CalendarData {
         id: string;
         username: string;
         fullName: string;
+        email: string;
     };
-    events?: EventData[];
-    categories?: CategoryData[];
+    participants: ParticipantData[];
+    categories: CategoryData[];
     createdAt: string;
     updatedAt: string;
 }

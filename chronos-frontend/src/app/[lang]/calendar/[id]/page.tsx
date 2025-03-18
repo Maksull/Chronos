@@ -9,7 +9,12 @@ import {
     CalendarEditModal,
     CalendarParticipants,
 } from '@/components';
-import { CalendarData, EventData, CategoryData } from '@/types/account';
+import {
+    CalendarData,
+    EventData,
+    CategoryData,
+    ParticipantRole,
+} from '@/types/account';
 import {
     ChevronLeft,
     ChevronRight,
@@ -25,6 +30,7 @@ export default function CalendarPage() {
     const router = useRouter();
     const { dict, lang } = useDictionary();
     const calendarId = params.id as string;
+
     const [calendar, setCalendar] = useState<CalendarData | null>(null);
     const [, setCategories] = useState<CategoryData[]>([]);
     const [loading, setLoading] = useState(true);
@@ -44,10 +50,14 @@ export default function CalendarPage() {
         useState(false);
     const [showParticipants, setShowParticipants] = useState(false);
     const [isUserOwner, setIsUserOwner] = useState(false);
-
     const [activeModalTab, setActiveModalTab] = useState<
         'general' | 'categories' | 'sharing'
     >('general');
+
+    const [currentUserRole, setCurrentUserRole] =
+        useState<ParticipantRole | null>(null);
+    const [canCreateEvents, setCanCreateEvents] = useState(false);
+    const [canManageCalendar, setCanManageCalendar] = useState(false);
 
     useEffect(() => {
         fetchCalendar();
@@ -56,6 +66,10 @@ export default function CalendarPage() {
     const fetchCalendar = async () => {
         setLoading(true);
         try {
+            // Get the user ID from localStorage for permission checks
+            const userId = localStorage.getItem('userId');
+
+            // Fetch calendar data
             const response = await fetch(
                 `http://localhost:3001/calendars/${calendarId}`,
                 {
@@ -64,20 +78,71 @@ export default function CalendarPage() {
                     },
                 },
             );
+
+            // Handle response errors
             if (!response.ok) {
                 if (response.status === 404) {
                     setError(dict.calendar?.notFound || 'Calendar not found');
                     setCalendar(null);
+                    setLoading(false);
                     return;
                 }
-                throw new Error('Failed to fetch calendar');
+                throw new Error(
+                    `Failed to fetch calendar: ${response.status} ${response.statusText}`,
+                );
             }
+
+            // Parse response data
             const data = await response.json();
+
             if (data.status === 'success') {
+                console.log('Calendar data received:', data.data);
                 setCalendar(data.data);
-                // Check if current user is the owner
-                const userId = localStorage.getItem('userId');
-                setIsUserOwner(data.data.owner.id === userId);
+
+                // Check if user is the owner - convert both to strings to avoid type mismatches
+                const isOwner = String(data.data.owner.id) === String(userId);
+
+                setIsUserOwner(isOwner);
+
+                // Determine permissions based on role
+                if (isOwner) {
+                    // Owner has all permissions
+                    console.log('Setting owner permissions (ADMIN role)');
+                    setCurrentUserRole(ParticipantRole.ADMIN);
+                    setCanCreateEvents(true);
+                    setCanManageCalendar(true);
+                } else {
+                    // Check if user is a participant
+                    const userParticipation = data.data.participants?.find(
+                        p => String(p.userId) === String(userId),
+                    );
+
+                    if (userParticipation) {
+                        setCurrentUserRole(userParticipation.role);
+
+                        // Set permissions based on role
+                        if (userParticipation.role === ParticipantRole.ADMIN) {
+                            setCanCreateEvents(true);
+                            setCanManageCalendar(true);
+                        } else if (
+                            userParticipation.role === ParticipantRole.CREATOR
+                        ) {
+                            setCanCreateEvents(true);
+                            setCanManageCalendar(false);
+                        } else {
+                            // READER role or any other role
+                            setCanCreateEvents(false);
+                            setCanManageCalendar(false);
+                        }
+                    } else {
+                        // User is not a participant
+                        setCurrentUserRole(null);
+                        setCanCreateEvents(false);
+                        setCanManageCalendar(false);
+                    }
+                }
+
+                // After setting permissions, fetch categories
                 fetchCategories();
             } else {
                 setError(data.message || dict.account.errors.generic);
@@ -111,6 +176,60 @@ export default function CalendarPage() {
             console.error('Error fetching categories:', error);
         } finally {
             setLoadingCategories(false);
+        }
+    };
+
+    // Role management functions
+    const handleUpdateRole = async (
+        userId: string,
+        role: ParticipantRole,
+    ): Promise<void> => {
+        try {
+            const response = await fetch(
+                `http://localhost:3001/calendars/${calendarId}/participants/${userId}/role`,
+                {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${localStorage.getItem('token')}`,
+                    },
+                    body: JSON.stringify({ role }),
+                },
+            );
+
+            if (!response.ok) {
+                throw new Error('Failed to update participant role');
+            }
+
+            // Refresh calendar data
+            await fetchCalendar();
+        } catch (error) {
+            console.error('Error updating role:', error);
+            throw error;
+        }
+    };
+
+    const handleRemoveParticipant = async (userId: string): Promise<void> => {
+        try {
+            const response = await fetch(
+                `http://localhost:3001/calendars/${calendarId}/participants/${userId}`,
+                {
+                    method: 'DELETE',
+                    headers: {
+                        Authorization: `Bearer ${localStorage.getItem('token')}`,
+                    },
+                },
+            );
+
+            if (!response.ok) {
+                throw new Error('Failed to remove participant');
+            }
+
+            // Refresh calendar data
+            await fetchCalendar();
+        } catch (error) {
+            console.error('Error removing participant:', error);
+            throw error;
         }
     };
 
@@ -173,9 +292,7 @@ export default function CalendarPage() {
                     month: 'short',
                 },
             );
-            return `${formatter.format(startOfWeek)} - ${formatter.format(
-                endOfWeek,
-            )}`;
+            return `${formatter.format(startOfWeek)} - ${formatter.format(endOfWeek)}`;
         } else {
             return new Intl.DateTimeFormat(lang === 'uk' ? 'uk-UA' : 'en-US', {
                 weekday: 'long',
@@ -280,11 +397,18 @@ export default function CalendarPage() {
                                     calendar={calendar}
                                     dict={dict}
                                     onShowInviteModal={() => {
-                                        setShowParticipants(false); // For mobile view
+                                        setShowParticipants(false);
                                         setActiveModalTab('sharing');
                                         setIsCalendarEditModalOpen(true);
                                     }}
                                     isOwner={isUserOwner}
+                                    currentUserRole={
+                                        currentUserRole || undefined
+                                    }
+                                    onUpdateRole={handleUpdateRole}
+                                    onRemoveParticipant={
+                                        handleRemoveParticipant
+                                    }
                                 />
                             )}
                         </div>
@@ -398,30 +522,41 @@ export default function CalendarPage() {
                                                 <Users className="h-5 w-5" />
                                             </button>
 
-                                            <button
-                                                onClick={() => handleAddEvent()}
-                                                className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors shadow-sm text-sm font-medium"
-                                                title={
-                                                    dict.calendar?.addEvent ||
-                                                    'Add Event'
-                                                }>
-                                                <Plus className="h-4 w-4 mr-1" />
-                                                {dict.calendar?.addEvent ||
-                                                    'Add Event'}
-                                            </button>
-                                            <button
-                                                onClick={() =>
-                                                    setIsCalendarEditModalOpen(
-                                                        true,
-                                                    )
-                                                }
-                                                className="p-2 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                                                title={
-                                                    dict.calendar?.settings ||
-                                                    'Settings'
-                                                }>
-                                                <Settings className="h-5 w-5" />
-                                            </button>
+                                            {/* Only show Add Event button if user has CREATE permissions */}
+                                            {canCreateEvents && (
+                                                <button
+                                                    onClick={() =>
+                                                        handleAddEvent()
+                                                    }
+                                                    className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors shadow-sm text-sm font-medium"
+                                                    title={
+                                                        dict.calendar
+                                                            ?.addEvent ||
+                                                        'Add Event'
+                                                    }>
+                                                    <Plus className="h-4 w-4 mr-1" />
+                                                    {dict.calendar?.addEvent ||
+                                                        'Add Event'}
+                                                </button>
+                                            )}
+
+                                            {/* Only show Settings button if user can manage calendar */}
+                                            {canManageCalendar && (
+                                                <button
+                                                    onClick={() =>
+                                                        setIsCalendarEditModalOpen(
+                                                            true,
+                                                        )
+                                                    }
+                                                    className="p-2 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                                                    title={
+                                                        dict.calendar
+                                                            ?.settings ||
+                                                        'Settings'
+                                                    }>
+                                                    <Settings className="h-5 w-5" />
+                                                </button>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
@@ -434,7 +569,7 @@ export default function CalendarPage() {
                                                 calendar={calendar}
                                                 dict={dict}
                                                 onShowInviteModal={() => {
-                                                    setShowParticipants(false); // For mobile view
+                                                    setShowParticipants(false);
                                                     setActiveModalTab(
                                                         'sharing',
                                                     );
@@ -443,6 +578,13 @@ export default function CalendarPage() {
                                                     );
                                                 }}
                                                 isOwner={isUserOwner}
+                                                currentUserRole={
+                                                    currentUserRole || undefined
+                                                }
+                                                onUpdateRole={handleUpdateRole}
+                                                onRemoveParticipant={
+                                                    handleRemoveParticipant
+                                                }
                                             />
                                         )}
                                     </div>
@@ -455,7 +597,11 @@ export default function CalendarPage() {
                                         calendar={calendar}
                                         dict={dict}
                                         lang={lang}
-                                        onAddEvent={handleAddEvent}
+                                        onAddEvent={
+                                            canCreateEvents
+                                                ? handleAddEvent
+                                                : undefined
+                                        }
                                         onEventClick={handleEventClick}
                                     />
                                 </div>
@@ -464,7 +610,6 @@ export default function CalendarPage() {
                     </div>
                 </div>
 
-                {/* Event modal */}
                 {isEventModalOpen && (
                     <EventModal
                         isOpen={isEventModalOpen}
@@ -476,6 +621,14 @@ export default function CalendarPage() {
                         onEventCreated={fetchCalendar}
                         onEventUpdated={fetchCalendar}
                         onEventDeleted={fetchCalendar}
+                        canEdit={
+                            isUserOwner ||
+                            currentUserRole === ParticipantRole.ADMIN ||
+                            (currentUserRole === ParticipantRole.CREATOR &&
+                                selectedEvent?.creator?.id ===
+                                    localStorage.getItem('userId'))
+                        }
+                        userRole={currentUserRole || undefined}
                     />
                 )}
 
@@ -490,6 +643,7 @@ export default function CalendarPage() {
                             router.push(`/${lang}/account`)
                         }
                         initialTab={activeModalTab}
+                        userRole={currentUserRole || undefined}
                     />
                 )}
             </div>

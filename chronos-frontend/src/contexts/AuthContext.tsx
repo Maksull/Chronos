@@ -71,6 +71,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                         const userData = await userResponse.json();
                         if (userData.status === 'success') {
                             setUser(userData.data);
+                            localStorage.setItem('userId', userData.data.id);
                             setIsAuthenticated(true);
                         }
                     }
@@ -90,6 +91,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const login = (token: string, userData: User) => {
         localStorage.setItem('token', token);
+        localStorage.setItem('userId', userData.id);
         setUser(userData);
         setIsAuthenticated(true);
 
@@ -123,6 +125,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
             if (response.ok) {
                 localStorage.removeItem('token');
+                localStorage.removeItem('userId');
                 setUser(null);
                 setIsAuthenticated(false);
                 router.push(`/${lang}/login`);

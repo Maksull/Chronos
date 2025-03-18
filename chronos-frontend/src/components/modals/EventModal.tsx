@@ -1,5 +1,4 @@
 'use client';
-
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useDictionary } from '@/contexts';
@@ -11,8 +10,10 @@ import {
     Trash2,
     Check,
     ArrowLeft,
+    Info,
+    User,
 } from 'lucide-react';
-import { CategoryData, EventData } from '@/types/account';
+import { CategoryData, EventData, ParticipantRole } from '@/types/account';
 import { CategorySelector } from '../calendar';
 
 interface EventModalProps {
@@ -25,6 +26,8 @@ interface EventModalProps {
     onEventCreated?: () => void;
     onEventUpdated?: () => void;
     onEventDeleted?: () => void;
+    canEdit?: boolean;
+    userRole?: ParticipantRole;
 }
 
 export const EventModal: React.FC<EventModalProps> = ({
@@ -37,6 +40,8 @@ export const EventModal: React.FC<EventModalProps> = ({
     onEventCreated,
     onEventUpdated,
     onEventDeleted,
+    canEdit,
+    userRole,
 }) => {
     const router = useRouter();
     const { dict } = useDictionary();
@@ -46,8 +51,6 @@ export const EventModal: React.FC<EventModalProps> = ({
     const [deleteConfirm, setDeleteConfirm] = useState(false);
     const [categories, setCategories] = useState<CategoryData[]>([]);
     const [loadingCategories, setLoadingCategories] = useState(false);
-
-    // Form state
     const [name, setName] = useState('');
     const [categoryId, setCategoryId] = useState<string>('');
     const [startDate, setStartDate] = useState<string>('');
@@ -55,7 +58,31 @@ export const EventModal: React.FC<EventModalProps> = ({
     const [description, setDescription] = useState('');
     const [color, setColor] = useState('#3B82F6');
 
-    // Fetch categories
+    // Determine user permissions
+    const isCreator = event?.creator?.id === localStorage.getItem('userId');
+    const isAdmin = userRole === ParticipantRole.ADMIN;
+
+    // User can edit if:
+    // 1. They're explicitly given edit permission via prop
+    // 2. They're an admin
+    // 3. They created the event
+    // 4. It's a new event and they have CREATOR or ADMIN role
+    const userCanEdit =
+        canEdit ||
+        isAdmin ||
+        isCreator ||
+        (mode === 'create' &&
+            (userRole === ParticipantRole.CREATOR ||
+                userRole === ParticipantRole.ADMIN));
+
+    // Get role label
+    const getRoleLabel = () => {
+        if (isAdmin) return dict.calendar?.roleAdmin || 'Admin';
+        if (userRole === ParticipantRole.CREATOR)
+            return dict.calendar?.roleCreator || 'Creator';
+        return dict.calendar?.roleReader || 'Reader';
+    };
+
     useEffect(() => {
         fetchCategories();
     }, [calendarId]);
@@ -74,7 +101,6 @@ export const EventModal: React.FC<EventModalProps> = ({
             const data = await response.json();
             if (data.status === 'success') {
                 setCategories(data.data || []);
-                // If we have categories and no selection, select the first one
                 if (data.data && data.data.length > 0 && !categoryId) {
                     setCategoryId(data.data[0].id);
                 }
@@ -88,20 +114,20 @@ export const EventModal: React.FC<EventModalProps> = ({
         }
     };
 
-    // Initialize form values
     useEffect(() => {
-        if (mode === 'create') {
-            // Initialize for new event
-            setName('');
+        // If user can't edit but tries to enter edit mode, force view mode
+        if (mode === 'edit' && !userCanEdit) {
+            setMode('view');
+        }
 
-            // Format date for datetime-local input using local timezone
+        if (mode === 'create') {
+            setName('');
             const formatDateForInput = (d: Date): string => {
                 const year = d.getFullYear();
                 const month = String(d.getMonth() + 1).padStart(2, '0');
                 const day = String(d.getDate()).padStart(2, '0');
                 const hours = String(d.getHours()).padStart(2, '0');
                 const minutes = String(d.getMinutes()).padStart(2, '0');
-
                 return `${year}-${month}-${day}T${hours}:${minutes}`;
             };
 
@@ -115,16 +141,13 @@ export const EventModal: React.FC<EventModalProps> = ({
             setDescription('');
             setColor('#3B82F6');
 
-            // Select first category if available
             if (categories.length > 0) {
                 setCategoryId(categories[0].id);
             }
         } else if (event && (mode === 'view' || mode === 'edit')) {
-            // Initialize from existing event
             setName(event.name);
             setCategoryId(event.category.id);
 
-            // Format dates for datetime-local input
             const formatEventDateForInput = (dateString: string): string => {
                 const d = new Date(dateString);
                 const year = d.getFullYear();
@@ -132,7 +155,6 @@ export const EventModal: React.FC<EventModalProps> = ({
                 const day = String(d.getDate()).padStart(2, '0');
                 const hours = String(d.getHours()).padStart(2, '0');
                 const minutes = String(d.getMinutes()).padStart(2, '0');
-
                 return `${year}-${month}-${day}T${hours}:${minutes}`;
             };
 
@@ -144,11 +166,10 @@ export const EventModal: React.FC<EventModalProps> = ({
 
         setDeleteConfirm(false);
         setError('');
-    }, [event, mode, date, categories]);
+    }, [event, mode, date, categories, userCanEdit]);
 
     if (!isOpen) return null;
 
-    // Helper function to format dates for the backend
     const formatDateForApi = (dateString: string): string => {
         const date = new Date(dateString);
         return date.toISOString();
@@ -156,13 +177,26 @@ export const EventModal: React.FC<EventModalProps> = ({
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        // Check permissions before proceeding
+        if (
+            (mode === 'edit' && !userCanEdit) ||
+            (mode === 'create' && userRole === ParticipantRole.READER)
+        ) {
+            setError(
+                dict.calendar?.noPermission ||
+                    'You do not have permission to perform this action',
+            );
+            return;
+        }
+
         setLoading(true);
         setError('');
 
         try {
             const eventData = {
                 name,
-                categoryId, // Now using categoryId instead of category enum
+                categoryId,
                 startDate: formatDateForApi(startDate),
                 endDate: formatDateForApi(endDate),
                 description: description || undefined,
@@ -173,7 +207,6 @@ export const EventModal: React.FC<EventModalProps> = ({
             let successCallback;
 
             if (mode === 'create') {
-                // Create a new event
                 response = await fetch(
                     `http://localhost:3001/calendars/${calendarId}/events`,
                     {
@@ -204,6 +237,7 @@ export const EventModal: React.FC<EventModalProps> = ({
             }
 
             const data = await response.json();
+
             if (data.status === 'success') {
                 onClose();
                 if (successCallback) {
@@ -227,6 +261,16 @@ export const EventModal: React.FC<EventModalProps> = ({
 
     const handleDelete = async () => {
         if (!event) return;
+
+        // Check permissions before proceeding
+        if (!userCanEdit) {
+            setError(
+                dict.calendar?.noPermission ||
+                    'You do not have permission to delete this event',
+            );
+            return;
+        }
+
         if (!deleteConfirm) {
             setDeleteConfirm(true);
             return;
@@ -247,6 +291,7 @@ export const EventModal: React.FC<EventModalProps> = ({
             );
 
             const data = await response.json();
+
             if (data.status === 'success') {
                 onClose();
                 if (onEventDeleted) {
@@ -281,7 +326,8 @@ export const EventModal: React.FC<EventModalProps> = ({
                         {title}
                     </h2>
                     <div className="flex space-x-2">
-                        {mode === 'view' && (
+                        {/* Only show Edit button if user can edit */}
+                        {mode === 'view' && userCanEdit && (
                             <button
                                 onClick={() => setMode('edit')}
                                 className="text-gray-600 hover:text-indigo-500 dark:text-gray-400 dark:hover:text-indigo-400 flex items-center"
@@ -305,10 +351,45 @@ export const EventModal: React.FC<EventModalProps> = ({
                     </div>
                 </div>
 
+                {/* Permission indicator when in view-only mode */}
+                {!userCanEdit && (
+                    <div className="bg-blue-50 dark:bg-blue-900/20 p-2 flex items-center text-sm text-blue-600 dark:text-blue-400">
+                        <Info className="h-4 w-4 mr-2" />
+                        <span>
+                            {dict.calendar?.viewOnlyMode ||
+                                'View-only mode. You cannot edit this event.'}
+                        </span>
+                    </div>
+                )}
+
                 <form onSubmit={handleSubmit} className="p-4">
                     {error && (
                         <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-md text-sm">
                             {error}
+                        </div>
+                    )}
+
+                    {/* Creator/owner info - only when viewing existing events */}
+                    {mode !== 'create' && event?.creator && (
+                        <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-md flex items-center text-sm">
+                            <div className="flex-shrink-0 h-8 w-8 bg-indigo-100 dark:bg-indigo-900/30 rounded-full flex items-center justify-center mr-3">
+                                {isCreator ? (
+                                    <Check className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+                                ) : (
+                                    <User className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                                )}
+                            </div>
+                            <div>
+                                <p className="text-gray-700 dark:text-gray-300">
+                                    {isCreator
+                                        ? dict.calendar?.youCreatedThis ||
+                                          'You created this event'
+                                        : `${dict.calendar?.createdBy || 'Created by'}: ${event.creator.username || 'Unknown'}`}
+                                </p>
+                                <p className="text-xs text-gray-500 dark:text-gray-400">
+                                    {new Date(event.createdAt).toLocaleString()}
+                                </p>
+                            </div>
                         </div>
                     )}
 
@@ -329,11 +410,7 @@ export const EventModal: React.FC<EventModalProps> = ({
                                 className={`w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm 
                                    focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 
                                    bg-white dark:bg-gray-700 text-gray-900 dark:text-white
-                                   ${
-                                       mode === 'view'
-                                           ? 'opacity-80 cursor-default'
-                                           : ''
-                                   }`}
+                                   ${mode === 'view' ? 'opacity-80 cursor-default' : ''}`}
                             />
                         </div>
 
@@ -343,7 +420,6 @@ export const EventModal: React.FC<EventModalProps> = ({
                                 className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                 {dict.calendar?.eventCategory || 'Category'}*
                             </label>
-
                             {loadingCategories ? (
                                 <div className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-500 dark:text-gray-400">
                                     {dict.account.common.loading ||
@@ -363,6 +439,7 @@ export const EventModal: React.FC<EventModalProps> = ({
                                     mode={mode}
                                     dict={dict}
                                     onCategoriesUpdated={fetchCategories}
+                                    readOnly={mode === 'view' || !userCanEdit}
                                 />
                             )}
                         </div>
@@ -500,38 +577,42 @@ export const EventModal: React.FC<EventModalProps> = ({
                         </div>
                     </div>
 
+                    {/* Action buttons */}
                     <div className="mt-6 flex justify-between">
                         <div>
-                            {mode !== 'create' && (
-                                <button
-                                    type="button"
-                                    onClick={handleDelete}
-                                    className={`px-4 py-2 border rounded-md shadow-sm text-sm font-medium 
+                            {/* Delete button - only visible when viewing existing events and user has permission */}
+                            {mode !== 'create' &&
+                                userCanEdit &&
+                                (isAdmin || isCreator) && (
+                                    <button
+                                        type="button"
+                                        onClick={handleDelete}
+                                        className={`px-4 py-2 border rounded-md shadow-sm text-sm font-medium 
                                      flex items-center space-x-1
                                      ${
                                          deleteConfirm
                                              ? 'border-red-500 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400'
                                              : 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600'
                                      }`}>
-                                    {deleteConfirm ? (
-                                        <>
-                                            <Check className="h-4 w-4" />
-                                            <span>
-                                                {dict.common?.confirm ||
-                                                    'Confirm'}
-                                            </span>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Trash2 className="h-4 w-4" />
-                                            <span>
-                                                {dict.common?.delete ||
-                                                    'Delete'}
-                                            </span>
-                                        </>
-                                    )}
-                                </button>
-                            )}
+                                        {deleteConfirm ? (
+                                            <>
+                                                <Check className="h-4 w-4" />
+                                                <span>
+                                                    {dict.common?.confirm ||
+                                                        'Confirm'}
+                                                </span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Trash2 className="h-4 w-4" />
+                                                <span>
+                                                    {dict.common?.delete ||
+                                                        'Delete'}
+                                                </span>
+                                            </>
+                                        )}
+                                    </button>
+                                )}
                         </div>
 
                         <div className="flex space-x-3">
@@ -543,7 +624,8 @@ export const EventModal: React.FC<EventModalProps> = ({
                                 {dict.common?.cancel || 'Cancel'}
                             </button>
 
-                            {mode !== 'view' && (
+                            {/* Only show Save button in create/edit mode and when user has permission */}
+                            {mode !== 'view' && userCanEdit && (
                                 <button
                                     type="submit"
                                     disabled={

@@ -8,8 +8,11 @@ import {
     Calendar as CalendarIcon,
     AlertTriangle,
     Link as LinkIcon,
+    Shield,
+    Eye,
+    Info,
 } from 'lucide-react';
-import { CalendarData } from '@/types/account';
+import { CalendarData, ParticipantRole } from '@/types/account';
 import { CalendarInviteManagement, CategoryManagement } from '../calendar';
 
 interface CalendarEditModalProps {
@@ -19,6 +22,7 @@ interface CalendarEditModalProps {
     onCalendarUpdated?: () => void;
     onCalendarDeleted?: () => void;
     initialTab?: 'general' | 'categories' | 'sharing';
+    userRole?: ParticipantRole;
 }
 
 export const CalendarEditModal: React.FC<CalendarEditModalProps> = ({
@@ -28,6 +32,7 @@ export const CalendarEditModal: React.FC<CalendarEditModalProps> = ({
     onCalendarUpdated,
     onCalendarDeleted,
     initialTab = 'general',
+    userRole,
 }) => {
     const router = useRouter();
     const { dict, lang } = useDictionary();
@@ -43,31 +48,70 @@ export const CalendarEditModal: React.FC<CalendarEditModalProps> = ({
         'general' | 'categories' | 'sharing'
     >(initialTab);
 
+    // Determine permissions based on user role
+    const isAdmin = userRole === ParticipantRole.ADMIN;
+    const canEditGeneral = isAdmin;
+    const canManageCategories = isAdmin;
+    const canManageSharing = isAdmin;
+    const canDeleteCalendar = isAdmin;
+
+    // If owner has set isMain or isHoliday, even admins can't delete
+    const isSystemCalendar = calendar?.isMain || calendar?.isHoliday;
+
     useEffect(() => {
         if (calendar) {
             setName(calendar.name);
             setDescription(calendar.description || '');
             setColor(calendar.color);
         }
+
+        // If user can't access the initialTab, switch to one they can access
+        if (initialTab === 'categories' && !canManageCategories) {
+            setActiveTab(canEditGeneral ? 'general' : 'sharing');
+        } else if (initialTab === 'sharing' && !canManageSharing) {
+            setActiveTab(canEditGeneral ? 'general' : 'categories');
+        } else if (initialTab === 'general' && !canEditGeneral) {
+            setActiveTab(canManageCategories ? 'categories' : 'sharing');
+        } else {
+            setActiveTab(initialTab);
+        }
+
         setDeleteConfirm(false);
         setDeleteConfirmInput('');
         setShowDeleteForm(false);
         setError('');
-        setActiveTab(initialTab);
-    }, [calendar, initialTab]);
+    }, [
+        calendar,
+        initialTab,
+        canEditGeneral,
+        canManageCategories,
+        canManageSharing,
+    ]);
 
     if (!isOpen) return null;
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        // Return early if user doesn't have permission
+        if (!canEditGeneral) {
+            setError(
+                dict.calendar?.noPermission ||
+                    'You do not have permission to edit this calendar',
+            );
+            return;
+        }
+
         setLoading(true);
         setError('');
+
         try {
             const calendarData = {
                 name,
                 description: description || undefined,
                 color,
             };
+
             const response = await fetch(
                 `http://localhost:3001/calendars/${calendar.id}`,
                 {
@@ -79,7 +123,9 @@ export const CalendarEditModal: React.FC<CalendarEditModalProps> = ({
                     body: JSON.stringify(calendarData),
                 },
             );
+
             const data = await response.json();
+
             if (data.status === 'success') {
                 onClose();
                 if (onCalendarUpdated) {
@@ -103,10 +149,21 @@ export const CalendarEditModal: React.FC<CalendarEditModalProps> = ({
 
     const handleDelete = async () => {
         if (!calendar) return;
+
+        // Return early if user doesn't have permission
+        if (!canDeleteCalendar) {
+            setError(
+                dict.calendar?.noPermission ||
+                    'You do not have permission to delete this calendar',
+            );
+            return;
+        }
+
         if (!deleteConfirm) {
             setShowDeleteForm(true);
             return;
         }
+
         if (deleteConfirmInput !== calendar.name) {
             setError(
                 dict.calendar?.deleteConfirmationError ||
@@ -114,8 +171,10 @@ export const CalendarEditModal: React.FC<CalendarEditModalProps> = ({
             );
             return;
         }
+
         setLoading(true);
         setError('');
+
         try {
             const response = await fetch(
                 `http://localhost:3001/calendars/${calendar.id}`,
@@ -126,7 +185,9 @@ export const CalendarEditModal: React.FC<CalendarEditModalProps> = ({
                     },
                 },
             );
+
             const data = await response.json();
+
             if (data.status === 'success') {
                 onClose();
                 if (onCalendarDeleted) {
@@ -164,6 +225,20 @@ export const CalendarEditModal: React.FC<CalendarEditModalProps> = ({
                     </button>
                 </div>
 
+                {/* Role indicator - Show when user is not an admin */}
+                {!isAdmin && (
+                    <div className="bg-blue-50 dark:bg-blue-900/20 p-2 flex items-center text-sm text-blue-600 dark:text-blue-400">
+                        <Info className="h-4 w-4 mr-2" />
+                        <span>
+                            {userRole === ParticipantRole.CREATOR
+                                ? dict.calendar?.creatorRoleNotice ||
+                                  'You are a Creator. Some settings may be limited.'
+                                : dict.calendar?.readerRoleNotice ||
+                                  'You are a Reader. You can view but not edit settings.'}
+                        </span>
+                    </div>
+                )}
+
                 <div className="border-b border-gray-200 dark:border-gray-700">
                     <nav className="flex -mb-px">
                         <button
@@ -176,6 +251,7 @@ export const CalendarEditModal: React.FC<CalendarEditModalProps> = ({
                             {dict.calendar?.generalSettings ||
                                 'General Settings'}
                         </button>
+
                         <button
                             onClick={() => setActiveTab('categories')}
                             className={`py-3 px-4 font-medium text-sm border-b-2 focus:outline-none ${
@@ -185,6 +261,7 @@ export const CalendarEditModal: React.FC<CalendarEditModalProps> = ({
                             }`}>
                             {dict.calendar?.categoriesTab || 'Categories'}
                         </button>
+
                         <button
                             onClick={() => setActiveTab('sharing')}
                             className={`py-3 px-4 font-medium text-sm border-b-2 focus:outline-none ${
@@ -208,185 +285,281 @@ export const CalendarEditModal: React.FC<CalendarEditModalProps> = ({
                     )}
 
                     {activeTab === 'general' && (
-                        <form onSubmit={handleSubmit} className="space-y-4">
-                            <div className="flex items-center">
-                                <div
-                                    className="w-10 h-10 rounded-full mr-3 flex-shrink-0 flex items-center justify-center"
-                                    style={{ backgroundColor: color }}>
-                                    <CalendarIcon className="h-5 w-5 text-white" />
-                                </div>
-                                <div className="flex-1">
-                                    <label
-                                        htmlFor="calendar-name"
-                                        className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                        {dict.calendar?.calendarName ||
-                                            'Calendar Name'}
-                                        *
-                                    </label>
-                                    <input
-                                        id="calendar-name"
-                                        type="text"
-                                        required
-                                        value={name}
-                                        onChange={e => setName(e.target.value)}
-                                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm 
-                                            focus:outline-none focus:ring-indigo-500 focus:border-indigo-500
-                                            bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                                    />
-                                </div>
-                            </div>
-
-                            <div>
-                                <label
-                                    htmlFor="calendar-color"
-                                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                    {dict.calendar?.calendarColor || 'Color'}
-                                </label>
-                                <input
-                                    id="calendar-color"
-                                    type="color"
-                                    value={color}
-                                    onChange={e => setColor(e.target.value)}
-                                    className="w-full h-10 px-1 py-1 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm 
-                                        focus:outline-none focus:ring-indigo-500 focus:border-indigo-500
-                                        bg-white dark:bg-gray-700"
-                                />
-                            </div>
-
-                            <div>
-                                <label
-                                    htmlFor="calendar-description"
-                                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                    {dict.calendar?.calendarDescription ||
-                                        'Description'}
-                                </label>
-                                <textarea
-                                    id="calendar-description"
-                                    rows={3}
-                                    value={description}
-                                    onChange={e =>
-                                        setDescription(e.target.value)
-                                    }
-                                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm 
-                                        focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 
-                                        bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                                />
-                            </div>
-
-                            <div className="mt-6 border-t border-gray-200 dark:border-gray-700 pt-4">
-                                <button
-                                    type="button"
-                                    onClick={() =>
-                                        setShowDeleteForm(!showDeleteForm)
-                                    }
-                                    className="flex items-center text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 mb-2">
-                                    <Trash2 className="w-4 h-4 mr-1" />
-                                    <span>
-                                        {dict.calendar?.deleteCalendar ||
-                                            'Delete Calendar'}
-                                    </span>
-                                </button>
-
-                                {showDeleteForm && (
-                                    <div className="p-3 bg-red-50 dark:bg-red-900/20 rounded-md mb-4">
-                                        <div className="flex items-start mb-2">
-                                            <AlertTriangle className="w-5 h-5 text-red-500 dark:text-red-400 mr-2 flex-shrink-0 mt-0.5" />
-                                            <p className="text-sm text-red-600 dark:text-red-400">
-                                                {dict.calendar
-                                                    ?.deleteCalendarWarning ||
-                                                    'This action cannot be undone. All events in this calendar will be permanently deleted.'}
-                                            </p>
+                        <>
+                            {/* Read-only view for non-admin users */}
+                            {!canEditGeneral ? (
+                                <div className="space-y-4">
+                                    <div className="flex items-center">
+                                        <div
+                                            className="w-10 h-10 rounded-full mr-3 flex-shrink-0 flex items-center justify-center"
+                                            style={{
+                                                backgroundColor: calendar.color,
+                                            }}>
+                                            <CalendarIcon className="h-5 w-5 text-white" />
                                         </div>
-                                        <div className="mb-3">
+                                        <div className="flex-1">
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                                    {dict.calendar
+                                                        ?.calendarName ||
+                                                        'Calendar Name'}
+                                                </label>
+                                                <div className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white">
+                                                    {calendar.name}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                            {dict.calendar?.calendarColor ||
+                                                'Color'}
+                                        </label>
+                                        <div className="w-full h-10 px-1 py-1 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700">
+                                            <div
+                                                className="h-full rounded"
+                                                style={{
+                                                    backgroundColor:
+                                                        calendar.color,
+                                                }}></div>
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                            {dict.calendar
+                                                ?.calendarDescription ||
+                                                'Description'}
+                                        </label>
+                                        <div className="w-full min-h-[72px] px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white">
+                                            {calendar.description || (
+                                                <span className="text-gray-500 dark:text-gray-400 italic">
+                                                    {dict.calendar
+                                                        ?.noDescription ||
+                                                        'No description provided'}
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-center mt-4 py-3 border-t border-gray-200 dark:border-gray-700">
+                                        <Eye className="h-4 w-4 mr-2 text-blue-500 dark:text-blue-400" />
+                                        <span className="text-sm text-gray-600 dark:text-gray-400">
+                                            {dict.calendar?.viewOnlyMode ||
+                                                'View-only mode. Contact an admin to make changes.'}
+                                        </span>
+                                    </div>
+                                </div>
+                            ) : (
+                                <form
+                                    onSubmit={handleSubmit}
+                                    className="space-y-4">
+                                    <div className="flex items-center">
+                                        <div
+                                            className="w-10 h-10 rounded-full mr-3 flex-shrink-0 flex items-center justify-center"
+                                            style={{ backgroundColor: color }}>
+                                            <CalendarIcon className="h-5 w-5 text-white" />
+                                        </div>
+                                        <div className="flex-1">
                                             <label
-                                                htmlFor="delete-confirm"
-                                                className="block text-sm text-red-600 dark:text-red-400 mb-1">
-                                                {dict.calendar?.deleteConfirmation.replace(
-                                                    '{calendar name}',
-                                                    calendar.name,
-                                                ) ||
-                                                    `Type "${calendar.name}" to confirm deletion`}
+                                                htmlFor="calendar-name"
+                                                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                                {dict.calendar?.calendarName ||
+                                                    'Calendar Name'}
+                                                *
                                             </label>
                                             <input
-                                                id="delete-confirm"
+                                                id="calendar-name"
                                                 type="text"
-                                                value={deleteConfirmInput}
+                                                required
+                                                value={name}
                                                 onChange={e =>
-                                                    setDeleteConfirmInput(
-                                                        e.target.value,
-                                                    )
+                                                    setName(e.target.value)
                                                 }
-                                                className="w-full px-3 py-2 border border-red-300 dark:border-red-700 rounded-md shadow-sm 
-                                                    focus:outline-none focus:ring-red-500 focus:border-red-500 
-                                                    bg-white dark:bg-gray-800 text-red-900 dark:text-red-200"
+                                                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                                             />
                                         </div>
+                                    </div>
+
+                                    <div>
+                                        <label
+                                            htmlFor="calendar-color"
+                                            className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                            {dict.calendar?.calendarColor ||
+                                                'Color'}
+                                        </label>
+                                        <input
+                                            id="calendar-color"
+                                            type="color"
+                                            value={color}
+                                            onChange={e =>
+                                                setColor(e.target.value)
+                                            }
+                                            className="w-full h-10 px-1 py-1 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-gray-700"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label
+                                            htmlFor="calendar-description"
+                                            className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                            {dict.calendar
+                                                ?.calendarDescription ||
+                                                'Description'}
+                                        </label>
+                                        <textarea
+                                            id="calendar-description"
+                                            rows={3}
+                                            value={description}
+                                            onChange={e =>
+                                                setDescription(e.target.value)
+                                            }
+                                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                        />
+                                    </div>
+
+                                    {/* Delete Calendar Section */}
+                                    {canDeleteCalendar && !isSystemCalendar && (
+                                        <div className="mt-6 border-t border-gray-200 dark:border-gray-700 pt-4">
+                                            <button
+                                                type="button"
+                                                onClick={() =>
+                                                    setShowDeleteForm(
+                                                        !showDeleteForm,
+                                                    )
+                                                }
+                                                className="flex items-center text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 mb-2">
+                                                <Trash2 className="w-4 h-4 mr-1" />
+                                                <span>
+                                                    {dict.calendar
+                                                        ?.deleteCalendar ||
+                                                        'Delete Calendar'}
+                                                </span>
+                                            </button>
+
+                                            {showDeleteForm && (
+                                                <div className="p-3 bg-red-50 dark:bg-red-900/20 rounded-md mb-4">
+                                                    <div className="flex items-start mb-2">
+                                                        <AlertTriangle className="w-5 h-5 text-red-500 dark:text-red-400 mr-2 flex-shrink-0 mt-0.5" />
+                                                        <p className="text-sm text-red-600 dark:text-red-400">
+                                                            {dict.calendar
+                                                                ?.deleteCalendarWarning ||
+                                                                'This action cannot be undone. All events in this calendar will be permanently deleted.'}
+                                                        </p>
+                                                    </div>
+
+                                                    <div className="mb-3">
+                                                        <label
+                                                            htmlFor="delete-confirm"
+                                                            className="block text-sm text-red-600 dark:text-red-400 mb-1">
+                                                            {dict.calendar?.deleteConfirmation.replace(
+                                                                '{calendar name}',
+                                                    calendar.name,
+                                                ) ||
+                                                                `Type "${calendar.name}" to confirm deletion`}
+                                                        </label>
+                                                        <input
+                                                            id="delete-confirm"
+                                                            type="text"
+                                                            value={
+                                                                deleteConfirmInput
+                                                            }
+                                                            onChange={e =>
+                                                                setDeleteConfirmInput(
+                                                                    e.target
+                                                                        .value,
+                                                                )
+                                                            }
+                                                            className="w-full px-3 py-2 border border-red-300 dark:border-red-700 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500 bg-white dark:bg-gray-800 text-red-900 dark:text-red-200"
+                                                        />
+                                                    </div>
+
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setDeleteConfirm(
+                                                                true,
+                                                            );
+                                                            handleDelete();
+                                                        }}
+                                                        disabled={
+                                                            deleteConfirmInput !==
+                                                            calendar.name
+                                                        }
+                                                        className="w-full px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed">
+                                                        {dict.calendar
+                                                            ?.confirmDelete ||
+                                                            'Permanently Delete Calendar'}
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {/* Calendar cannot be deleted notice */}
+                                    {canDeleteCalendar && isSystemCalendar && (
+                                        <div className="mt-6 border-t border-gray-200 dark:border-gray-700 pt-4">
+                                            <div className="flex items-start p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-md text-yellow-700 dark:text-yellow-500 text-sm">
+                                                <AlertTriangle className="w-5 h-5 mr-2 flex-shrink-0" />
+                                                <p>
+                                                    {dict.calendar
+                                                        ?.cannotDeleteSystemCalendar ||
+                                                        'This is a system calendar and cannot be deleted.'}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    <div className="mt-4 flex justify-end space-x-3">
                                         <button
                                             type="button"
-                                            onClick={() => {
-                                                setDeleteConfirm(true);
-                                                handleDelete();
-                                            }}
-                                            disabled={
-                                                deleteConfirmInput !==
-                                                calendar.name
-                                            }
-                                            className="w-full px-4 py-2 bg-red-600 text-white rounded-md 
-                                                hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed">
-                                            {dict.calendar?.confirmDelete ||
-                                                'Permanently Delete Calendar'}
+                                            onClick={onClose}
+                                            className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
+                                            {dict.common?.cancel || 'Cancel'}
+                                        </button>
+
+                                        <button
+                                            type="submit"
+                                            disabled={loading}
+                                            className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-70 disabled:cursor-not-allowed">
+                                            {loading ? (
+                                                <span className="flex items-center">
+                                                    <svg
+                                                        className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                                                        xmlns="http://www.w3.org/2000/svg"
+                                                        fill="none"
+                                                        viewBox="0 0 24 24">
+                                                        <circle
+                                                            className="opacity-25"
+                                                            cx="12"
+                                                            cy="12"
+                                                            r="10"
+                                                            stroke="currentColor"
+                                                            strokeWidth="4"></circle>
+                                                        <path
+                                                            className="opacity-75"
+                                                            fill="currentColor"
+                                                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                    </svg>
+                                                    {dict.common?.saving ||
+                                                        'Saving...'}
+                                                </span>
+                                            ) : (
+                                                dict.common?.save || 'Save'
+                                            )}
                                         </button>
                                     </div>
-                                )}
-                            </div>
-
-                            <div className="mt-4 flex justify-end space-x-3">
-                                <button
-                                    type="button"
-                                    onClick={onClose}
-                                    className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium 
-                                        text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
-                                    {dict.common?.cancel || 'Cancel'}
-                                </button>
-                                <button
-                                    type="submit"
-                                    disabled={loading}
-                                    className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium 
-                                        text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 
-                                        focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-70 disabled:cursor-not-allowed">
-                                    {loading ? (
-                                        <span className="flex items-center">
-                                            <svg
-                                                className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
-                                                xmlns="http://www.w3.org/2000/svg"
-                                                fill="none"
-                                                viewBox="0 0 24 24">
-                                                <circle
-                                                    className="opacity-25"
-                                                    cx="12"
-                                                    cy="12"
-                                                    r="10"
-                                                    stroke="currentColor"
-                                                    strokeWidth="4"></circle>
-                                                <path
-                                                    className="opacity-75"
-                                                    fill="currentColor"
-                                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                            </svg>
-                                            {dict.common?.saving || 'Saving...'}
-                                        </span>
-                                    ) : (
-                                        dict.common?.save || 'Save'
-                                    )}
-                                </button>
-                            </div>
-                        </form>
+                                </form>
+                            )}
+                        </>
                     )}
 
                     {activeTab === 'categories' && (
                         <CategoryManagement
                             calendarId={calendar.id}
                             dict={dict}
+                            readOnly={!canManageCategories}
                         />
                     )}
 
@@ -394,6 +567,7 @@ export const CalendarEditModal: React.FC<CalendarEditModalProps> = ({
                         <CalendarInviteManagement
                             calendarId={calendar.id}
                             dict={dict}
+                            readOnly={!canManageSharing}
                         />
                     )}
                 </div>
