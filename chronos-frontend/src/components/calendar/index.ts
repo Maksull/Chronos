@@ -6,3 +6,4 @@ export * from './CategorySelector';
 export * from './CategoryManagement';
 export * from './CalendarInviteManagement';
 export * from './CalendarParticipants';
+export * from './CategoryFilter';

@@ -93,18 +93,28 @@ export class CalendarController {
     async getCalendarEvents(
         request: FastifyRequest<{
             Params: { id: string };
-            Querystring: { startDate?: string; endDate?: string };
+            Querystring: {
+                startDate?: string;
+                endDate?: string;
+                categoryId?: string | string[]; // Updated type
+            };
         }>,
         reply: FastifyReply,
     ) {
         try {
-            const { startDate, endDate } = request.query;
+            const { startDate, endDate, categoryId } = request.query;
+
+            // Convert to array of category IDs if necessary
+            const categoryIds = categoryId ? (Array.isArray(categoryId) ? categoryId : [categoryId]) : undefined;
+
             const events = await this.eventService.getEventsByCalendarId(
                 request.user!.userId,
                 request.params.id,
                 startDate ? new Date(startDate) : undefined,
                 endDate ? new Date(endDate) : undefined,
+                categoryIds, // Pass array of categoryIds
             );
+
             return reply.send({ status: 'success', data: events });
         } catch (error) {
             if (error instanceof Error) {

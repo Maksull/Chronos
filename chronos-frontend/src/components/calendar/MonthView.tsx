@@ -1,9 +1,9 @@
 'use client';
-
 import React, { useEffect, useState } from 'react';
 import { Dictionary } from '@/lib/dictionary';
 import { Plus, ChevronDown, ChevronUp } from 'lucide-react';
-import { CalendarData, EventData } from '@/types/account';
+import { CalendarData, EventData, CategoryData } from '@/types/account';
+import { CategoryFilter } from './CategoryFilter'; // Import the updated component
 
 interface MonthViewProps {
     currentDate: Date;
@@ -31,49 +31,81 @@ export const MonthView: React.FC<MonthViewProps> = ({
     const [events, setEvents] = useState<EventData[]>([]);
     const [loading, setLoading] = useState(false);
     const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
+    const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>(
+        [],
+    );
+    const [categories, setCategories] = useState<CategoryData[]>([]);
 
-    // Calculate first day of the month and last day
     const firstDayOfMonth = new Date(
         currentDate.getFullYear(),
         currentDate.getMonth(),
         1,
     );
-
     const lastDayOfMonth = new Date(
         currentDate.getFullYear(),
         currentDate.getMonth() + 1,
         0,
     );
-
-    // Add buffer days before and after the month
     const startDate = new Date(firstDayOfMonth);
     startDate.setDate(1 - firstDayOfMonth.getDay());
-
     const endDate = new Date(lastDayOfMonth);
     const daysToAdd = 6 - lastDayOfMonth.getDay();
     endDate.setDate(lastDayOfMonth.getDate() + daysToAdd);
     endDate.setHours(23, 59, 59, 999);
 
     useEffect(() => {
+        fetchCategories();
         fetchEvents();
-        // Reset expanded rows when changing months
         setExpandedRows(new Set());
     }, [currentDate, calendar?.id]);
 
-    const fetchEvents = async () => {
-        if (!calendar?.id) return;
+    useEffect(() => {
+        fetchEvents();
+    }, [selectedCategoryIds]);
 
+    const fetchCategories = async () => {
+        if (!calendar?.id) return;
         try {
-            setLoading(true);
             const response = await fetch(
-                `http://localhost:3001/calendars/${calendar.id}/events?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`,
+                `http://localhost:3001/calendars/${calendar.id}/categories`,
                 {
                     headers: {
                         Authorization: `Bearer ${localStorage.getItem('token')}`,
                     },
                 },
             );
+            if (response.ok) {
+                const data = await response.json();
+                if (data.status === 'success') {
+                    setCategories(data.data);
+                }
+            }
+        } catch (error) {
+            console.error('Error fetching categories:', error);
+        }
+    };
 
+    const fetchEvents = async () => {
+        if (!calendar?.id) return;
+        try {
+            setLoading(true);
+
+            // Build URL with query parameters
+            let url = `http://localhost:3001/calendars/${calendar.id}/events?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`;
+
+            // Add category filter if selected
+            if (selectedCategoryIds.length > 0) {
+                // Add each category ID as a separate param (categoryId=123&categoryId=456)
+                selectedCategoryIds.forEach(categoryId => {
+                    url += `&categoryId=${categoryId}`;
+                });
+            }
+
+            const response = await fetch(url, {
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem('token')}`,
+                },
+            });
             if (response.ok) {
                 const data = await response.json();
                 if (data.status === 'success') {
@@ -87,68 +119,62 @@ export const MonthView: React.FC<MonthViewProps> = ({
         }
     };
 
-    // Generate days array for the calendar grid
+    const handleCategoryChange = (categoryIds: string[]) => {
+        setSelectedCategoryIds(categoryIds);
+    };
+
     const daysInMonth = new Date(
         currentDate.getFullYear(),
         currentDate.getMonth() + 1,
         0,
     ).getDate();
-
     const firstDayOfMonthWeekday = new Date(
         currentDate.getFullYear(),
         currentDate.getMonth(),
         1,
     ).getDay();
-
     const lastDayOfPrevMonth = new Date(
         currentDate.getFullYear(),
         currentDate.getMonth(),
         0,
     ).getDate();
-
     const daysArray: DayInfo[] = [];
     const today = new Date();
 
-    // Previous month days
     for (let i = firstDayOfMonthWeekday - 1; i >= 0; i--) {
         const date = new Date(
             currentDate.getFullYear(),
             currentDate.getMonth() - 1,
             lastDayOfPrevMonth - i,
         );
-
         daysArray.push({
             day: lastDayOfPrevMonth - i,
             inCurrentMonth: false,
             isToday: false,
             date,
-            rowIndex: 0, // Will be set later
+            rowIndex: 0,
         });
     }
 
-    // Current month days
     for (let i = 1; i <= daysInMonth; i++) {
         const date = new Date(
             currentDate.getFullYear(),
             currentDate.getMonth(),
             i,
         );
-
         const isToday =
             i === today.getDate() &&
             currentDate.getMonth() === today.getMonth() &&
             currentDate.getFullYear() === today.getFullYear();
-
         daysArray.push({
             day: i,
             inCurrentMonth: true,
             isToday,
             date,
-            rowIndex: 0, // Will be set later
+            rowIndex: 0,
         });
     }
 
-    // Next month days
     const remainingDays = 42 - daysArray.length;
     for (let i = 1; i <= remainingDays; i++) {
         const date = new Date(
@@ -156,22 +182,19 @@ export const MonthView: React.FC<MonthViewProps> = ({
             currentDate.getMonth() + 1,
             i,
         );
-
         daysArray.push({
             day: i,
             inCurrentMonth: false,
             isToday: false,
             date,
-            rowIndex: 0, // Will be set later
+            rowIndex: 0,
         });
     }
 
-    // Assign row indices to each day
     daysArray.forEach((day, index) => {
         day.rowIndex = Math.floor(index / 7);
     });
 
-    // Group days by row
     const rows = daysArray.reduce(
         (acc, day) => {
             if (!acc[day.rowIndex]) {
@@ -183,7 +206,6 @@ export const MonthView: React.FC<MonthViewProps> = ({
         {} as Record<number, DayInfo[]>,
     );
 
-    // Helper to get events for a specific day
     const getEventsForDay = (date: Date) => {
         return events.filter(event => {
             const eventStart = new Date(event.startDate);
@@ -195,7 +217,6 @@ export const MonthView: React.FC<MonthViewProps> = ({
         });
     };
 
-    // Toggle expanded state for a row
     const toggleExpandRow = (rowIndex: number) => {
         setExpandedRows(prevExpanded => {
             const newExpanded = new Set(prevExpanded);
@@ -208,7 +229,6 @@ export const MonthView: React.FC<MonthViewProps> = ({
         });
     };
 
-    // Check if a row is expanded
     const isRowExpanded = (rowIndex: number) => {
         return expandedRows.has(rowIndex);
     };
@@ -217,6 +237,13 @@ export const MonthView: React.FC<MonthViewProps> = ({
 
     return (
         <div className="calendar-month-view overflow-y-auto max-h-[calc(100vh-240px)]">
+            {/* Using the updated CategoryFilter component */}
+            <CategoryFilter
+                categories={categories}
+                selectedCategoryIds={selectedCategoryIds}
+                onCategoryChange={handleCategoryChange}
+            />
+
             <div className="grid grid-cols-7 mb-2">
                 {weekdays.map((day, index) => (
                     <div
@@ -231,15 +258,15 @@ export const MonthView: React.FC<MonthViewProps> = ({
                 {Object.entries(rows).map(([rowIndexStr, rowDays]) => {
                     const rowIndex = parseInt(rowIndexStr);
                     const isExpanded = isRowExpanded(rowIndex);
-
                     return (
                         <div
                             key={rowIndex}
-                            className={`grid grid-cols-7 gap-1 ${isExpanded ? 'min-h-56' : 'min-h-28'}`}>
+                            className={`grid grid-cols-7 gap-1 ${
+                                isExpanded ? 'min-h-56' : 'min-h-28'
+                            }`}>
                             {rowDays.map((day, dayIndex) => {
                                 const dayEvents = getEventsForDay(day.date);
                                 const hasMoreEvents = dayEvents.length > 3;
-
                                 return (
                                     <div
                                         key={dayIndex}
@@ -248,7 +275,6 @@ export const MonthView: React.FC<MonthViewProps> = ({
                                                 day.inCurrentMonth &&
                                                 onAddEvent
                                             ) {
-                                                // Set time to 9:00 AM when creating from month view
                                                 const newDate = new Date(
                                                     day.date,
                                                 );
@@ -257,19 +283,23 @@ export const MonthView: React.FC<MonthViewProps> = ({
                                             }
                                         }}
                                         className={`
-                                            p-1 border dark:border-gray-700 rounded-md transition-all
-                                            ${
-                                                day.inCurrentMonth
-                                                    ? 'bg-white dark:bg-gray-800 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 hover:shadow-md cursor-pointer active:bg-indigo-100 dark:active:bg-indigo-900/30'
-                                                    : 'bg-gray-50 dark:bg-gray-700/50 text-gray-400 dark:text-gray-500'
-                                            }
-                                            ${day.isToday ? 'ring-2 ring-indigo-500 dark:ring-indigo-400' : 'hover:border-gray-300 dark:hover:border-gray-600'}
-                                        `}>
+                      p-1 border dark:border-gray-700 rounded-md transition-all group
+                      ${
+                          day.inCurrentMonth
+                              ? 'bg-white dark:bg-gray-800 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 hover:shadow-md cursor-pointer active:bg-indigo-100 dark:active:bg-indigo-900/30'
+                              : 'bg-gray-50 dark:bg-gray-700/50 text-gray-400 dark:text-gray-500'
+                      }
+                      ${
+                          day.isToday
+                              ? 'ring-2 ring-indigo-500 dark:ring-indigo-400'
+                              : 'hover:border-gray-300 dark:hover:border-gray-600'
+                      }
+                    `}>
                                         <div
                                             className={`
-                                                flex justify-between items-center p-1
-                                                ${day.isToday ? 'font-bold text-indigo-600 dark:text-indigo-400' : ''}
-                                            `}>
+                        flex justify-between items-center p-1
+                        ${day.isToday ? 'font-bold text-indigo-600 dark:text-indigo-400' : ''}
+                      `}>
                                             <span
                                                 className={
                                                     day.isToday
@@ -316,7 +346,7 @@ export const MonthView: React.FC<MonthViewProps> = ({
                                                     .map(event => (
                                                         <div
                                                             key={event.id}
-                                                            className="px-2 py-1 rounded-sm text-xs truncate cursor-pointer hover:brightness-90" // Add cursor-pointer and hover effect
+                                                            className="px-2 py-1 rounded-sm text-xs truncate cursor-pointer hover:brightness-90"
                                                             style={{
                                                                 backgroundColor: `${event.color}20`,
                                                                 borderLeft: `3px solid ${event.color}`,
@@ -344,17 +374,15 @@ export const MonthView: React.FC<MonthViewProps> = ({
                                                             - {event.name}
                                                         </div>
                                                     ))}
-
                                             {hasMoreEvents && !isExpanded && (
                                                 <div
                                                     className="mt-2 p-1 -mx-1 text-center"
                                                     onClick={e =>
                                                         e.stopPropagation()
-                                                    } // Create a larger stop-propagation area
-                                                >
+                                                    }>
                                                     <button
                                                         onClick={e => {
-                                                            e.stopPropagation(); // Prevent triggering parent onClick
+                                                            e.stopPropagation();
                                                             toggleExpandRow(
                                                                 rowIndex,
                                                             );
@@ -366,17 +394,15 @@ export const MonthView: React.FC<MonthViewProps> = ({
                                                     </button>
                                                 </div>
                                             )}
-
                                             {hasMoreEvents && isExpanded && (
                                                 <div
                                                     className="mt-2 p-1 -mx-1 text-center"
                                                     onClick={e =>
                                                         e.stopPropagation()
-                                                    } // Create a larger stop-propagation area
-                                                >
+                                                    }>
                                                     <button
                                                         onClick={e => {
-                                                            e.stopPropagation(); // Prevent triggering parent onClick
+                                                            e.stopPropagation();
                                                             toggleExpandRow(
                                                                 rowIndex,
                                                             );
