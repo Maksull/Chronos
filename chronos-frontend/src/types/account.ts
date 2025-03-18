@@ -32,6 +32,7 @@ export interface CalendarData {
     owner: {
         id: string;
         username: string;
+        fullName: string;
         email: string;
     };
     participants: ParticipantData[];

@@ -3,7 +3,7 @@ import { AppDataSource } from '@/database/data-source';
 import { RegisterUserDto, LoginDto, ChangeEmailDto, ChangePasswordDto } from '@/types/auth';
 import { hash, compare } from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import { addHours, addMinutes } from 'date-fns';
+import { addMinutes } from 'date-fns';
 import { TokenBlacklist } from '@/middlewares/auth.middleware';
 import { EmailService } from '.';
 
@@ -79,7 +79,6 @@ export class AuthService {
         TokenBlacklist.add(token);
         return { message: 'Successfully logged out' };
     }
-
 
     private generateToken(user: User): string {
         const payload = {
@@ -214,17 +213,17 @@ export class AuthService {
         const user = await this.userRepository.findOne({
             where: { email },
         });
-    
+
         if (!user) {
             throw new Error('User not found');
         }
-    
+
         const resetCode = this.generateVerificationCode();
         user.resetPasswordToken = resetCode;
         user.resetPasswordTokenExpiresAt = addMinutes(new Date(), 15);
-    
+
         await this.userRepository.save(user);
-    
+
         await this.emailService.sendResetPasswordEmail(user.email, resetCode);
     }
 
@@ -232,38 +231,35 @@ export class AuthService {
         const user = await this.userRepository.findOne({
             where: { resetPasswordToken: token },
         });
-    
+
         await this.checkResetToken(token);
-    
+
         await this.setNewPassword(user, newPassword);
     }
-    
 
     async checkResetToken(token: string): Promise<boolean> {
         const user = await this.userRepository.findOne({
             where: { resetPasswordToken: token },
         });
-    
+
         if (!user) {
             throw new Error('Invalid reset password token');
         }
-    
+
         if (user.resetPasswordTokenExpiresAt && user.resetPasswordTokenExpiresAt < new Date()) {
             throw new Error('Reset password token has expired');
         }
-    
-        return true; 
+
+        return true;
     }
-    
+
     async setNewPassword(user: any, newPassword: string): Promise<void> {
         const hashedPassword = await hash(newPassword, 10);
-    
+
         user.password = hashedPassword;
         user.resetPasswordToken = null;
         user.resetPasswordTokenExpiresAt = null;
-    
+
         await this.userRepository.save(user);
     }
-    
-    
 }

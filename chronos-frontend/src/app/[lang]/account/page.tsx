@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import Link from 'next/link';
 import { Shield } from 'lucide-react';
 import { useDictionary } from '@/contexts';
 import {

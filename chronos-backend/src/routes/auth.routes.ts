@@ -91,10 +91,13 @@ export async function authRoutes(app: FastifyInstance) {
 
     app.post('/auth/login', { schema: loginSchema }, authController.login.bind(authController));
 
-    app.post('/auth/logout', {
-        preHandler: [authenticateToken],
-    }, authController.logout.bind(authController));
-
+    app.post(
+        '/auth/logout',
+        {
+            preHandler: [authenticateToken],
+        },
+        authController.logout.bind(authController),
+    );
 
     app.post('/auth/verify-email', { schema: verifyEmailSchema }, authController.verifyEmail.bind(authController));
 
@@ -105,9 +108,6 @@ export async function authRoutes(app: FastifyInstance) {
     app.post('/auth/reset-password-with-token', { schema: resetPasswordWithTokenSchema }, authController.resetPasswordWithToken.bind(authController));
 
     app.post('/auth/check-reset-token', { schema: checkResetTokeSchema }, authController.checkResetToken.bind(authController));
-
-
-
 
     // app.post(
     //     '/auth/resend-verification',
@@ -141,7 +141,7 @@ export async function authRoutes(app: FastifyInstance) {
 
     app.get('/auth/verify', {
         preHandler: authenticateToken,
-        handler: async (request, reply) => {
+        handler: async (_request, reply) => {
             // If we get here, the token is valid (middleware passed)
             return reply.send({ status: 'success' });
         },

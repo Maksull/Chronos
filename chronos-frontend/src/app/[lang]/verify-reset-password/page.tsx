@@ -13,7 +13,7 @@ export default function VerifyEmailPage() {
     const [token, setToken] = useState(['', '', '', '', '', '']);
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
-    const [isResending, setIsResending] = useState(false);
+    const [isResending] = useState(false);
     const [resendTimer, setResendTimer] = useState(0);
     const [resendSuccess, setResendSuccess] = useState(false);
 
@@ -68,7 +68,13 @@ export default function VerifyEmailPage() {
             }
 
             setResendSuccess(true);
-            setTimeout(() => router.push(`/${lang}/set-new-password?token=${verificationToken}`), 1500);
+            setTimeout(
+                () =>
+                    router.push(
+                        `/${lang}/set-new-password?token=${verificationToken}`,
+                    ),
+                1500,
+            );
         } catch {
             setError(dict.auth.errors.generic);
         } finally {
@@ -198,11 +204,11 @@ export default function VerifyEmailPage() {
                                 {isResending
                                     ? dict.auth.verifyEmail.resending
                                     : resendTimer > 0
-                                        ? dict.auth.verifyEmail.waitResend.replace(
+                                      ? dict.auth.verifyEmail.waitResend.replace(
                                             '{seconds}',
                                             resendTimer.toString(),
                                         )
-                                        : dict.auth.verifyEmail.resendCode}
+                                      : dict.auth.verifyEmail.resendCode}
                             </button>
                         </div>
 

@@ -22,7 +22,6 @@ export function Footer() {
                                 {dict.footer.description}
                             </p>
                         </div>
-                        
                     </div>
                 </div>
                 <div className="w-full border-t border-gray-200 dark:border-dark-border">

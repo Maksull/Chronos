@@ -30,7 +30,8 @@ const start = async () => {
         eventRoutes(app);
         categoryRoutes(app);
 
-        app.get('/', async (request, reply) => {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        app.get('/', async (_request, _reply) => {
             return { message: 'Hello, Fastify!' };
         });
 

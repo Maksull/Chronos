@@ -9,6 +9,7 @@ import { Locale } from '@/middleware';
 interface WeekViewProps {
     currentDate: Date;
     dict: Dictionary;
+    lang: 'en' | 'uk';
     onAddEvent?: (date: Date) => void;
     onEventClick?: (event: EventData) => void;
     calendar: CalendarData;

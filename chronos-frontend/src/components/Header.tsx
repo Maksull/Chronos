@@ -1,11 +1,10 @@
 'use client';
 
 import { Calendar, Bell, User, LogIn, LogOut, Menu, X } from 'lucide-react';
-import { useRouter } from "next/navigation";
+import { useRouter } from 'next/navigation';
 import { ThemeToggle } from '@/components';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
-import { usePathname } from 'next/navigation';
+import { useState } from 'react';
 import { useDictionary } from '@/contexts/DictionaryContext';
 import { LanguageToggler } from '.';
 import { useAuth } from '@/contexts';
@@ -14,9 +13,7 @@ export function Header() {
     const { dict, lang } = useDictionary();
     const router = useRouter();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
-    const { logout, isAuthenticated } = useAuth();  // Use authentication state from context
-
-    const pathname = usePathname();
+    const { logout, isAuthenticated } = useAuth(); // Use authentication state from context
 
     const handleLogout = () => {
         logout();
@@ -24,7 +21,7 @@ export function Header() {
 
     const authLinks = (
         <>
-            <div className='flex'>
+            <div className="flex">
                 <LanguageToggler currentLang={lang} />
                 <ThemeToggle />
                 {isAuthenticated ? (
@@ -42,12 +39,10 @@ export function Header() {
                         </button>
                         <button
                             onClick={handleLogout}
-                            className="inline-flex items-center gap-x-2 p-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-white"
-                        >
+                            className="inline-flex items-center gap-x-2 p-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-white">
                             <LogOut className="h-6 w-6" />
                             <span>{dict.navigation.logout}</span>
                         </button>
-
                     </>
                 ) : (
                     <>
@@ -64,7 +59,6 @@ export function Header() {
                                 {dict.navigation.register}
                             </Link>
                         </div>
-
                     </>
                 )}
             </div>
@@ -76,7 +70,9 @@ export function Header() {
             <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex justify-between h-16">
                     <div className="flex">
-                        <Link href={`/${lang}`} className="flex-shrink-0 flex items-center">
+                        <Link
+                            href={`/${lang}`}
+                            className="flex-shrink-0 flex items-center">
                             <Calendar className="h-8 w-8 text-indigo-600 dark:text-indigo-400" />
                             <span className="ml-2 text-2xl font-bold text-gray-900 dark:text-white">
                                 {dict.navigation.brand}
@@ -95,9 +91,15 @@ export function Header() {
                                 aria-expanded={isMenuOpen}
                                 onClick={() => setIsMenuOpen(!isMenuOpen)}>
                                 {isMenuOpen ? (
-                                    <X className="block h-6 w-6" aria-hidden="true" />
+                                    <X
+                                        className="block h-6 w-6"
+                                        aria-hidden="true"
+                                    />
                                 ) : (
-                                    <Menu className="block h-6 w-6" aria-hidden="true" />
+                                    <Menu
+                                        className="block h-6 w-6"
+                                        aria-hidden="true"
+                                    />
                                 )}
                             </button>
                         </div>

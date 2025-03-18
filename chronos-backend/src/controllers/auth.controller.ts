@@ -85,18 +85,18 @@ export class AuthController {
         try {
             // Log the headers for debugging
             console.log('Request headers:', request.headers);
-    
+
             const token = request.headers.authorization?.split(' ')[1];
-     
+
             if (!token) {
                 return reply.status(400).send({
                     status: 'error',
                     message: 'No token provided',
                 });
             }
-     
+
             await this.authService.logout(token);
-     
+
             return reply.send({
                 status: 'success',
                 message: 'Logged out successfully',
@@ -109,8 +109,7 @@ export class AuthController {
             });
         }
     }
-    
-    
+
     // Update your request type to accept the code in the body
     async verifyEmail(request: FastifyRequest<{ Body: { code: string } }>, reply: FastifyReply) {
         try {
@@ -211,7 +210,7 @@ export class AuthController {
                     });
                 }
             }
-    
+
             request.log.error(error);
             return reply.status(500).send({
                 status: 'error',
@@ -219,7 +218,6 @@ export class AuthController {
             });
         }
     }
-    
 
     async initiateEmailChange(request: FastifyRequest<{ Body: ChangeEmailDto }>, reply: FastifyReply) {
         try {
@@ -258,11 +256,11 @@ export class AuthController {
             });
         }
     }
-    
+
     async checkResetToken(request: FastifyRequest<{ Body: { token: string } }>, reply: FastifyReply) {
         try {
             await this.authService.checkResetToken(request.body.token);
-    
+
             return reply.send({
                 status: 'success',
                 message: 'Reset token is valid',
@@ -276,7 +274,7 @@ export class AuthController {
                     });
                 }
             }
-    
+
             request.log.error(error);
             return reply.status(500).send({
                 status: 'error',
@@ -285,7 +283,6 @@ export class AuthController {
         }
     }
 
-    
     async resetPasswordWithToken(request: FastifyRequest<{ Body: { token: string; newPassword: string } }>, reply: FastifyReply) {
         try {
             await this.authService.resetPasswordWithToken(request.body.token, request.body.newPassword);
@@ -302,7 +299,7 @@ export class AuthController {
                     });
                 }
             }
-    
+
             request.log.error(error);
             return reply.status(500).send({
                 status: 'error',
@@ -310,7 +307,6 @@ export class AuthController {
             });
         }
     }
-    
 
     async confirmEmailChange(request: FastifyRequest<{ Querystring: { token: string } }>, reply: FastifyReply) {
         try {
