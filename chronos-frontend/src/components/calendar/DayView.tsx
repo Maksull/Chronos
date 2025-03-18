@@ -8,6 +8,7 @@ import { CalendarData, EventData } from '@/types/account';
 interface DayViewProps {
     currentDate: Date;
     dict: Dictionary;
+    lang: 'en' | 'uk';
     onAddEvent?: (date: Date) => void;
     onEventClick?: (event: EventData) => void;
     calendar: CalendarData;
@@ -21,7 +22,6 @@ interface TimeSlot {
 
 export const DayView: React.FC<DayViewProps> = ({
     currentDate,
-    dict,
     calendar,
     onAddEvent,
     onEventClick,

@@ -8,6 +8,7 @@ import { CalendarData, EventData } from '@/types/account';
 interface WeekViewProps {
     currentDate: Date;
     dict: Dictionary;
+    lang: 'en' | 'uk';
     onAddEvent?: (date: Date) => void;
     onEventClick?: (event: EventData) => void;
     calendar: CalendarData;

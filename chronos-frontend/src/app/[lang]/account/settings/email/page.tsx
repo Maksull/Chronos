@@ -148,7 +148,7 @@ export default function ChangeEmailPage() {
                                 {/* Current email info */}
                                 <div className="p-6 border-b border-gray-100 dark:border-gray-700">
                                     <h2 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
-                                        Current Email
+                                        {dict.settings.currentEmail}
                                     </h2>
                                     <div className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
                                         {userData?.email}

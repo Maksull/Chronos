@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { useDictionary } from '@/contexts';
 import { Calendar, Check, X, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
@@ -9,7 +9,6 @@ import { ProtectedRoute } from '@/components';
 
 export const CalendarInvitePage = () => {
     const params = useParams();
-    const router = useRouter();
     const { dict, lang } = useDictionary();
     const inviteId = params.id as string;
 

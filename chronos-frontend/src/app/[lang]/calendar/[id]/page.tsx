@@ -26,9 +26,9 @@ export default function CalendarPage() {
     const { dict, lang } = useDictionary();
     const calendarId = params.id as string;
     const [calendar, setCalendar] = useState<CalendarData | null>(null);
-    const [categories, setCategories] = useState<CategoryData[]>([]);
+    const [, setCategories] = useState<CategoryData[]>([]);
     const [loading, setLoading] = useState(true);
-    const [loadingCategories, setLoadingCategories] = useState(false);
+    const [, setLoadingCategories] = useState(false);
     const [error, setError] = useState('');
     const [currentDate, setCurrentDate] = useState(new Date());
     const [view, setView] = useState<'month' | 'week' | 'day'>('month');
@@ -393,9 +393,7 @@ export default function CalendarPage() {
                                                 }
                                                 className="lg:hidden p-2 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                                                 title={
-                                                    dict.calendar
-                                                        ?.participants ||
-                                                    'Participants'
+                                                    dict.calendar?.participants
                                                 }>
                                                 <Users className="h-5 w-5" />
                                             </button>

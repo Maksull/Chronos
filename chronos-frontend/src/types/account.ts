@@ -19,6 +19,7 @@ export interface CalendarData {
     owner: {
         id: string;
         username: string;
+        fullName: string;
     };
     events?: EventData[];
     categories?: CategoryData[];

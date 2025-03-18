@@ -28,7 +28,7 @@ export class Event {
     @Column({ type: 'boolean', default: false })
     isCompleted!: boolean;
 
-    @ManyToOne(() => Calendar, calendar => calendar.events)
+    @ManyToOne(() => Calendar, calendar => calendar.events, { onDelete: 'CASCADE' })
     @JoinColumn({ name: 'calendar_id' })
     calendar!: Calendar;
 

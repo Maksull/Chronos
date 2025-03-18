@@ -15,7 +15,7 @@ export class EventCategory {
     @Column({ type: 'varchar', default: '#000000' })
     color!: string;
 
-    @ManyToOne(() => Calendar, calendar => calendar.categories)
+    @ManyToOne(() => Calendar, calendar => calendar.categories, { onDelete: 'CASCADE' })
     @JoinColumn({ name: 'calendar_id' })
     calendar!: Calendar;
 

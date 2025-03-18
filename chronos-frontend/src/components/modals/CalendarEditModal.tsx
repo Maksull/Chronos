@@ -301,8 +301,10 @@ export const CalendarEditModal: React.FC<CalendarEditModalProps> = ({
                                             <label
                                                 htmlFor="delete-confirm"
                                                 className="block text-sm text-red-600 dark:text-red-400 mb-1">
-                                                {dict.calendar
-                                                    ?.deleteConfirmation ||
+                                                {dict.calendar?.deleteConfirmation.replace(
+                                                    '{calendar name}',
+                                                    calendar.name,
+                                                ) ||
                                                     `Type "${calendar.name}" to confirm deletion`}
                                             </label>
                                             <input
