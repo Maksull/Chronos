@@ -5,14 +5,16 @@ import { hash, compare } from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { addMinutes } from 'date-fns';
 import { TokenBlacklist } from '@/middlewares/auth.middleware';
-import { EmailService } from '.';
+import { CalendarService, EmailService } from '.';
 
 export class AuthService {
     private userRepository = AppDataSource.getRepository(User);
     private emailService: EmailService;
+    private calendarService: CalendarService;
 
     constructor() {
         this.emailService = new EmailService();
+        this.calendarService = new CalendarService();
     }
 
     private generateVerificationCode(): string {
@@ -39,15 +41,29 @@ export class AuthService {
             ...registerData,
             password: hashedPassword,
             verificationCode,
-            verificationCodeExpiresAt: addMinutes(new Date(), 15), // Code expires in 15 minutes
+            verificationCodeExpiresAt: addMinutes(new Date(), 15),
             isEmailVerified: false,
         });
 
         const savedUser = await repository.save(user);
-        await this.emailService.sendVerificationEmail(savedUser.email, verificationCode);
-        const token = this.generateToken(savedUser);
 
+        // Create personal calendar for the user
+        await this.createPersonalCalendar(savedUser.id);
+
+        await this.emailService.sendVerificationEmail(savedUser.email, verificationCode);
+
+        const token = this.generateToken(savedUser);
         return { user: savedUser, token };
+    }
+
+    private async createPersonalCalendar(userId: string): Promise<void> {
+        try {
+            await this.calendarService.createPersonalCalendar(userId);
+        } catch (error) {
+            console.error('Failed to create personal calendar:', error);
+            // Not throwing here to avoid breaking the registration process
+            // We could implement a background retry mechanism if needed
+        }
     }
 
     async login(loginData: LoginDto): Promise<{ user: User; token: string }> {

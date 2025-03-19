@@ -26,6 +26,43 @@ export class CalendarService {
     private participantRepository = AppDataSource.getRepository(CalendarParticipant);
     private inviteLinkRepository = AppDataSource.getRepository(CalendarInviteLink);
 
+    async createPersonalCalendar(userId: string): Promise<Calendar> {
+        const user = await this.userRepository.findOneBy({ id: userId });
+        if (!user) {
+            throw new Error('User not found');
+        }
+
+        // Check if user already has a main calendar
+        const existingMainCalendar = await this.calendarRepository.findOne({
+            where: {
+                owner: { id: userId },
+                isMain: true,
+            },
+        });
+
+        if (existingMainCalendar) {
+            return existingMainCalendar; // User already has a main calendar
+        }
+
+        // Create the personal calendar
+        const calendar = this.calendarRepository.create({
+            name: `${user.username}'s Calendar`,
+            description: 'Your personal calendar',
+            color: '#4A6FA5', // Default color (can be customized)
+            owner: user,
+            isMain: true, // This marks it as the main/personal calendar
+            isHoliday: false,
+            isVisible: true,
+        });
+
+        const savedCalendar = await this.calendarRepository.save(calendar);
+
+        // Seed default categories for the new calendar
+        await seedDefaultCategories(savedCalendar.id);
+
+        return savedCalendar;
+    }
+
     async createCalendar(userId: string, data: CreateCalendarDto): Promise<Calendar> {
         const user = await this.userRepository.findOneBy({ id: userId });
         if (!user) {
@@ -53,6 +90,11 @@ export class CalendarService {
 
         if (!calendar) {
             throw new Error('Calendar not found');
+        }
+
+        // Prevent updating main calendar
+        if (calendar.isMain) {
+            throw new Error('Cannot modify main calendar properties');
         }
 
         const isOwner = calendar.owner.id === userId;
@@ -84,6 +126,11 @@ export class CalendarService {
             throw new Error('Calendar not found');
         }
 
+        // Prevent toggling visibility of main calendar
+        if (calendar.isMain) {
+            throw new Error('Cannot modify main calendar visibility');
+        }
+
         const isOwner = calendar.owner.id === userId;
         if (!isOwner) {
             const participantRole = await this.participantRepository.findOne({
@@ -94,10 +141,6 @@ export class CalendarService {
             if (!participantRole || participantRole.role !== ParticipantRole.ADMIN) {
                 throw new Error('Not authorized');
             }
-        }
-
-        if (calendar.isMain) {
-            throw new Error('Cannot modify main calendar visibility');
         }
 
         calendar.isVisible = isVisible;
@@ -212,6 +255,11 @@ export class CalendarService {
 
         if (!calendar) {
             throw new Error('Calendar not found');
+        }
+
+        // Prevent creating invite links for main calendar
+        if (calendar.isMain) {
+            throw new Error('Cannot create invite links for personal calendar');
         }
 
         const isOwner = calendar.owner.id === userId;
