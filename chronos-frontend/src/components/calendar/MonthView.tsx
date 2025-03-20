@@ -3,7 +3,8 @@ import React, { useEffect, useState } from 'react';
 import { Dictionary } from '@/lib/dictionary';
 import { Plus, ChevronDown, ChevronUp } from 'lucide-react';
 import { CalendarData, EventData, CategoryData } from '@/types/account';
-import { CategoryFilter } from './CategoryFilter'; // Import the updated component
+import { CategoryFilter } from './CategoryFilter';
+import { fetchHolidaysForRegion } from '@/lib/holidays';
 
 interface MonthViewProps {
     currentDate: Date;
@@ -29,12 +30,16 @@ export const MonthView: React.FC<MonthViewProps> = ({
     onEventClick,
 }) => {
     const [events, setEvents] = useState<EventData[]>([]);
+    const [holidays, setHolidays] = useState<EventData[]>([]);
     const [loading, setLoading] = useState(false);
+    const [loadingHolidays, setLoadingHolidays] = useState(false);
     const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
     const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>(
         [],
     );
     const [categories, setCategories] = useState<CategoryData[]>([]);
+    const [showHolidays, setShowHolidays] = useState(true);
+    const [userRegion, setUserRegion] = useState<string>('');
 
     const firstDayOfMonth = new Date(
         currentDate.getFullYear(),
@@ -52,6 +57,56 @@ export const MonthView: React.FC<MonthViewProps> = ({
     const daysToAdd = 6 - lastDayOfMonth.getDay();
     endDate.setDate(lastDayOfMonth.getDate() + daysToAdd);
     endDate.setHours(23, 59, 59, 999);
+
+    // Fetch user profile to get region
+    useEffect(() => {
+        const fetchUserProfile = async () => {
+            try {
+                const response = await fetch(
+                    'http://localhost:3001/users/profile',
+                    {
+                        headers: {
+                            Authorization: `Bearer ${localStorage.getItem('token')}`,
+                        },
+                    },
+                );
+
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.status === 'success' && data.data.region) {
+                        setUserRegion(data.data.region);
+                    }
+                }
+            } catch (error) {
+                console.error('Error fetching user profile:', error);
+            }
+        };
+
+        fetchUserProfile();
+    }, []);
+
+    // Fetch holidays when region or current date changes
+    useEffect(() => {
+        const fetchHolidays = async () => {
+            if (!userRegion) return;
+
+            setLoadingHolidays(true);
+            try {
+                const year = currentDate.getFullYear();
+                const holidaysData = await fetchHolidaysForRegion(
+                    userRegion,
+                    year,
+                );
+                setHolidays(holidaysData);
+            } catch (error) {
+                console.error('Error fetching holidays:', error);
+            } finally {
+                setLoadingHolidays(false);
+            }
+        };
+
+        fetchHolidays();
+    }, [userRegion, currentDate.getFullYear()]);
 
     useEffect(() => {
         fetchCategories();
@@ -74,6 +129,7 @@ export const MonthView: React.FC<MonthViewProps> = ({
                     },
                 },
             );
+
             if (response.ok) {
                 const data = await response.json();
                 if (data.status === 'success') {
@@ -89,13 +145,9 @@ export const MonthView: React.FC<MonthViewProps> = ({
         if (!calendar?.id) return;
         try {
             setLoading(true);
-
-            // Build URL with query parameters
             let url = `http://localhost:3001/calendars/${calendar.id}/events?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`;
 
-            // Add category filter if selected
             if (selectedCategoryIds.length > 0) {
-                // Add each category ID as a separate param (categoryId=123&categoryId=456)
                 selectedCategoryIds.forEach(categoryId => {
                     url += `&categoryId=${categoryId}`;
                 });
@@ -106,6 +158,7 @@ export const MonthView: React.FC<MonthViewProps> = ({
                     Authorization: `Bearer ${localStorage.getItem('token')}`,
                 },
             });
+
             if (response.ok) {
                 const data = await response.json();
                 if (data.status === 'success') {
@@ -123,6 +176,10 @@ export const MonthView: React.FC<MonthViewProps> = ({
         setSelectedCategoryIds(categoryIds);
     };
 
+    const toggleHolidaysDisplay = () => {
+        setShowHolidays(!showHolidays);
+    };
+
     const daysInMonth = new Date(
         currentDate.getFullYear(),
         currentDate.getMonth() + 1,
@@ -138,9 +195,11 @@ export const MonthView: React.FC<MonthViewProps> = ({
         currentDate.getMonth(),
         0,
     ).getDate();
+
     const daysArray: DayInfo[] = [];
     const today = new Date();
 
+    // Previous month days
     for (let i = firstDayOfMonthWeekday - 1; i >= 0; i--) {
         const date = new Date(
             currentDate.getFullYear(),
@@ -156,6 +215,7 @@ export const MonthView: React.FC<MonthViewProps> = ({
         });
     }
 
+    // Current month days
     for (let i = 1; i <= daysInMonth; i++) {
         const date = new Date(
             currentDate.getFullYear(),
@@ -175,6 +235,7 @@ export const MonthView: React.FC<MonthViewProps> = ({
         });
     }
 
+    // Next month days
     const remainingDays = 42 - daysArray.length;
     for (let i = 1; i <= remainingDays; i++) {
         const date = new Date(
@@ -191,10 +252,12 @@ export const MonthView: React.FC<MonthViewProps> = ({
         });
     }
 
+    // Assign row index
     daysArray.forEach((day, index) => {
         day.rowIndex = Math.floor(index / 7);
     });
 
+    // Group days by row
     const rows = daysArray.reduce(
         (acc, day) => {
             if (!acc[day.rowIndex]) {
@@ -206,13 +269,35 @@ export const MonthView: React.FC<MonthViewProps> = ({
         {} as Record<number, DayInfo[]>,
     );
 
+    // Get all events for a specific day, including holidays if enabled
     const getEventsForDay = (date: Date) => {
-        return events.filter(event => {
+        // Get regular events
+        const dayEvents = events.filter(event => {
             const eventStart = new Date(event.startDate);
             return (
                 eventStart.getDate() === date.getDate() &&
                 eventStart.getMonth() === date.getMonth() &&
                 eventStart.getFullYear() === date.getFullYear()
+            );
+        });
+
+        // Add holidays if enabled
+        const dayHolidays = showHolidays
+            ? holidays.filter(holiday => {
+                  const holidayDate = new Date(holiday.startDate);
+                  return (
+                      holidayDate.getDate() === date.getDate() &&
+                      holidayDate.getMonth() === date.getMonth() &&
+                      holidayDate.getFullYear() === date.getFullYear()
+                  );
+              })
+            : [];
+
+        // Combine and sort by time
+        return [...dayEvents, ...dayHolidays].sort((a, b) => {
+            return (
+                new Date(a.startDate).getTime() -
+                new Date(b.startDate).getTime()
             );
         });
     };
@@ -233,16 +318,36 @@ export const MonthView: React.FC<MonthViewProps> = ({
         return expandedRows.has(rowIndex);
     };
 
+    // Check if an event is a holiday
+    const isHolidayEvent = (event: EventData) => {
+        return event.id.startsWith('holiday-');
+    };
+
     const weekdays = dict.calendar?.weekdays.short || [];
 
     return (
         <div className="calendar-month-view overflow-y-auto max-h-[calc(100vh-240px)]">
-            {/* Using the updated CategoryFilter component */}
-            <CategoryFilter
-                categories={categories}
-                selectedCategoryIds={selectedCategoryIds}
-                onCategoryChange={handleCategoryChange}
-            />
+            <div className="flex justify-between items-center mb-4">
+                <CategoryFilter
+                    categories={categories}
+                    selectedCategoryIds={selectedCategoryIds}
+                    onCategoryChange={handleCategoryChange}
+                />
+
+                <div className="flex items-center">
+                    <label className="inline-flex items-center cursor-pointer mr-2">
+                        <input
+                            type="checkbox"
+                            checked={showHolidays}
+                            onChange={toggleHolidaysDisplay}
+                            className="form-checkbox h-4 w-4 text-indigo-600 transition duration-150 ease-in-out"
+                        />
+                        <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">
+                            {dict.calendar?.showHolidays || 'Show Holidays'}
+                        </span>
+                    </label>
+                </div>
+            </div>
 
             <div className="grid grid-cols-7 mb-2">
                 {weekdays.map((day, index) => (
@@ -258,15 +363,15 @@ export const MonthView: React.FC<MonthViewProps> = ({
                 {Object.entries(rows).map(([rowIndexStr, rowDays]) => {
                     const rowIndex = parseInt(rowIndexStr);
                     const isExpanded = isRowExpanded(rowIndex);
+
                     return (
                         <div
                             key={rowIndex}
-                            className={`grid grid-cols-7 gap-1 ${
-                                isExpanded ? 'min-h-56' : 'min-h-28'
-                            }`}>
+                            className={`grid grid-cols-7 gap-1 ${isExpanded ? 'min-h-56' : 'min-h-28'}`}>
                             {rowDays.map((day, dayIndex) => {
                                 const dayEvents = getEventsForDay(day.date);
                                 const hasMoreEvents = dayEvents.length > 3;
+
                                 return (
                                     <div
                                         key={dayIndex}
@@ -283,23 +388,23 @@ export const MonthView: React.FC<MonthViewProps> = ({
                                             }
                                         }}
                                         className={`
-                      p-1 border dark:border-gray-700 rounded-md transition-all group
-                      ${
-                          day.inCurrentMonth
-                              ? 'bg-white dark:bg-gray-800 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 hover:shadow-md cursor-pointer active:bg-indigo-100 dark:active:bg-indigo-900/30'
-                              : 'bg-gray-50 dark:bg-gray-700/50 text-gray-400 dark:text-gray-500'
-                      }
-                      ${
-                          day.isToday
-                              ? 'ring-2 ring-indigo-500 dark:ring-indigo-400'
-                              : 'hover:border-gray-300 dark:hover:border-gray-600'
-                      }
-                    `}>
+                                            p-1 border dark:border-gray-700 rounded-md transition-all group
+                                            ${
+                                                day.inCurrentMonth
+                                                    ? 'bg-white dark:bg-gray-800 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 hover:shadow-md cursor-pointer active:bg-indigo-100 dark:active:bg-indigo-900/30'
+                                                    : 'bg-gray-50 dark:bg-gray-700/50 text-gray-400 dark:text-gray-500'
+                                            }
+                                            ${
+                                                day.isToday
+                                                    ? 'ring-2 ring-indigo-500 dark:ring-indigo-400'
+                                                    : 'hover:border-gray-300 dark:hover:border-gray-600'
+                                            }
+                                        `}>
                                         <div
                                             className={`
-                        flex justify-between items-center p-1
-                        ${day.isToday ? 'font-bold text-indigo-600 dark:text-indigo-400' : ''}
-                      `}>
+                                                flex justify-between items-center p-1
+                                                ${day.isToday ? 'font-bold text-indigo-600 dark:text-indigo-400' : ''}
+                                            `}>
                                             <span
                                                 className={
                                                     day.isToday
@@ -336,6 +441,7 @@ export const MonthView: React.FC<MonthViewProps> = ({
 
                                         <div className="mt-1 space-y-1">
                                             {!loading &&
+                                                !loadingHolidays &&
                                                 dayEvents
                                                     .slice(
                                                         0,
@@ -343,37 +449,76 @@ export const MonthView: React.FC<MonthViewProps> = ({
                                                             ? dayEvents.length
                                                             : 3,
                                                     )
-                                                    .map(event => (
-                                                        <div
-                                                            key={event.id}
-                                                            className="px-2 py-1 rounded-sm text-xs truncate cursor-pointer hover:brightness-90"
-                                                            style={{
-                                                                backgroundColor: `${event.color}20`,
-                                                                borderLeft: `3px solid ${event.color}`,
-                                                                color: event.color,
-                                                            }}
-                                                            onClick={e => {
-                                                                e.stopPropagation(); // Prevent triggering parent onClick
-                                                                if (
-                                                                    onEventClick
-                                                                ) {
-                                                                    onEventClick(
-                                                                        event,
-                                                                    ); // Call onEventClick with the event
+                                                    .map(event => {
+                                                        const isHoliday =
+                                                            isHolidayEvent(
+                                                                event,
+                                                            );
+                                                        return (
+                                                            <div
+                                                                key={event.id}
+                                                                className={`
+                                                                    px-2 py-1 rounded-sm text-xs truncate cursor-pointer hover:brightness-90
+                                                                    ${isHoliday ? 'border-dashed border border-red-300 dark:border-red-700' : ''}
+                                                                `}
+                                                                style={{
+                                                                    backgroundColor: `${event.color}20`,
+                                                                    borderLeft: `3px solid ${event.color}`,
+                                                                    color: event.color,
+                                                                }}
+                                                                title={
+                                                                    isHoliday
+                                                                        ? event.description ||
+                                                                          '' // Convert null to empty string
+                                                                        : `${event.name}${event.description ? `\n${event.description}` : ''}`
                                                                 }
-                                                            }}>
-                                                            {new Date(
-                                                                event.startDate,
-                                                            ).toLocaleTimeString(
-                                                                [],
-                                                                {
-                                                                    hour: '2-digit',
-                                                                    minute: '2-digit',
-                                                                },
-                                                            )}{' '}
-                                                            - {event.name}
-                                                        </div>
-                                                    ))}
+                                                                onClick={e => {
+                                                                    e.stopPropagation(); // Prevent triggering parent onClick
+                                                                    if (
+                                                                        onEventClick &&
+                                                                        !isHoliday
+                                                                    ) {
+                                                                        onEventClick(
+                                                                            event,
+                                                                        );
+                                                                    } else if (
+                                                                        isHoliday
+                                                                    ) {
+                                                                        // Maybe show holiday details in a tooltip or modal
+                                                                        console.log(
+                                                                            'Holiday clicked:',
+                                                                            event,
+                                                                        );
+                                                                    }
+                                                                }}>
+                                                                {isHoliday ? (
+                                                                    <span>
+                                                                        🎉{' '}
+                                                                        {
+                                                                            event.name
+                                                                        }
+                                                                    </span>
+                                                                ) : (
+                                                                    <span>
+                                                                        {new Date(
+                                                                            event.startDate,
+                                                                        ).toLocaleTimeString(
+                                                                            [],
+                                                                            {
+                                                                                hour: '2-digit',
+                                                                                minute: '2-digit',
+                                                                            },
+                                                                        )}{' '}
+                                                                        -{' '}
+                                                                        {
+                                                                            event.name
+                                                                        }
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        );
+                                                    })}
+
                                             {hasMoreEvents && !isExpanded && (
                                                 <div
                                                     className="mt-2 p-1 -mx-1 text-center"
@@ -394,6 +539,7 @@ export const MonthView: React.FC<MonthViewProps> = ({
                                                     </button>
                                                 </div>
                                             )}
+
                                             {hasMoreEvents && isExpanded && (
                                                 <div
                                                     className="mt-2 p-1 -mx-1 text-center"

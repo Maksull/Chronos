@@ -1,20 +1,19 @@
 'use client';
-
 import React, { useEffect, useState, useRef } from 'react';
 import { Dictionary } from '@/lib/dictionary';
 import { Plus, ChevronDown, ChevronUp } from 'lucide-react';
 import { CalendarData, EventData, CategoryData } from '@/types/account';
 import { CategoryFilter } from './CategoryFilter';
 import { Locale } from '@/middleware';
+import { fetchHolidaysForRegion } from '@/lib/holidays';
 
 interface DayViewProps {
     currentDate: Date;
     dict: Dictionary;
-    lang: 'en' | 'uk';
+    lang: Locale;
     onAddEvent?: (date: Date) => void;
     onEventClick?: (event: EventData) => void;
     calendar: CalendarData;
-    lang: Locale;
 }
 
 interface TimeSlot {
@@ -25,24 +24,27 @@ interface TimeSlot {
 
 export const DayView: React.FC<DayViewProps> = ({
     currentDate,
+    dict,
     calendar,
     onAddEvent,
     onEventClick,
 }) => {
     const [events, setEvents] = useState<EventData[]>([]);
+    const [holidays, setHolidays] = useState<EventData[]>([]);
     const [loading, setLoading] = useState(false);
+    const [loadingHolidays, setLoadingHolidays] = useState(false);
     const [currentTimePosition, setCurrentTimePosition] = useState<number>(0);
     const [expandedHours, setExpandedHours] = useState<Set<number>>(new Set());
     const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>(
         [],
     );
     const [categories, setCategories] = useState<CategoryData[]>([]);
+    const [showHolidays, setShowHolidays] = useState(true);
+    const [userRegion, setUserRegion] = useState<string>('');
+
     const timeGridRef = useRef<HTMLDivElement>(null);
 
-    // Clone the current date to ensure we're working with a clean time
     const viewDate = new Date(currentDate);
-
-    // Set start and end of the day
     const startOfDay = new Date(
         viewDate.getFullYear(),
         viewDate.getMonth(),
@@ -52,7 +54,6 @@ export const DayView: React.FC<DayViewProps> = ({
         0,
         0,
     );
-
     const endOfDay = new Date(
         viewDate.getFullYear(),
         viewDate.getMonth(),
@@ -63,19 +64,85 @@ export const DayView: React.FC<DayViewProps> = ({
         999,
     );
 
-    // Check if this is today
     const isToday =
         viewDate.getDate() === new Date().getDate() &&
         viewDate.getMonth() === new Date().getMonth() &&
         viewDate.getFullYear() === new Date().getFullYear();
 
-    // Format the date for display
     const formattedDate = viewDate.toLocaleDateString(undefined, {
         weekday: 'long',
         year: 'numeric',
         month: 'long',
         day: 'numeric',
     });
+
+    // Fetch user profile to get region
+    useEffect(() => {
+        const fetchUserProfile = async () => {
+            try {
+                const response = await fetch(
+                    'http://localhost:3001/users/profile',
+                    {
+                        headers: {
+                            Authorization: `Bearer ${localStorage.getItem('token')}`,
+                        },
+                    },
+                );
+
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.status === 'success' && data.data.region) {
+                        setUserRegion(data.data.region);
+                    }
+                }
+            } catch (error) {
+                console.error('Error fetching user profile:', error);
+            }
+        };
+
+        fetchUserProfile();
+    }, []);
+
+    // Fetch holidays when region or current date changes
+    useEffect(() => {
+        const fetchHolidays = async () => {
+            if (!userRegion) return;
+
+            setLoadingHolidays(true);
+            try {
+                const year = currentDate.getFullYear();
+                const holidaysData = await fetchHolidaysForRegion(
+                    userRegion,
+                    year,
+                );
+
+                // Filter only holidays for the current day view
+                const todayHolidays = holidaysData.filter(holiday => {
+                    const holidayDate = new Date(holiday.startDate);
+                    return (
+                        holidayDate.getDate() === startOfDay.getDate() &&
+                        holidayDate.getMonth() === startOfDay.getMonth() &&
+                        holidayDate.getFullYear() === startOfDay.getFullYear()
+                    );
+                });
+
+                setHolidays(todayHolidays);
+            } catch (error) {
+                console.error('Error fetching holidays:', error);
+            } finally {
+                setLoadingHolidays(false);
+            }
+        };
+
+        if (userRegion) {
+            fetchHolidays();
+        }
+    }, [
+        userRegion,
+        currentDate.getFullYear(),
+        currentDate.getMonth(),
+        currentDate.getDate(),
+    ]);
 
     useEffect(() => {
         fetchCategories();
@@ -85,35 +152,27 @@ export const DayView: React.FC<DayViewProps> = ({
 
     useEffect(() => {
         fetchEvents();
-    }, [selectedCategoryId]);
+    }, [selectedCategoryIds]);
 
-    // Effect for current time indicator and auto-scrolling
     useEffect(() => {
-        // Calculate and update current time position
         const updateCurrentTimePosition = () => {
             if (!isToday) return;
 
             const now = new Date();
             const hours = now.getHours();
             const minutes = now.getMinutes();
-            // Calculate position as percentage of day
             const percentage = ((hours * 60 + minutes) / (24 * 60)) * 100;
             setCurrentTimePosition(percentage);
         };
 
-        // Initial update
         updateCurrentTimePosition();
-
-        // Update every minute
         const intervalId = setInterval(updateCurrentTimePosition, 60000);
 
-        // Scroll to current time (with offset to show a few hours before)
         if (timeGridRef.current && isToday) {
             const now = new Date();
             const currentHour = now.getHours();
-            // Find the element for the current hour (or 2 hours before if available)
             const scrollToHour = Math.max(currentHour - 2, 0);
-            const hourHeight = 100; // Approximate height of an hour slot in pixels
+            const hourHeight = 100;
             timeGridRef.current.scrollTop = scrollToHour * hourHeight;
         }
 
@@ -131,6 +190,7 @@ export const DayView: React.FC<DayViewProps> = ({
                     },
                 },
             );
+
             if (response.ok) {
                 const data = await response.json();
                 if (data.status === 'success') {
@@ -146,11 +206,8 @@ export const DayView: React.FC<DayViewProps> = ({
         if (!calendar?.id) return;
         try {
             setLoading(true);
-
-            // Build URL with query parameters
             let url = `http://localhost:3001/calendars/${calendar.id}/events?startDate=${startOfDay.toISOString()}&endDate=${endOfDay.toISOString()}`;
 
-            // Add category filter if selected
             if (selectedCategoryIds.length > 0) {
                 selectedCategoryIds.forEach(categoryId => {
                     url += `&categoryId=${categoryId}`;
@@ -180,6 +237,10 @@ export const DayView: React.FC<DayViewProps> = ({
         setSelectedCategoryIds(categoryIds);
     };
 
+    const toggleHolidaysDisplay = () => {
+        setShowHolidays(!showHolidays);
+    };
+
     const getTimeSlots = (): TimeSlot[] => {
         const slots: TimeSlot[] = [];
         for (let hour = 0; hour < 24; hour++) {
@@ -197,10 +258,23 @@ export const DayView: React.FC<DayViewProps> = ({
 
     const timeSlots = getTimeSlots();
 
+    // Get all events for a specific hour, including holidays if enabled
     const getEventsForHour = (hour: number) => {
-        return events.filter(event => {
+        // Get regular events
+        const hourEvents = events.filter(event => {
             const eventDate = new Date(event.startDate);
             return eventDate.getHours() === hour;
+        });
+
+        // Add holidays if enabled (assign to 9 AM by convention)
+        const hourHolidays = showHolidays && hour === 9 ? holidays : [];
+
+        // Combine and sort by time
+        return [...hourEvents, ...hourHolidays].sort((a, b) => {
+            return (
+                new Date(a.startDate).getTime() -
+                new Date(b.startDate).getTime()
+            );
         });
     };
 
@@ -226,6 +300,11 @@ export const DayView: React.FC<DayViewProps> = ({
         return Math.max(30, (end.getTime() - start.getTime()) / (1000 * 60));
     };
 
+    // Check if an event is a holiday
+    const isHolidayEvent = (event: EventData) => {
+        return event.id.startsWith('holiday-');
+    };
+
     return (
         <div
             className="calendar-day-view overflow-y-auto max-h-[calc(100vh-240px)]"
@@ -242,12 +321,27 @@ export const DayView: React.FC<DayViewProps> = ({
                 </h2>
             </div>
 
-            {/* Category Filter Component */}
-            <CategoryFilter
-                categories={categories}
-                selectedCategoryIds={selectedCategoryIds}
-                onCategoryChange={handleCategoryChange}
-            />
+            <div className="flex justify-between items-center mb-4">
+                <CategoryFilter
+                    categories={categories}
+                    selectedCategoryIds={selectedCategoryIds}
+                    onCategoryChange={handleCategoryChange}
+                />
+
+                <div className="flex items-center">
+                    <label className="inline-flex items-center cursor-pointer mr-2">
+                        <input
+                            type="checkbox"
+                            checked={showHolidays}
+                            onChange={toggleHolidaysDisplay}
+                            className="form-checkbox h-4 w-4 text-indigo-600 transition duration-150 ease-in-out"
+                        />
+                        <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">
+                            {dict.calendar?.showHolidays || 'Show Holidays'}
+                        </span>
+                    </label>
+                </div>
+            </div>
 
             <div className="grid grid-cols-[100px_1fr] gap-2 relative">
                 {isToday && (
@@ -268,17 +362,17 @@ export const DayView: React.FC<DayViewProps> = ({
 
                 {timeSlots.map((slot, index) => {
                     const hourEvents = getEventsForHour(slot.hour);
-
                     return (
                         <React.Fragment key={index}>
                             <div className="text-xs text-gray-500 dark:text-gray-400 pr-4 text-right py-2 sticky left-0">
                                 {slot.label}
                             </div>
 
-                            {/*Event container*/}
+                            {/* Event container */}
                             <div
                                 className="relative border dark:border-gray-700 rounded-md min-h-24 bg-white dark:bg-gray-800 
-                    hover:shadow-sm transition-shadow hover:bg-indigo-50 dark:hover:bg-indigo-900/20 cursor-pointer active:bg-indigo-100 dark:active:bg-indigo-900/30"
+                                hover:shadow-sm transition-shadow hover:bg-indigo-50 dark:hover:bg-indigo-900/20 
+                                cursor-pointer active:bg-indigo-100 dark:active:bg-indigo-900/30"
                                 onClick={() => {
                                     if (onAddEvent) {
                                         const newDate = new Date(viewDate);
@@ -301,62 +395,75 @@ export const DayView: React.FC<DayViewProps> = ({
                                         }
                                     }}
                                     className="absolute top-1 right-1 opacity-0 hover:opacity-100 text-gray-400 
-                    hover:text-indigo-500 dark:text-gray-500 dark:hover:text-indigo-400 w-6 h-6 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 z-10">
+                                    hover:text-indigo-500 dark:text-gray-500 dark:hover:text-indigo-400 w-6 h-6
+                                    flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 z-10">
                                     <Plus className="w-4 h-4" />
                                 </button>
+
                                 <div className="p-2 mt-4 space-y-2">
                                     {!loading &&
-                                        hourEvents
-                                            .slice(
-                                                0,
-                                                isHourExpanded(slot.hour)
-                                                    ? hourEvents.length
-                                                    : 2,
-                                            )
-                                            .map(event => {
-                                                const duration =
-                                                    getEventDuration(event);
-                                                const startTime = new Date(
-                                                    event.startDate,
-                                                ).toLocaleTimeString([], {
-                                                    hour: '2-digit',
-                                                    minute: '2-digit',
-                                                });
-                                                const endTime = new Date(
-                                                    event.endDate,
-                                                ).toLocaleTimeString([], {
-                                                    hour: '2-digit',
-                                                    minute: '2-digit',
-                                                });
+                                        !loadingHolidays &&
+                                        hourEvents.map(event => {
+                                            const isHoliday =
+                                                isHolidayEvent(event);
+                                            const duration =
+                                                getEventDuration(event);
+                                            const startTime = new Date(
+                                                event.startDate,
+                                            ).toLocaleTimeString([], {
+                                                hour: '2-digit',
+                                                minute: '2-digit',
+                                            });
+                                            const endTime = new Date(
+                                                event.endDate,
+                                            ).toLocaleTimeString([], {
+                                                hour: '2-digit',
+                                                minute: '2-digit',
+                                            });
 
-                                                return (
-                                                    <div
-                                                        key={event.id}
-                                                        className="p-2 rounded-md text-sm transition-all hover:shadow-md cursor-pointer"
-                                                        style={{
-                                                            backgroundColor: `${event.color}10`,
-                                                            borderLeft: `4px solid ${event.color}`,
-                                                            color: event.color,
-                                                            minHeight: `${Math.min(80, duration / 5)}px`,
-                                                        }}
-                                                        onClick={e => {
-                                                            e.stopPropagation();
-                                                            if (onEventClick) {
-                                                                onEventClick(
-                                                                    event,
-                                                                );
-                                                            }
-                                                        }}>
-                                                        <div className="font-medium">
-                                                            {event.name}
-                                                        </div>
-                                                        <div className="text-xs opacity-80">
-                                                            {startTime} -{' '}
-                                                            {endTime}
-                                                        </div>
+                                            return (
+                                                <div
+                                                    key={event.id}
+                                                    className={`p-2 rounded-md text-sm transition-all hover:shadow-md cursor-pointer
+                                                    ${isHoliday ? 'border-dashed border border-red-300 dark:border-red-700' : ''}`}
+                                                    style={{
+                                                        backgroundColor: `${event.color}10`,
+                                                        borderLeft: `4px solid ${event.color}`,
+                                                        color: event.color,
+                                                        minHeight: `${Math.min(80, duration / 5)}px`,
+                                                    }}
+                                                    title={
+                                                        isHoliday
+                                                            ? event.description ||
+                                                              '' // Convert null to empty string
+                                                            : `${event.name}${event.description ? `\n${event.description}` : ''}`
+                                                    }
+                                                    onClick={e => {
+                                                        e.stopPropagation();
+                                                        if (
+                                                            onEventClick &&
+                                                            !isHoliday
+                                                        ) {
+                                                            onEventClick(event);
+                                                        }
+                                                    }}>
+                                                    <div className="font-medium">
+                                                        {isHoliday ? (
+                                                            <span>
+                                                                🎉 {event.name}
+                                                            </span>
+                                                        ) : (
+                                                            event.name
+                                                        )}
                                                     </div>
-                                                );
-                                            })}
+                                                    <div className="text-xs opacity-80">
+                                                        {isHoliday
+                                                            ? 'All Day'
+                                                            : `${startTime} - ${endTime}`}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
 
                                     {hourEvents.length > 2 &&
                                         !isHourExpanded(slot.hour) && (
@@ -373,7 +480,9 @@ export const DayView: React.FC<DayViewProps> = ({
                                                         );
                                                     }}
                                                     className="w-full py-2 rounded bg-gray-100 dark:bg-gray-700 
-                          hover:bg-gray-200 dark:hover:bg-gray-600 flex items-center justify-center text-xs text-gray-500 dark:text-gray-400 hover:text-indigo-500 dark:hover:text-indigo-400 transition-colors">
+                                                hover:bg-gray-200 dark:hover:bg-gray-600 flex items-center justify-center 
+                                                text-xs text-gray-500 dark:text-gray-400 hover:text-indigo-500 
+                                                dark:hover:text-indigo-400 transition-colors">
                                                     <ChevronDown className="w-3 h-3 mr-1" />
                                                     Show {hourEvents.length - 2}{' '}
                                                     more
@@ -396,7 +505,9 @@ export const DayView: React.FC<DayViewProps> = ({
                                                         );
                                                     }}
                                                     className="w-full py-2 rounded bg-gray-100 dark:bg-gray-700 
-                          hover:bg-gray-200 dark:hover:bg-gray-600 flex items-center justify-center text-xs text-gray-500 dark:text-gray-400 hover:text-indigo-500 dark:hover:text-indigo-400 transition-colors">
+                                                hover:bg-gray-200 dark:hover:bg-gray-600 flex items-center justify-center 
+                                                text-xs text-gray-500 dark:text-gray-400 hover:text-indigo-500 
+                                                dark:hover:text-indigo-400 transition-colors">
                                                     <ChevronUp className="w-3 h-3 mr-1" />
                                                     Show less
                                                 </button>

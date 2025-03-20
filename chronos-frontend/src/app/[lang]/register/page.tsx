@@ -1,16 +1,22 @@
-// app/[lang]/register/page.tsx
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Calendar } from 'lucide-react';
 import type { RegisterFormData, AuthResponse } from '@/types/auth';
 import { useDictionary } from '@/contexts';
 
+// Define the Country interface
+interface Country {
+    code: string;
+    name: string;
+}
+
 export default function RegisterPage() {
     const { dict, lang } = useDictionary();
     const router = useRouter();
+
     const [formData, setFormData] = useState<RegisterFormData>({
         username: '',
         email: '',
@@ -18,8 +24,87 @@ export default function RegisterPage() {
         fullName: '',
         region: '',
     });
+
     const [error, setError] = useState<string>('');
     const [isLoading, setIsLoading] = useState(false);
+    const [countries, setCountries] = useState<Country[]>([]);
+    const [isDetectingLocation, setIsDetectingLocation] = useState(false);
+
+    // Fetch list of countries
+    useEffect(() => {
+        const fetchCountries = async () => {
+            try {
+                // First set some default countries in case API fails
+                const defaultCountries: Country[] = [
+                    { code: 'US', name: 'United States' },
+                    { code: 'GB', name: 'United Kingdom' },
+                    { code: 'CA', name: 'Canada' },
+                    { code: 'AU', name: 'Australia' },
+                    { code: 'DE', name: 'Germany' },
+                    { code: 'FR', name: 'France' },
+                    { code: 'JP', name: 'Japan' },
+                    { code: 'CN', name: 'China' },
+                    { code: 'BR', name: 'Brazil' },
+                    { code: 'IN', name: 'India' },
+                ];
+
+                try {
+                    const response = await fetch(
+                        'https://restcountries.com/v3.1/all',
+                    );
+                    const data = await response.json();
+
+                    // Format countries data
+                    const formattedCountries = data
+                        .map((country: any) => ({
+                            code: country.cca2,
+                            name: country.name.common,
+                        }))
+                        .sort((a: Country, b: Country) =>
+                            a.name.localeCompare(b.name),
+                        );
+
+                    setCountries(formattedCountries);
+                } catch (apiError) {
+                    console.error(
+                        'Failed to fetch countries from API:',
+                        apiError,
+                    );
+                    // Fall back to default countries
+                    setCountries(defaultCountries);
+                }
+            } catch (error) {
+                console.error(
+                    'Unexpected error in country initialization:',
+                    error,
+                );
+            }
+        };
+
+        fetchCountries();
+    }, []);
+
+    // Get location based on IP address when the button is clicked
+    const detectLocationByIP = async () => {
+        setIsDetectingLocation(true);
+        try {
+            const response = await fetch('https://ipapi.co/json/');
+            const data = await response.json();
+
+            if (data.country_code) {
+                setFormData(prev => ({
+                    ...prev,
+                    region: data.country_code,
+                }));
+            }
+        } catch (error) {
+            console.log(
+                'Could not determine location, please select your country manually.',
+            );
+        } finally {
+            setIsDetectingLocation(false);
+        }
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -31,9 +116,7 @@ export default function RegisterPage() {
                 'http://localhost:3001/auth/register',
                 {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(formData),
                 },
             );
@@ -56,7 +139,9 @@ export default function RegisterPage() {
         }
     };
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleChange = (
+        e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
+    ) => {
         setFormData(prev => ({
             ...prev,
             [e.target.name]: e.target.value,
@@ -178,15 +263,54 @@ export default function RegisterPage() {
                                 className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                                 {dict.auth.fields.region}
                             </label>
-                            <div className="mt-1">
-                                <input
+                            <div className="mt-1 relative">
+                                <select
                                     id="region"
                                     name="region"
-                                    type="text"
                                     value={formData.region}
                                     onChange={handleChange}
-                                    className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 px-4 py-1.5 text-gray-900 dark:text-white"
-                                />
+                                    className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 px-4 py-1.5 text-gray-900 dark:text-white appearance-none"
+                                    disabled={isDetectingLocation}>
+                                    <option value="">
+                                        {dict.auth.register.selectCountry ||
+                                            'Select a country'}
+                                    </option>
+                                    {countries.map(country => (
+                                        <option
+                                            key={country.code}
+                                            value={country.code}>
+                                            {country.name}
+                                        </option>
+                                    ))}
+                                </select>
+                                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700 dark:text-gray-300">
+                                    <svg
+                                        className="fill-current h-4 w-4"
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        viewBox="0 0 20 20">
+                                        <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" />
+                                    </svg>
+                                </div>
+                            </div>
+                            <div className="mt-2">
+                                <button
+                                    type="button"
+                                    onClick={detectLocationByIP}
+                                    disabled={isDetectingLocation}
+                                    className="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 focus:outline-none flex items-center">
+                                    {isDetectingLocation ? (
+                                        <span>
+                                            {dict.auth.register
+                                                .detectingLocation ||
+                                                'Detecting your location...'}
+                                        </span>
+                                    ) : (
+                                        <span>
+                                            {dict.auth.register.useIpLocation ||
+                                                'Detect my country'}
+                                        </span>
+                                    )}
+                                </button>
                             </div>
                         </div>
 
