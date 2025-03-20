@@ -5,15 +5,15 @@ import { Plus, ChevronDown, ChevronUp } from 'lucide-react';
 import { CalendarData, EventData, CategoryData } from '@/types/account';
 import { CategoryFilter } from './CategoryFilter';
 import { Locale } from '@/middleware';
+import { fetchHolidaysForRegion } from '@/lib/holidays';
 
 interface WeekViewProps {
     currentDate: Date;
     dict: Dictionary;
-    lang: 'en' | 'uk';
+    lang: Locale;
     onAddEvent?: (date: Date) => void;
     onEventClick?: (event: EventData) => void;
     calendar: CalendarData;
-    lang: Locale;
 }
 
 interface TimeSlot {
@@ -32,33 +32,117 @@ interface DayColumn {
 export const WeekView: React.FC<WeekViewProps> = ({
     currentDate,
     dict,
+    lang,
     calendar,
     onAddEvent,
     onEventClick,
 }) => {
     const [events, setEvents] = useState<EventData[]>([]);
+    const [holidays, setHolidays] = useState<EventData[]>([]);
     const [loading, setLoading] = useState(false);
+    const [loadingHolidays, setLoadingHolidays] = useState(false);
     const [expandedHours, setExpandedHours] = useState<Set<number>>(new Set());
     const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>(
         [],
     );
     const [categories, setCategories] = useState<CategoryData[]>([]);
+    const [showHolidays, setShowHolidays] = useState(true);
+    const [userRegion, setUserRegion] = useState<string>('');
+
     const timeGridRef = useRef<HTMLDivElement>(null);
     const [currentTimePosition, setCurrentTimePosition] = useState<number>(0);
 
     const getWeekDates = () => {
         const date = new Date(currentDate);
         const day = date.getDay();
-        const firstDayOfWeek = new Date(date);
-        firstDayOfWeek.setDate(date.getDate() - day);
+        const diff = date.getDate() - day;
+
+        const firstDayOfWeek = new Date(date.setDate(diff));
         firstDayOfWeek.setHours(0, 0, 0, 0);
+
         const lastDayOfWeek = new Date(firstDayOfWeek);
         lastDayOfWeek.setDate(firstDayOfWeek.getDate() + 6);
         lastDayOfWeek.setHours(23, 59, 59, 999);
+
         return { firstDayOfWeek, lastDayOfWeek };
     };
 
-    const { firstDayOfWeek, lastDayOfWeek } = getWeekDates();
+    // Calculate week dates once, not on every render
+    const { firstDayOfWeek, lastDayOfWeek } = React.useMemo(
+        () => getWeekDates(),
+        [
+            currentDate.getFullYear(),
+            currentDate.getMonth(),
+            currentDate.getDate(),
+        ],
+    );
+
+    // Fetch user profile to get region
+    useEffect(() => {
+        const fetchUserProfile = async () => {
+            try {
+                const response = await fetch(
+                    'http://localhost:3001/users/profile',
+                    {
+                        headers: {
+                            Authorization: `Bearer ${localStorage.getItem('token')}`,
+                        },
+                    },
+                );
+
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.status === 'success' && data.data.region) {
+                        setUserRegion(data.data.region);
+                    }
+                }
+            } catch (error) {
+                console.error('Error fetching user profile:', error);
+            }
+        };
+
+        fetchUserProfile();
+    }, []);
+
+    // Fetch holidays when region or current date changes
+    useEffect(() => {
+        const fetchHolidays = async () => {
+            if (!userRegion) return;
+
+            setLoadingHolidays(true);
+            try {
+                const year = currentDate.getFullYear();
+                const holidaysData = await fetchHolidaysForRegion(
+                    userRegion,
+                    year,
+                );
+
+                // Filter only holidays for the current week view
+                const weekHolidays = holidaysData.filter(holiday => {
+                    const holidayDate = new Date(holiday.startDate);
+                    const firstDay = new Date(firstDayOfWeek);
+                    const lastDay = new Date(lastDayOfWeek);
+
+                    return holidayDate >= firstDay && holidayDate <= lastDay;
+                });
+
+                setHolidays(weekHolidays);
+            } catch (error) {
+                console.error('Error fetching holidays:', error);
+            } finally {
+                setLoadingHolidays(false);
+            }
+        };
+
+        if (userRegion) {
+            fetchHolidays();
+        }
+    }, [
+        userRegion,
+        currentDate.getFullYear(),
+        currentDate.getMonth(),
+        currentDate.getDate(),
+    ]);
 
     useEffect(() => {
         fetchCategories();
@@ -68,7 +152,7 @@ export const WeekView: React.FC<WeekViewProps> = ({
 
     useEffect(() => {
         fetchEvents();
-    }, [selectedCategoryId]);
+    }, [selectedCategoryIds]);
 
     useEffect(() => {
         const updateCurrentTimePosition = () => {
@@ -104,6 +188,7 @@ export const WeekView: React.FC<WeekViewProps> = ({
                     },
                 },
             );
+
             if (response.ok) {
                 const data = await response.json();
                 if (data.status === 'success') {
@@ -119,11 +204,8 @@ export const WeekView: React.FC<WeekViewProps> = ({
         if (!calendar?.id) return;
         try {
             setLoading(true);
-
-            // Build URL with query parameters
             let url = `http://localhost:3001/calendars/${calendar.id}/events?startDate=${firstDayOfWeek.toISOString()}&endDate=${lastDayOfWeek.toISOString()}`;
 
-            // Add category filter if selected
             if (selectedCategoryIds.length > 0) {
                 selectedCategoryIds.forEach(categoryId => {
                     url += `&categoryId=${categoryId}`;
@@ -153,6 +235,10 @@ export const WeekView: React.FC<WeekViewProps> = ({
         setSelectedCategoryIds(categoryIds);
     };
 
+    const toggleHolidaysDisplay = () => {
+        setShowHolidays(!showHolidays);
+    };
+
     const getDayColumns = (): DayColumn[] => {
         const columns: DayColumn[] = [];
         const today = new Date();
@@ -161,6 +247,7 @@ export const WeekView: React.FC<WeekViewProps> = ({
         for (let i = 0; i < 7; i++) {
             const date = new Date(firstDayOfWeek);
             date.setDate(firstDayOfWeek.getDate() + i);
+
             const isToday =
                 date.getDate() === today.getDate() &&
                 date.getMonth() === today.getMonth() &&
@@ -179,7 +266,6 @@ export const WeekView: React.FC<WeekViewProps> = ({
 
     const getTimeSlots = (): TimeSlot[] => {
         const slots: TimeSlot[] = [];
-
         for (let hour = 0; hour < 24; hour++) {
             slots.push({
                 hour,
@@ -190,21 +276,43 @@ export const WeekView: React.FC<WeekViewProps> = ({
                 }),
             });
         }
-
         return slots;
     };
 
     const dayColumns = getDayColumns();
     const timeSlots = getTimeSlots();
 
+    // Get all events for a specific day and hour, including holidays if enabled
     const getEventsForDayAndHour = (date: Date, hour: number) => {
-        return events.filter(event => {
+        // Get regular events
+        const dayHourEvents = events.filter(event => {
             const eventDate = new Date(event.startDate);
             return (
                 eventDate.getDate() === date.getDate() &&
                 eventDate.getMonth() === date.getMonth() &&
                 eventDate.getFullYear() === date.getFullYear() &&
                 eventDate.getHours() === hour
+            );
+        });
+
+        // Add holidays if enabled (assign to 9 AM by convention)
+        const dayHourHolidays =
+            showHolidays && hour === 9
+                ? holidays.filter(holiday => {
+                      const holidayDate = new Date(holiday.startDate);
+                      return (
+                          holidayDate.getDate() === date.getDate() &&
+                          holidayDate.getMonth() === date.getMonth() &&
+                          holidayDate.getFullYear() === date.getFullYear()
+                      );
+                  })
+                : [];
+
+        // Combine and sort by time
+        return [...dayHourEvents, ...dayHourHolidays].sort((a, b) => {
+            return (
+                new Date(a.startDate).getTime() -
+                new Date(b.startDate).getTime()
             );
         });
     };
@@ -225,21 +333,42 @@ export const WeekView: React.FC<WeekViewProps> = ({
         return expandedHours.has(hour);
     };
 
+    // Check if an event is a holiday
+    const isHolidayEvent = (event: EventData) => {
+        return event.id.startsWith('holiday-');
+    };
+
     return (
         <div
             className="calendar-week-view overflow-y-auto max-h-[calc(100vh-240px)]"
             ref={timeGridRef}>
-            {/* Category Filter Component */}
-            <CategoryFilter
-                categories={categories}
-                selectedCategoryIds={selectedCategoryIds}
-                onCategoryChange={handleCategoryChange}
-            />
+            <div className="flex justify-between items-center mb-4">
+                <CategoryFilter
+                    categories={categories}
+                    selectedCategoryIds={selectedCategoryIds}
+                    onCategoryChange={handleCategoryChange}
+                />
+
+                <div className="flex items-center">
+                    <label className="inline-flex items-center cursor-pointer mr-2">
+                        <input
+                            type="checkbox"
+                            checked={showHolidays}
+                            onChange={toggleHolidaysDisplay}
+                            className="form-checkbox h-4 w-4 text-indigo-600 transition duration-150 ease-in-out"
+                        />
+                        <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">
+                            {dict.calendar?.showHolidays || 'Show Holidays'}
+                        </span>
+                    </label>
+                </div>
+            </div>
 
             <div className="grid grid-cols-8 mb-2 border-b dark:border-gray-700">
                 <div className="p-3 text-center text-sm font-medium text-gray-500 dark:text-gray-400 border-r dark:border-gray-700">
                     Time
                 </div>
+
                 {dayColumns.map((day, index) => (
                     <div
                         key={index}
@@ -252,11 +381,7 @@ export const WeekView: React.FC<WeekViewProps> = ({
                             {day.dayName}
                         </div>
                         <div
-                            className={`text-lg ${
-                                day.isToday
-                                    ? 'font-bold text-indigo-600 dark:text-indigo-400'
-                                    : ''
-                            }`}>
+                            className={`text-lg ${day.isToday ? 'font-bold text-indigo-600 dark:text-indigo-400' : ''}`}>
                             {day.dayNumber}
                         </div>
                     </div>
@@ -276,11 +401,7 @@ export const WeekView: React.FC<WeekViewProps> = ({
                     return (
                         <div
                             key={timeIndex}
-                            className={`grid grid-cols-8 gap-1 ${
-                                hourHasEvents && isExpanded
-                                    ? 'min-h-36'
-                                    : 'min-h-16'
-                            }`}>
+                            className={`grid grid-cols-8 gap-1 ${hourHasEvents && isExpanded ? 'min-h-36' : 'min-h-16'}`}>
                             {/* Time column */}
                             <div className="p-2 text-xs text-gray-500 dark:text-gray-400 border-r dark:border-gray-700 flex items-start justify-end pr-3">
                                 {timeSlot.label}
@@ -311,11 +432,10 @@ export const WeekView: React.FC<WeekViewProps> = ({
                                                 onAddEvent(newDate);
                                             }
                                         }}
-                                        className={`p-1 border dark:border-gray-700 rounded-md transition-all relative ${
-                                            day.isToday
-                                                ? 'bg-indigo-50/50 dark:bg-indigo-900/10'
-                                                : 'bg-white dark:bg-gray-800'
-                                        } hover:bg-indigo-50 dark:hover:bg-indigo-900/20 hover:shadow-md cursor-pointer active:bg-indigo-100 dark:active:bg-indigo-900/30`}>
+                                        className={`p-1 border dark:border-gray-700 rounded-md transition-all relative 
+                                            ${day.isToday ? 'bg-indigo-50/50 dark:bg-indigo-900/10' : 'bg-white dark:bg-gray-800'}
+                                            hover:bg-indigo-50 dark:hover:bg-indigo-900/20 hover:shadow-md cursor-pointer 
+                                            active:bg-indigo-100 dark:active:bg-indigo-900/30`}>
                                         {/* Add event button */}
                                         <button
                                             onClick={e => {
@@ -340,6 +460,7 @@ export const WeekView: React.FC<WeekViewProps> = ({
                                         {/* Events */}
                                         <div className="mt-4 space-y-1">
                                             {!loading &&
+                                                !loadingHolidays &&
                                                 dayHourEvents
                                                     .slice(
                                                         0,
@@ -347,37 +468,65 @@ export const WeekView: React.FC<WeekViewProps> = ({
                                                             ? dayHourEvents.length
                                                             : 2,
                                                     )
-                                                    .map(event => (
-                                                        <div
-                                                            key={event.id}
-                                                            className="px-2 py-1 rounded-sm text-xs truncate cursor-pointer hover:brightness-90"
-                                                            style={{
-                                                                backgroundColor: `${event.color}20`,
-                                                                borderLeft: `3px solid ${event.color}`,
-                                                                color: event.color,
-                                                            }}
-                                                            onClick={e => {
-                                                                e.stopPropagation(); // Prevent triggering parent onClick
-                                                                if (
-                                                                    onEventClick
-                                                                ) {
-                                                                    onEventClick(
-                                                                        event,
-                                                                    ); // Call onEventClick with the event
+                                                    .map(event => {
+                                                        const isHoliday =
+                                                            isHolidayEvent(
+                                                                event,
+                                                            );
+                                                        return (
+                                                            <div
+                                                                key={event.id}
+                                                                className={`px-2 py-1 rounded-sm text-xs truncate cursor-pointer hover:brightness-90
+                                                                    ${isHoliday ? 'border-dashed border border-red-300 dark:border-red-700' : ''}`}
+                                                                style={{
+                                                                    backgroundColor: `${event.color}20`,
+                                                                    borderLeft: `3px solid ${event.color}`,
+                                                                    color: event.color,
+                                                                }}
+                                                                title={
+                                                                    isHoliday
+                                                                        ? event.description ||
+                                                                          '' // Convert null to empty string
+                                                                        : `${event.name}${event.description ? `\n${event.description}` : ''}`
                                                                 }
-                                                            }}>
-                                                            {new Date(
-                                                                event.startDate,
-                                                            ).toLocaleTimeString(
-                                                                [],
-                                                                {
-                                                                    hour: '2-digit',
-                                                                    minute: '2-digit',
-                                                                },
-                                                            )}{' '}
-                                                            - {event.name}
-                                                        </div>
-                                                    ))}
+                                                                onClick={e => {
+                                                                    e.stopPropagation(); // Prevent triggering parent onClick
+                                                                    if (
+                                                                        onEventClick &&
+                                                                        !isHoliday
+                                                                    ) {
+                                                                        onEventClick(
+                                                                            event,
+                                                                        );
+                                                                    }
+                                                                }}>
+                                                                {isHoliday ? (
+                                                                    <span>
+                                                                        🎉{' '}
+                                                                        {
+                                                                            event.name
+                                                                        }
+                                                                    </span>
+                                                                ) : (
+                                                                    <>
+                                                                        {new Date(
+                                                                            event.startDate,
+                                                                        ).toLocaleTimeString(
+                                                                            [],
+                                                                            {
+                                                                                hour: '2-digit',
+                                                                                minute: '2-digit',
+                                                                            },
+                                                                        )}{' '}
+                                                                        -{' '}
+                                                                        {
+                                                                            event.name
+                                                                        }
+                                                                    </>
+                                                                )}
+                                                            </div>
+                                                        );
+                                                    })}
 
                                             {hasMoreEvents && !isExpanded && (
                                                 <div
