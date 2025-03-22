@@ -51,4 +51,35 @@ export class EmailService {
           `,
         });
     }
+
+    async sendCalendarInviteEmail(email: string, calendarName: string, inviteUrl: string) {
+        await emailConfig.transport.sendMail({
+            from: emailConfig.from,
+            to: email,
+            subject: `You've been invited to join a calendar`,
+            html: `
+              <h1>Calendar Invitation</h1>
+              <p>You've been invited to join the calendar: <strong>${calendarName}</strong></p>
+              <p>Click the button below to accept this invitation:</p>
+              <div style="text-align: center; margin: 25px 0;">
+                  <a href="${inviteUrl}" 
+                     style="background-color: #4a6fa5; 
+                            color: white; 
+                            padding: 12px 24px; 
+                            text-decoration: none; 
+                            border-radius: 4px; 
+                            display: inline-block;
+                            font-weight: bold;">
+                      Accept Invitation
+                  </a>
+              </div>
+              <p>Or copy and paste this URL into your browser:</p>
+              <p style="background-color: #f4f4f4; padding: 10px; word-break: break-all;">
+                  ${inviteUrl}
+              </p>
+              <p><small>If you don't have an account, you'll need to sign up first.</small></p>
+              <p><small>If you didn't expect this invitation, you can safely ignore this email.</small></p>
+          `,
+        });
+    }
 }

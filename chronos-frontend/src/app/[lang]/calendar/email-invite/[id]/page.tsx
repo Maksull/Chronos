@@ -1,5 +1,4 @@
 'use client';
-
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { useDictionary } from '@/contexts';
@@ -7,10 +6,12 @@ import { Calendar, Check, X, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 import { ProtectedRoute } from '@/components';
 
-export default function CalendarInvitePage() {
+export default function CalendarEmailInvitePage() {
     const params = useParams();
     const { dict, lang } = useDictionary();
-    const inviteId = params.id as string;
+
+    // Fix: Use 'id' parameter instead of 'token' since that's what's in the URL
+    const token = params.id as string;
 
     const [loading, setLoading] = useState(true);
     const [accepting, setAccepting] = useState(false);
@@ -19,54 +20,118 @@ export default function CalendarInvitePage() {
     const [calendarInfo, setCalendarInfo] = useState<{
         id: string;
         name: string;
+        email: string;
     } | null>(null);
+    const [debugInfo, setDebugInfo] = useState<string>('');
+
+    // Add debug info
+    useEffect(() => {
+        setDebugInfo(
+            prev => prev + `\nParams received: ${JSON.stringify(params)}`,
+        );
+        setDebugInfo(prev => prev + `\nToken extracted: ${token}`);
+    }, [params, token]);
 
     useEffect(() => {
-        // Fetch invitation details to show calendar info
         const fetchInviteDetails = async () => {
+            setDebugInfo(
+                prev => prev + `\nFetching invite details starting...`,
+            );
+
             try {
+                setDebugInfo(
+                    prev =>
+                        prev +
+                        `\nMaking API request to: http://localhost:3001/calendar-email-invites/${token}`,
+                );
+
+                const savedToken = localStorage.getItem('token');
+                setDebugInfo(
+                    prev =>
+                        prev + `\nAuth token exists: ${Boolean(savedToken)}`,
+                );
+
                 const response = await fetch(
-                    `http://localhost:3001/calendar-invites/${inviteId}`,
+                    `http://localhost:3001/calendar-email-invites/${token}`,
                     {
                         headers: {
-                            Authorization: `Bearer ${localStorage.getItem('token')}`,
+                            Authorization: `Bearer ${savedToken || ''}`,
                         },
                     },
                 );
 
+                setDebugInfo(
+                    prev => prev + `\nResponse status: ${response.status}`,
+                );
+
                 const data = await response.json();
+                setDebugInfo(
+                    prev => prev + `\nResponse data: ${JSON.stringify(data)}`,
+                );
 
                 if (data.status === 'success') {
                     setCalendarInfo(data.data);
+                    setDebugInfo(
+                        prev =>
+                            prev +
+                            `\nCalendar info set: ${JSON.stringify(data.data)}`,
+                    );
                 } else {
                     setError(
                         data.message ||
                             dict.calendar?.inviteNotFound ||
                             'Invite not found or invalid',
                     );
+                    setDebugInfo(
+                        prev =>
+                            prev +
+                            `\nError set from response: ${data.message || 'No message'}`,
+                    );
                 }
             } catch (error) {
                 console.error('Error fetching invite details:', error);
+                setDebugInfo(
+                    prev =>
+                        prev +
+                        `\nCaught error: ${error instanceof Error ? error.message : String(error)}`,
+                );
                 setError(
                     dict.account?.errors?.generic ||
-                        'An error occurred. The invite link may be invalid or expired.',
+                        'An error occurred. The invite may be invalid or expired.',
                 );
             } finally {
                 setLoading(false);
+                setDebugInfo(
+                    prev => prev + `\nFinally block: Loading set to false`,
+                );
             }
         };
 
-        if (inviteId) {
+        // Make sure we're on the client side and have a token
+        if (typeof window !== 'undefined' && token) {
+            setDebugInfo(
+                prev => prev + `\nInitiating fetch (client-side confirmed)`,
+            );
             fetchInviteDetails();
+        } else {
+            setDebugInfo(
+                prev => prev + `\nSkipping fetch - not on client or no token`,
+            );
+            if (!token) {
+                setError('No invitation token provided');
+                setLoading(false);
+            }
         }
-    }, [inviteId, dict]);
+    }, [token, dict]);
 
     const handleAcceptInvite = async () => {
         setAccepting(true);
         setError('');
+        setDebugInfo(prev => prev + `\nAccepting invite...`);
+
         try {
             const response = await fetch(
-                `http://localhost:3001/calendar-invites/${inviteId}/accept`,
+                `http://localhost:3001/calendar-email-invites/${token}/accept`,
                 {
                     method: 'POST',
                     headers: {
@@ -76,7 +141,12 @@ export default function CalendarInvitePage() {
                     body: JSON.stringify({}),
                 },
             );
+
             const data = await response.json();
+            setDebugInfo(
+                prev => prev + `\nAccept response: ${JSON.stringify(data)}`,
+            );
+
             if (data.status === 'success') {
                 setSuccess(true);
                 setCalendarInfo(data.data);
@@ -89,6 +159,11 @@ export default function CalendarInvitePage() {
             }
         } catch (error) {
             console.error('Error accepting invite:', error);
+            setDebugInfo(
+                prev =>
+                    prev +
+                    `\nError accepting: ${error instanceof Error ? error.message : String(error)}`,
+            );
             setError(
                 dict.account?.errors?.generic ||
                     'An error occurred while accepting the invitation.',
@@ -102,7 +177,6 @@ export default function CalendarInvitePage() {
         <ProtectedRoute>
             <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-12">
                 <div className="max-w-lg mx-auto px-4 sm:px-6">
-                    {/* Back to account link at the top */}
                     <div className="mb-6">
                         <Link
                             href={`/${lang}/account`}
@@ -121,6 +195,16 @@ export default function CalendarInvitePage() {
                             {dict.calendar?.backToAccount || 'Back to Account'}
                         </Link>
                     </div>
+
+                    {/* Debug panel - only visible during development */}
+                    {process.env.NODE_ENV === 'development' && (
+                        <div className="mb-4 p-3 bg-gray-100 dark:bg-gray-800 rounded border border-gray-300 dark:border-gray-700 text-xs font-mono overflow-auto max-h-60">
+                            <h4 className="font-bold mb-2">Debug Info:</h4>
+                            <pre className="whitespace-pre-wrap">
+                                {debugInfo}
+                            </pre>
+                        </div>
+                    )}
 
                     <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden border border-gray-200 dark:border-gray-700">
                         <div className="p-6">
@@ -190,12 +274,18 @@ export default function CalendarInvitePage() {
                                     </h3>
                                     <p className="text-gray-600 dark:text-gray-400 mb-6">
                                         {calendarInfo?.name
-                                            ? dict.calendar?.invitePromptWithName?.replace(
-                                                  '{calendarName}',
-                                                  calendarInfo.name,
-                                              ) ||
-                                              `You've been invited to join "${calendarInfo.name}" calendar.`
-                                            : dict.calendar?.invitePrompt ||
+                                            ? dict.calendar?.emailInvitePromptWithName
+                                                  ?.replace(
+                                                      '{calendarName}',
+                                                      calendarInfo.name,
+                                                  )
+                                                  .replace(
+                                                      '{email}',
+                                                      calendarInfo.email,
+                                                  ) ||
+                                              `You've been invited to join "${calendarInfo.name}" calendar with your email (${calendarInfo.email}).`
+                                            : dict.calendar
+                                                  ?.emailInvitePrompt ||
                                               "You've been invited to join a calendar."}
                                     </p>
                                     <div className="flex flex-col sm:flex-row items-center justify-center space-y-3 sm:space-y-0 sm:space-x-3">

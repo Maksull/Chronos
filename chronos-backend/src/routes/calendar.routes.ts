@@ -173,7 +173,6 @@ const acceptInviteSchema = {
                 nullable: true,
             },
         },
-        // Allow an empty object
         additionalProperties: false,
     },
 } as const;
@@ -247,6 +246,74 @@ const leaveCalendarSchema = {
         required: ['id'],
         properties: {
             id: { type: 'string', format: 'uuid' },
+        },
+    },
+} as const;
+
+const inviteUserByEmailSchema = {
+    params: {
+        type: 'object',
+        required: ['id'],
+        properties: {
+            id: { type: 'string', format: 'uuid' },
+        },
+    },
+    body: {
+        type: 'object',
+        required: ['email'],
+        properties: {
+            email: { type: 'string', format: 'email' },
+            role: {
+                type: 'string',
+                enum: Object.values(ParticipantRole),
+                nullable: true,
+            },
+            expireInDays: {
+                type: 'number',
+                minimum: 1,
+                nullable: true,
+            },
+        },
+    },
+} as const;
+
+const getEmailInvitesSchema = {
+    params: {
+        type: 'object',
+        required: ['id'],
+        properties: {
+            id: { type: 'string', format: 'uuid' },
+        },
+    },
+} as const;
+
+const deleteEmailInviteSchema = {
+    params: {
+        type: 'object',
+        required: ['calendarId', 'inviteId'],
+        properties: {
+            calendarId: { type: 'string', format: 'uuid' },
+            inviteId: { type: 'string', format: 'uuid' },
+        },
+    },
+} as const;
+
+const getEmailInviteInfoSchema = {
+    params: {
+        type: 'object',
+        required: ['token'],
+        properties: {
+            token: { type: 'string' },
+        },
+    },
+} as const;
+
+const acceptEmailInviteSchema = {
+    params: {
+        type: 'object',
+        required: ['token'],
+        properties: {
+            token: { type: 'string' },
         },
     },
 } as const;
@@ -349,5 +416,52 @@ export async function calendarRoutes(app: FastifyInstance) {
         '/calendars/:id/leave',
         { schema: leaveCalendarSchema, preHandler: [authenticateToken] },
         calendarController.leaveCalendar.bind(calendarController),
+    );
+
+    app.post<{
+        Params: { id: string };
+        Body: { email: string; role?: ParticipantRole; expireInDays?: number };
+    }>(
+        '/calendars/:id/email-invites',
+        {
+            schema: inviteUserByEmailSchema,
+            preHandler: [authenticateToken],
+        },
+        calendarController.inviteUserByEmail.bind(calendarController),
+    );
+
+    app.get<{ Params: { id: string } }>(
+        '/calendars/:id/email-invites',
+        {
+            schema: getEmailInvitesSchema,
+            preHandler: [authenticateToken],
+        },
+        calendarController.getEmailInvites.bind(calendarController),
+    );
+
+    app.delete<{ Params: { calendarId: string; inviteId: string } }>(
+        '/calendars/:calendarId/email-invites/:inviteId',
+        {
+            schema: deleteEmailInviteSchema,
+            preHandler: [authenticateToken],
+        },
+        calendarController.deleteEmailInvite.bind(calendarController),
+    );
+
+    app.get<{ Params: { token: string } }>(
+        '/calendar-email-invites/:token',
+        {
+            schema: getEmailInviteInfoSchema,
+        },
+        calendarController.getEmailInviteInfo.bind(calendarController),
+    );
+
+    app.post<{ Params: { token: string } }>(
+        '/calendar-email-invites/:token/accept',
+        {
+            schema: acceptEmailInviteSchema,
+            preHandler: [authenticateToken],
+        },
+        calendarController.acceptEmailInvite.bind(calendarController),
     );
 }

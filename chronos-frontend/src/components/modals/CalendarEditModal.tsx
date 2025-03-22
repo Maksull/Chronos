@@ -8,7 +8,6 @@ import {
     Calendar as CalendarIcon,
     AlertTriangle,
     Link as LinkIcon,
-    Shield,
     Eye,
     Info,
 } from 'lucide-react';
