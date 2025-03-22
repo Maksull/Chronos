@@ -130,38 +130,6 @@ export class AuthController {
         }
     }
 
-    // async resendVerification(request: FastifyRequest, reply: FastifyReply) {
-    //     try {
-    //         await this.authService.resendVerificationEmail(request.user!.userId);
-
-    //         return reply.send({
-    //             status: 'success',
-    //             message: 'Verification email sent successfully',
-    //         });
-    //     } catch (error) {
-    //         if (error instanceof Error) {
-    //             if (error.message === 'Email already verified') {
-    //                 return reply.status(409).send({
-    //                     status: 'error',
-    //                     message: error.message,
-    //                 });
-    //             }
-    //             if (error.message === 'User not found') {
-    //                 return reply.status(404).send({
-    //                     status: 'error',
-    //                     message: error.message,
-    //                 });
-    //             }
-    //         }
-
-    //         request.log.error(error);
-    //         return reply.status(500).send({
-    //             status: 'error',
-    //             message: 'Internal server error',
-    //         });
-    //     }
-    // }
-
     async changePassword(request: FastifyRequest<{ Body: ChangePasswordDto }>, reply: FastifyReply) {
         try {
             await this.authService.changePassword(request.user!.userId, request.body);
@@ -257,6 +225,33 @@ export class AuthController {
         }
     }
 
+    async resendResetPasswordToken(request: FastifyRequest<{ Body: { email: string } }>, reply: FastifyReply) {
+        try {
+            const { email } = request.body;
+            await this.authService.resendResetPasswordToken(email);
+
+            return reply.send({
+                status: 'success',
+                message: 'Reset password code resent successfully',
+            });
+        } catch (error) {
+            if (error instanceof Error) {
+                if (error.message === 'User not found') {
+                    return reply.status(404).send({
+                        status: 'error',
+                        message: error.message,
+                    });
+                }
+            }
+
+            request.log.error(error);
+            return reply.status(500).send({
+                status: 'error',
+                message: 'Internal server error',
+            });
+        }
+    }
+
     async checkResetToken(request: FastifyRequest<{ Body: { token: string } }>, reply: FastifyReply) {
         try {
             await this.authService.checkResetToken(request.body.token);
@@ -324,6 +319,39 @@ export class AuthController {
                     error.message === 'Verification token has expired'
                 ) {
                     return reply.status(400).send({
+                        status: 'error',
+                        message: error.message,
+                    });
+                }
+            }
+
+            request.log.error(error);
+            return reply.status(500).send({
+                status: 'error',
+                message: 'Internal server error',
+            });
+        }
+    }
+
+    async resendVerificationCode(request: FastifyRequest<{ Body: { email: string } }>, reply: FastifyReply) {
+        try {
+            const { email } = request.body;
+            await this.authService.resendVerificationCode(email);
+
+            return reply.send({
+                status: 'success',
+                message: 'Verification code resent successfully',
+            });
+        } catch (error) {
+            if (error instanceof Error) {
+                if (error.message === 'User not found') {
+                    return reply.status(404).send({
+                        status: 'error',
+                        message: error.message,
+                    });
+                }
+                if (error.message === 'Email already verified') {
+                    return reply.status(409).send({
                         status: 'error',
                         message: error.message,
                     });
