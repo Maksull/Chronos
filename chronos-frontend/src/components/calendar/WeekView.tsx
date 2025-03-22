@@ -481,7 +481,7 @@ export const WeekView: React.FC<WeekViewProps> = ({
                                         ${isHoliday ? 'border-dashed border border-red-300 dark:border-red-700' : ''}`}
                                                                 style={{
                                                                     backgroundColor: `${event.color}20`,
-                                                                    borderLeft: `3px solid ${event.color}`,
+                                                                    borderLeft: `3px solid ${event.category.color}`,
                                                                     color: event.color,
                                                                 }}
                                                                 title={

@@ -428,7 +428,7 @@ export const DayView: React.FC<DayViewProps> = ({
                                                     ${isHoliday ? 'border-dashed border border-red-300 dark:border-red-700' : ''}`}
                                                     style={{
                                                         backgroundColor: `${event.color}10`,
-                                                        borderLeft: `4px solid ${event.color}`,
+                                                        borderLeft: `4px solid ${event.category.color}`,
                                                         color: event.color,
                                                         minHeight: `${Math.min(80, duration / 5)}px`,
                                                     }}

@@ -461,7 +461,7 @@ export const MonthView: React.FC<MonthViewProps> = ({
                                                                 }`}
                                                                 style={{
                                                                     backgroundColor: `${event.color}20`,
-                                                                    borderLeft: `3px solid ${event.color}`,
+                                                                    borderLeft: `3px solid ${event.category.color}`,
                                                                     color: event.color,
                                                                 }}
                                                                 title={
