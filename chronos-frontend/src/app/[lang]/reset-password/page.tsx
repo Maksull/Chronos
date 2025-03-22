@@ -24,7 +24,9 @@ export default function ResetPasswordPage() {
                 'http://localhost:3001/auth/reset-password',
                 {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
                     body: JSON.stringify({ email }),
                 },
             );
@@ -35,6 +37,9 @@ export default function ResetPasswordPage() {
                 setError(data.message || dict.auth.errors.generic);
                 return;
             }
+
+            // Store email in localStorage for resend functionality
+            localStorage.setItem('resetPasswordEmail', email);
 
             setTimeout(
                 () => router.push(`/${lang}/verify-reset-password`),

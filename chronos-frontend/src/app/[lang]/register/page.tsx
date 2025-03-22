@@ -116,7 +116,9 @@ export default function RegisterPage() {
                 'http://localhost:3001/auth/register',
                 {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
                     body: JSON.stringify(formData),
                 },
             );
@@ -129,8 +131,12 @@ export default function RegisterPage() {
             }
 
             if (data.data?.token) {
+                // Store the token and email in localStorage
                 localStorage.setItem('token', data.data.token);
-                router.push(`/${lang}/verify-email-sent`);
+                localStorage.setItem('verificationEmail', formData.email);
+
+                // Redirect to the verification page
+                router.push(`/${lang}/verify-email`);
             }
         } catch {
             setError(dict.auth.errors.generic);
