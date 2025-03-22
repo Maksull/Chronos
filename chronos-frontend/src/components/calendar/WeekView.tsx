@@ -432,14 +432,15 @@ export const WeekView: React.FC<WeekViewProps> = ({
                                                 onAddEvent(newDate);
                                             }
                                         }}
-                                        className={`p-1 border dark:border-gray-700 rounded-md transition-all relative 
-                                            ${day.isToday ? 'bg-indigo-50/50 dark:bg-indigo-900/10' : 'bg-white dark:bg-gray-800'}
-                                            hover:bg-indigo-50 dark:hover:bg-indigo-900/20 hover:shadow-md cursor-pointer 
-                                            active:bg-indigo-100 dark:active:bg-indigo-900/30`}>
-                                        {/* Add event button */}
+                                        className={`
+                p-1 border dark:border-gray-700 rounded-md transition-all relative group
+                ${day.isToday ? 'bg-indigo-50/50 dark:bg-indigo-900/10' : 'bg-white dark:bg-gray-800'}
+                hover:bg-indigo-50 dark:hover:bg-indigo-900/20 hover:shadow-md cursor-pointer 
+                active:bg-indigo-100 dark:active:bg-indigo-900/30
+            `}>
                                         <button
                                             onClick={e => {
-                                                e.stopPropagation(); // Prevent triggering parent onClick
+                                                e.stopPropagation();
                                                 if (onAddEvent) {
                                                     const newDate = new Date(
                                                         day.date,
@@ -453,11 +454,11 @@ export const WeekView: React.FC<WeekViewProps> = ({
                                                     onAddEvent(newDate);
                                                 }
                                             }}
-                                            className="absolute top-1 right-1 opacity-0 hover:opacity-100 text-gray-400 hover:text-indigo-500 dark:text-gray-500 dark:hover:text-indigo-400 w-5 h-5 flex items-center justify-center">
+                                            className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 text-gray-400 hover:text-indigo-500 dark:text-gray-500 dark:hover:text-indigo-400 w-5 h-5 flex items-center justify-center">
                                             <Plus className="w-4 h-4" />
                                         </button>
 
-                                        {/* Events */}
+                                        {/*Events*/}
                                         <div className="mt-4 space-y-1">
                                             {!loading &&
                                                 !loadingHolidays &&
@@ -477,7 +478,7 @@ export const WeekView: React.FC<WeekViewProps> = ({
                                                             <div
                                                                 key={event.id}
                                                                 className={`px-2 py-1 rounded-sm text-xs truncate cursor-pointer hover:brightness-90
-                                                                    ${isHoliday ? 'border-dashed border border-red-300 dark:border-red-700' : ''}`}
+                                        ${isHoliday ? 'border-dashed border border-red-300 dark:border-red-700' : ''}`}
                                                                 style={{
                                                                     backgroundColor: `${event.color}20`,
                                                                     borderLeft: `3px solid ${event.color}`,
@@ -536,7 +537,7 @@ export const WeekView: React.FC<WeekViewProps> = ({
                                                     }>
                                                     <button
                                                         onClick={e => {
-                                                            e.stopPropagation(); // Prevent triggering parent onClick
+                                                            e.stopPropagation();
                                                             toggleExpandHour(
                                                                 timeSlot.hour,
                                                             );
@@ -559,7 +560,7 @@ export const WeekView: React.FC<WeekViewProps> = ({
                                                     }>
                                                     <button
                                                         onClick={e => {
-                                                            e.stopPropagation(); // Prevent triggering parent onClick
+                                                            e.stopPropagation();
                                                             toggleExpandHour(
                                                                 timeSlot.hour,
                                                             );

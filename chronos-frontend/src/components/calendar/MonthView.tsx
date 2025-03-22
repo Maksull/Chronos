@@ -388,23 +388,20 @@ export const MonthView: React.FC<MonthViewProps> = ({
                                             }
                                         }}
                                         className={`
-                                            p-1 border dark:border-gray-700 rounded-md transition-all group
-                                            ${
-                                                day.inCurrentMonth
-                                                    ? 'bg-white dark:bg-gray-800 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 hover:shadow-md cursor-pointer active:bg-indigo-100 dark:active:bg-indigo-900/30'
-                                                    : 'bg-gray-50 dark:bg-gray-700/50 text-gray-400 dark:text-gray-500'
-                                            }
-                                            ${
-                                                day.isToday
-                                                    ? 'ring-2 ring-indigo-500 dark:ring-indigo-400'
-                                                    : 'hover:border-gray-300 dark:hover:border-gray-600'
-                                            }
-                                        `}>
+                p-1 rounded-md transition-all group relative
+                ${
+                    day.inCurrentMonth
+                        ? 'bg-white dark:bg-gray-800 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 hover:shadow-md cursor-pointer active:bg-indigo-100 dark:active:bg-indigo-900/30'
+                        : 'bg-gray-50 dark:bg-gray-700/50 text-gray-400 dark:text-gray-500'
+                }
+                ${
+                    day.isToday
+                        ? 'border-2 border-indigo-500 dark:border-indigo-400'
+                        : 'border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                }
+            `}>
                                         <div
-                                            className={`
-                                                flex justify-between items-center p-1
-                                                ${day.isToday ? 'font-bold text-indigo-600 dark:text-indigo-400' : ''}
-                                            `}>
+                                            className={`flex justify-between items-center p-1 ${day.isToday ? 'font-bold text-indigo-600 dark:text-indigo-400' : ''}`}>
                                             <span
                                                 className={
                                                     day.isToday
@@ -457,10 +454,11 @@ export const MonthView: React.FC<MonthViewProps> = ({
                                                         return (
                                                             <div
                                                                 key={event.id}
-                                                                className={`
-                                                                    px-2 py-1 rounded-sm text-xs truncate cursor-pointer hover:brightness-90
-                                                                    ${isHoliday ? 'border-dashed border border-red-300 dark:border-red-700' : ''}
-                                                                `}
+                                                                className={`px-2 py-1 rounded-sm text-xs truncate cursor-pointer hover:brightness-90 ${
+                                                                    isHoliday
+                                                                        ? 'border-dashed border border-red-300 dark:border-red-700'
+                                                                        : ''
+                                                                }`}
                                                                 style={{
                                                                     backgroundColor: `${event.color}20`,
                                                                     borderLeft: `3px solid ${event.color}`,
@@ -469,7 +467,7 @@ export const MonthView: React.FC<MonthViewProps> = ({
                                                                 title={
                                                                     isHoliday
                                                                         ? event.description ||
-                                                                          '' // Convert null to empty string
+                                                                          ''
                                                                         : `${event.name}${event.description ? `\n${event.description}` : ''}`
                                                                 }
                                                                 onClick={e => {
