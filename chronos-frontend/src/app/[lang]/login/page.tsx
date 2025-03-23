@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Calendar } from 'lucide-react';
-import { AuthResponse, LoginFormData } from '@/types/auth';
+import { AuthLoginData, LoginFormData } from '@/types/auth';
 import { useAuth, useDictionary } from '@/contexts';
 import { useError } from '@/contexts/ErrorContext';
 import { useApi } from '@/lib/useApi';
@@ -21,7 +21,7 @@ export default function LoginPage() {
         username: '',
         password: '',
     });
-    const [pageError, setPageError] = useState<string>(''); // For inline page display
+    const [pageError, setPageError] = useState<string>('');
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     useEffect(() => {
@@ -39,39 +39,35 @@ export default function LoginPage() {
         e.preventDefault();
         setPageError('');
         setIsSubmitting(true);
-
-        // Fallback error message
         const genericErrorMessage =
             dict?.auth?.errors?.generic || 'Login failed. Please try again.';
 
         try {
-            // Always show errors automatically
-            const response = await api.post<AuthResponse>(
+            // Use AuthLoginData as the generic type parameter for api.post
+            // This tells TypeScript that response.data will be of type AuthLoginData
+            const response = await api.post<AuthLoginData>(
                 '/auth/login',
                 formData,
-                true, // Always show error modal
+                true,
             );
+            console.log('Login response:', response);
 
             if (response.status === 'error') {
-                // Also set the page error for better accessibility
                 const errorMessage = response.message || genericErrorMessage;
                 setPageError(errorMessage);
                 return;
             }
 
-            if (response.data?.data?.token && response.data?.data.user) {
-                login(response.data.data.token, response.data.data.user);
-                document.cookie = `token=${response.data.data.token}; path=/; max-age=86400; SameSite=Strict;`;
+            if (response.data?.token && response.data?.user) {
+                login(response.data.token, response.data.user);
+                document.cookie = `token=${response.data.token}; path=/; max-age=86400; SameSite=Strict;`;
             } else {
-                // Handle the case where we got a success response but incorrect data
+                console.error('Login response structure incorrect:', response);
                 setPageError(genericErrorMessage);
                 setError(genericErrorMessage);
             }
         } catch (err) {
-            // Log the error for debugging
             console.error('Login error:', err);
-
-            // Show a generic error message
             setPageError(genericErrorMessage);
             setError(genericErrorMessage);
         } finally {
@@ -115,7 +111,6 @@ export default function LoginPage() {
 
             <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
                 <div className="bg-white dark:bg-dark-surface py-8 px-4 shadow sm:rounded-lg sm:px-10">
-                    {/* Inline error display for accessibility */}
                     {pageError && (
                         <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/50 text-red-700 dark:text-red-200 rounded-md">
                             {pageError}

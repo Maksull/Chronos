@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Calendar } from 'lucide-react';
-import type { RegisterFormData, AuthResponse } from '@/types/auth';
+import type { AuthRegisterData, RegisterFormData } from '@/types/auth';
 import { useDictionary } from '@/contexts';
 import { useError } from '@/contexts/ErrorContext';
 import { useApi } from '@/lib/useApi';
@@ -120,41 +120,39 @@ export default function RegisterPage() {
         e.preventDefault();
         setPageError('');
         setIsLoading(true);
-
-        // Fallback error message
         const genericErrorMessage =
             dict?.auth?.errors?.generic ||
             'Registration failed. Please try again.';
 
         try {
-            // Always show errors automatically
-            const response = await api.post<AuthResponse>(
+            // Use AuthRegisterData instead of 'any'
+            const response = await api.post<AuthRegisterData>(
                 '/auth/register',
                 formData,
-                true, // Always show error in modal
+                true,
             );
 
             if (response.status === 'error') {
-                // Also set the page error for better accessibility
                 const errorMessage = response.message || genericErrorMessage;
                 setPageError(errorMessage);
                 return;
             }
 
-            if (response.data?.data?.token) {
-                localStorage.setItem('token', response.data.data.token);
+            // Fix: access token directly from response.data.token instead of response.data.data.token
+            if (response.data?.token) {
+                localStorage.setItem('token', response.data.token);
                 localStorage.setItem('verificationEmail', formData.email);
                 router.push(`/${lang}/verify-email`);
             } else {
-                // Handle the case where we got a success response but no token
+                console.error(
+                    'Registration response structure incorrect:',
+                    response,
+                );
                 setPageError(genericErrorMessage);
                 setError(genericErrorMessage);
             }
         } catch (err) {
-            // Log the error for debugging
             console.error('Registration error:', err);
-
-            // Show a generic error message
             setPageError(genericErrorMessage);
             setError(genericErrorMessage);
         } finally {
