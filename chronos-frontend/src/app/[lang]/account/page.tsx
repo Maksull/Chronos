@@ -111,14 +111,16 @@ export default function AccountPage() {
         <ProtectedRoute>
             <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-12">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="mb-8 flex justify-between items-center">
+                    <div className="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                         <div>
                             <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-                                {dict.account.welcome.replace(
-                                    '{name}',
-                                    profileData.fullName ||
-                                        profileData.username,
-                                )}
+                                <span className="block sm:inline">
+                                    {dict.account.welcome}
+                                </span>
+                                <span className="sm:inline">
+                                    {profileData.fullName ||
+                                        profileData.username}
+                                </span>
                             </h1>
                             <p className="mt-2 text-gray-600 dark:text-gray-400">
                                 {dict.account.stats.member}{' '}
@@ -135,7 +137,7 @@ export default function AccountPage() {
                             onClick={() =>
                                 router.push(`/${lang}/account/settings`)
                             }
-                            className="flex items-center gap-2 bg-white dark:bg-gray-800 px-4 py-2 rounded-lg shadow-sm hover:shadow-md text-gray-700 dark:text-gray-200">
+                            className="w-full sm:w-auto flex items-center justify-center gap-2 bg-white dark:bg-gray-800 px-4 py-2 rounded-lg shadow-sm hover:shadow-md text-gray-700 dark:text-gray-200">
                             <Shield className="h-5 w-5" />
                             {dict.account.settings}
                         </button>

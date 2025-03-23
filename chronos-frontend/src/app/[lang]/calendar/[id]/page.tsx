@@ -492,7 +492,7 @@ export default function CalendarPage() {
                                                 </button>
                                                 <button
                                                     onClick={handleToday}
-                                                    className="px-3 py-1 text-sm bg-white dark:bg-gray-600 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-500 transition-colors shadow-sm mx-1">
+                                                    className="px-3 py-1 text-sm text-gray-700 dark:text-gray-300 hover:bg-white dark:hover:bg-gray-600 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-500 transition-colors shadow-sm mx-1">
                                                     {dict.calendar?.today ||
                                                         'Today'}
                                                 </button>

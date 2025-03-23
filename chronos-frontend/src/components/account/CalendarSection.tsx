@@ -192,18 +192,18 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
         <div className="space-y-8">
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden">
                 <div className="p-6">
-                    <div className="flex items-center justify-between mb-6">
-                        <div className="flex items-center gap-3">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6">
+                        <div className="flex items-center gap-3 mb-4 sm:mb-0">
                             <Calendar className="h-6 w-6 text-gray-400" />
                             <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
                                 {dict.account.calendars.title}
                             </h2>
                         </div>
-                        <div className="flex gap-2">
+                        <div className="flex w-full sm:w-auto gap-2 justify-between">
                             <button
                                 onClick={createEmptyCalendar}
                                 disabled={isLoading}
-                                className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 disabled:opacity-50">
+                                className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 disabled:opacity-50 w-full sm:w-auto">
                                 <Plus className="h-4 w-4" />
                                 {dict.account.calendars.create ||
                                     'Create Calendar'}
@@ -212,7 +212,7 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
                                 onClick={() =>
                                     setIsCreatingCalendar(!isCreatingCalendar)
                                 }
-                                className="flex items-center gap-2 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-100 dark:hover:bg-indigo-900/50 ">
+                                className="flex items-center gap-2 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-100 dark:hover:bg-indigo-900/50 w-full sm:w-auto">
                                 {isCreatingCalendar ? (
                                     <>
                                         <X className="h-4 w-4" />

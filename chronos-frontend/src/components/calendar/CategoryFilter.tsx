@@ -117,7 +117,7 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
                             return (
                                 <div
                                     key={category.id}
-                                    className={`cursor-pointer px-3 py-2 rounded-md border hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${
+                                    className={`text-gray-600 dark:text-white cursor-pointer px-3 py-2 rounded-md border hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${
                                         isSelected
                                             ? 'ring-2 ring-indigo-500 bg-indigo-50 dark:bg-indigo-900/30 border-transparent'
                                             : 'border-gray-200 dark:border-gray-700'
@@ -125,7 +125,7 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
                                     onClick={() =>
                                         handleCategoryToggle(category.id)
                                     }>
-                                    <div className="flex items-center justify-between">
+                                    <div className="flex items-center justify-between gap-2">
                                         <div className="flex items-center">
                                             <div
                                                 className="w-3 h-3 rounded-full mr-2"
