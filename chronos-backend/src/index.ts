@@ -8,7 +8,9 @@ import { calendarRoutes } from './routes/calendar.routes.js';
 import { userRoutes } from './routes/user.routes.js';
 import { eventRoutes } from './routes/event.routes.js';
 import { categoryRoutes } from './routes/category.routes.js';
+import { validationErrorHandler } from './utils/validation-error-handler';
 
+// Create Fastify instance with default configuration
 const app: FastifyInstance = fastify({
     logger: true,
 });
@@ -22,6 +24,9 @@ const start = async () => {
             credentials: true,
             allowedHeaders: ['Content-Type', 'Authorization'],
         });
+
+        // Set up custom error handler for validation errors
+        app.setErrorHandler(validationErrorHandler);
 
         // Register routes
         authRoutes(app);

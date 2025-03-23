@@ -94,46 +94,31 @@ export async function categoryRoutes(app: FastifyInstance) {
 
     app.get<{ Params: CalendarParams }>(
         '/calendars/:calendarId/categories',
-        {
-            schema: getCategoriesSchema,
-            preHandler: [authenticateToken],
-        },
+        { schema: getCategoriesSchema, preHandler: [authenticateToken] },
         categoryController.getCategories.bind(categoryController),
     );
 
     app.get<{ Params: CategoryParams }>(
         '/categories/:id',
-        {
-            schema: getCategorySchema,
-            preHandler: [authenticateToken],
-        },
+        { schema: getCategorySchema, preHandler: [authenticateToken] },
         categoryController.getCategoryById.bind(categoryController),
     );
 
     app.post<{ Params: CalendarParams; Body: CreateCategoryBody }>(
         '/calendars/:calendarId/categories',
-        {
-            schema: createCategorySchema,
-            preHandler: [authenticateToken],
-        },
+        { schema: createCategorySchema, preHandler: [authenticateToken] },
         categoryController.createCategory.bind(categoryController),
     );
 
     app.put<{ Params: CategoryParams; Body: UpdateCategoryBody }>(
         '/categories/:id',
-        {
-            schema: updateCategorySchema,
-            preHandler: [authenticateToken],
-        },
+        { schema: updateCategorySchema, preHandler: [authenticateToken] },
         categoryController.updateCategory.bind(categoryController),
     );
 
     app.delete<{ Params: CategoryParams }>(
         '/categories/:id',
-        {
-            schema: deleteCategorySchema,
-            preHandler: [authenticateToken],
-        },
+        { schema: deleteCategorySchema, preHandler: [authenticateToken] },
         categoryController.deleteCategory.bind(categoryController),
     );
 }

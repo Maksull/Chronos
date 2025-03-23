@@ -3,6 +3,7 @@ import { Footer, Header } from '@/components';
 import { Locale } from '@/middleware';
 import { getDictionary } from '@/lib/dictionary';
 import { AuthProvider, DictionaryProvider } from '@/contexts';
+import { ErrorProvider } from '@/contexts/ErrorContext';
 
 export default async function LangLayout({
     children,
@@ -18,11 +19,13 @@ export default async function LangLayout({
         <ThemeProvider>
             <DictionaryProvider dict={dict} lang={resolvedParams.lang}>
                 <AuthProvider>
-                    <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-dark-bg">
-                        <Header />
-                        <main className="flex-grow">{children}</main>
-                        <Footer />
-                    </div>
+                    <ErrorProvider>
+                        <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-dark-bg">
+                            <Header />
+                            <main className="flex-grow">{children}</main>
+                            <Footer />
+                        </div>
+                    </ErrorProvider>
                 </AuthProvider>
             </DictionaryProvider>
         </ThemeProvider>
