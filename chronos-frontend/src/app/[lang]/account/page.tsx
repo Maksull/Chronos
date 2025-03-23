@@ -1,7 +1,6 @@
 'use client';
-
 import React, { useState, useEffect } from 'react';
-import { Shield } from 'lucide-react';
+import { Shield, ChevronRight, Calendar as CalendarIcon } from 'lucide-react';
 import { useDictionary } from '@/contexts';
 import {
     AlertMessage,
@@ -76,7 +75,6 @@ export default function AccountPage() {
         setError('');
         setSuccess('');
         setIsLoading(true);
-
         try {
             const response = await fetch(
                 'http://localhost:3001/users/profile',
@@ -87,12 +85,12 @@ export default function AccountPage() {
                         Authorization: `Bearer ${localStorage.getItem('token')}`,
                     },
                     body: JSON.stringify({
+                        username: updatedProfile.username,
                         fullName: updatedProfile.fullName,
                         region: updatedProfile.region,
                     }),
                 },
             );
-
             const data = await response.json();
             if (data.status === 'error') {
                 setError(data.message || dict.account.errors.generic);
@@ -109,67 +107,80 @@ export default function AccountPage() {
 
     return (
         <ProtectedRoute>
-            <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-12">
+            <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 py-12">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                        <div>
-                            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-                                <span className="block sm:inline">
-                                    {dict.account.welcome}
-                                </span>
-                                <span className="sm:inline">
-                                    {profileData.fullName ||
-                                        profileData.username}
-                                </span>
-                            </h1>
-                            <p className="mt-2 text-gray-600 dark:text-gray-400">
-                                {dict.account.stats.member}{' '}
-                                {profileData.createdAt
-                                    ? new Date(
-                                          profileData.createdAt,
-                                      ).toLocaleDateString()
-                                    : ''}
-                            </p>
-                        </div>
+                    {/* Header Section with Glass Effect */}
+                    <div className="mb-10 bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm rounded-2xl shadow-lg p-6">
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                            <div>
+                                <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                                    <CalendarIcon className="h-8 w-8 text-indigo-500 dark:text-indigo-400" />
+                                    <span className="block sm:inline">
+                                        {dict.account.welcome}
+                                    </span>
+                                    <span className="sm:inline font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-indigo-500 to-purple-600 dark:from-indigo-400 dark:to-purple-500">
+                                        {profileData.fullName ||
+                                            profileData.username}
+                                    </span>
+                                </h1>
+                                <p className="mt-2 text-gray-600 dark:text-gray-400 flex items-center">
+                                    {dict.account.stats.member}{' '}
+                                    <span className="font-medium ml-1">
+                                        {profileData.createdAt
+                                            ? new Date(
+                                                  profileData.createdAt,
+                                              ).toLocaleDateString()
+                                            : ''}
+                                    </span>
+                                </p>
+                            </div>
 
-                        <button
-                            type="button"
-                            onClick={() =>
-                                router.push(`/${lang}/account/settings`)
-                            }
-                            className="w-full sm:w-auto flex items-center justify-center gap-2 bg-white dark:bg-gray-800 px-4 py-2 rounded-lg shadow-sm hover:shadow-md text-gray-700 dark:text-gray-200">
-                            <Shield className="h-5 w-5" />
-                            {dict.account.settings}
-                        </button>
+                            <button
+                                type="button"
+                                onClick={() =>
+                                    router.push(`/${lang}/account/settings`)
+                                }
+                                className="w-full sm:w-auto flex items-center justify-center gap-2 bg-white dark:bg-gray-700 px-5 py-2.5 rounded-xl shadow-sm hover:shadow-md transition-all duration-200 text-gray-700 dark:text-gray-200 border border-gray-100 dark:border-gray-600 group">
+                                <Shield className="h-5 w-5 text-indigo-500 dark:text-indigo-400" />
+                                <span>{dict.account.settings}</span>
+                                <ChevronRight className="h-4 w-4 opacity-0 -ml-4 group-hover:opacity-100 group-hover:ml-0 transition-all duration-200" />
+                            </button>
+                        </div>
                     </div>
 
+                    {/* Alert Messages */}
                     {error && <AlertMessage type="error" message={error} />}
                     {success && (
                         <AlertMessage type="success" message={success} />
                     )}
 
+                    {/* Stats Cards */}
                     <StatsSection
                         profileData={profileData}
                         calendarCount={calendars.length}
                         dict={dict}
                     />
 
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                        <ProfileSection
-                            profileData={profileData}
-                            setProfileData={setProfileData}
-                            onUpdate={handleProfileUpdate}
-                            isLoading={isLoading}
-                            dict={dict}
-                        />
-
-                        <CalendarSection
-                            calendars={calendars}
-                            refreshCalendars={fetchUserCalendars}
-                            setError={setError}
-                            setSuccess={setSuccess}
-                            dict={dict}
-                        />
+                    {/* Content Sections */}
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        <div className="lg:col-span-1">
+                            <ProfileSection
+                                profileData={profileData}
+                                setProfileData={setProfileData}
+                                onUpdate={handleProfileUpdate}
+                                isLoading={isLoading}
+                                dict={dict}
+                            />
+                        </div>
+                        <div className="lg:col-span-2">
+                            <CalendarSection
+                                calendars={calendars}
+                                refreshCalendars={fetchUserCalendars}
+                                setError={setError}
+                                setSuccess={setSuccess}
+                                dict={dict}
+                            />
+                        </div>
                     </div>
                 </div>
             </div>
