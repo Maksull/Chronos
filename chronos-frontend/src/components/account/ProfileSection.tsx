@@ -1,7 +1,6 @@
 'use client';
-
 import React, { useState, useEffect } from 'react';
-import { UserCircle } from 'lucide-react';
+import { UserCircle, MapPin, Loader2 } from 'lucide-react';
 import { Dictionary } from '@/lib/dictionary';
 import { ProfileData } from '@/types/account';
 
@@ -43,6 +42,7 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
                     { code: 'BR', name: 'Brazil' },
                     { code: 'IN', name: 'India' },
                 ];
+
                 try {
                     const response = await fetch(
                         'https://restcountries.com/v3.1/all',
@@ -71,6 +71,7 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
                 );
             }
         };
+
         fetchCountries();
     }, []);
 
@@ -115,14 +116,18 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
 
     return (
         <div className="space-y-8">
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-md overflow-hidden border border-gray-100 dark:border-gray-700">
+                <div className="bg-gradient-to-r from-indigo-500 to-purple-600 dark:from-indigo-600 dark:to-purple-700 h-12"></div>
                 <div className="p-6">
-                    <div className="flex items-center gap-3 mb-6">
-                        <UserCircle className="h-6 w-6 text-gray-400" />
-                        <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                    <div className="flex items-center gap-3 mb-6 -mt-10">
+                        <div className="bg-white dark:bg-gray-700 p-3 rounded-xl shadow-lg">
+                            <UserCircle className="h-8 w-8 text-indigo-600 dark:text-indigo-400" />
+                        </div>
+                        <h2 className="text-xl font-bold text-gray-900 dark:text-white">
                             {dict.account.profile.title}
                         </h2>
                     </div>
+
                     <form onSubmit={handleSubmit} className="space-y-6">
                         <div className="grid grid-cols-1 gap-6">
                             <div>
@@ -134,9 +139,10 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
                                     name="username"
                                     value={profileData.username}
                                     onChange={handleChange}
-                                    className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-4 py-2.5 text-gray-900 dark:text-white"
+                                    className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-4 py-2.5 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200"
                                 />
                             </div>
+
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                     {dict.account.fields.fullName}
@@ -146,9 +152,10 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
                                     name="fullName"
                                     value={profileData.fullName}
                                     onChange={handleChange}
-                                    className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-4 py-2.5 text-gray-900 dark:text-white"
+                                    className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-4 py-2.5 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200"
                                 />
                             </div>
+
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                     {dict.account.fields.region}
@@ -158,7 +165,7 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
                                         name="region"
                                         value={profileData.region}
                                         onChange={handleChange}
-                                        className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-4 py-2.5 text-gray-900 dark:text-white appearance-none"
+                                        className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-4 py-2.5 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 appearance-none"
                                         disabled={isDetectingLocation}>
                                         <option value="">
                                             {dict.auth.register.selectCountry ||
@@ -181,24 +188,31 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
                                         </svg>
                                     </div>
                                 </div>
+
                                 <div className="mt-2">
                                     <button
                                         type="button"
                                         onClick={detectLocationByIP}
                                         disabled={isDetectingLocation}
-                                        className="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 focus:outline-none flex items-center">
+                                        className="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 focus:outline-none flex items-center gap-1 transition-colors duration-200">
                                         {isDetectingLocation ? (
-                                            <span>
-                                                {dict.auth.register
-                                                    .detectingLocation ||
-                                                    'Detecting your location...'}
-                                            </span>
+                                            <>
+                                                <Loader2 className="h-3 w-3 animate-spin" />
+                                                <span>
+                                                    {dict.auth.register
+                                                        .detectingLocation ||
+                                                        'Detecting your location...'}
+                                                </span>
+                                            </>
                                         ) : (
-                                            <span>
-                                                {dict.auth.register
-                                                    .useIpLocation ||
-                                                    'Detect my country'}
-                                            </span>
+                                            <>
+                                                <MapPin className="h-3 w-3" />
+                                                <span>
+                                                    {dict.auth.register
+                                                        .useIpLocation ||
+                                                        'Detect my country'}
+                                                </span>
+                                            </>
                                         )}
                                     </button>
                                 </div>
@@ -208,10 +222,15 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
                         <button
                             type="submit"
                             disabled={isLoading}
-                            className="w-full bg-indigo-600 text-white px-4 py-2.5 rounded-lg font-medium hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 disabled:opacity-50">
-                            {isLoading
-                                ? dict.account.common.loading
-                                : dict.account.profile.update}
+                            className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white px-4 py-2.5 rounded-lg font-medium disabled:opacity-50 transition-all duration-200 flex items-center justify-center gap-2">
+                            {isLoading ? (
+                                <>
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                    {dict.account.common.loading}
+                                </>
+                            ) : (
+                                dict.account.profile.update
+                            )}
                         </button>
                     </form>
                 </div>

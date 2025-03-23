@@ -1,5 +1,4 @@
 'use client';
-
 import { Calendar, Bell, User, LogIn, LogOut, Menu, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { ThemeToggle } from '@/components';
@@ -13,7 +12,7 @@ export function Header() {
     const { dict, lang } = useDictionary();
     const router = useRouter();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
-    const { logout, isAuthenticated } = useAuth(); // Use authentication state from context
+    const { logout, isAuthenticated } = useAuth();
 
     const handleLogout = () => {
         logout();
@@ -49,14 +48,14 @@ export function Header() {
                         <div className="flex gap-x-4">
                             <Link
                                 href={`/${lang}/login`}
-                                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/50 hover:bg-indigo-100 dark:hover:bg-indigo-900 "
+                                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/50 hover:bg-indigo-100 dark:hover:bg-indigo-900"
                                 onClick={() => setIsMenuOpen(false)}>
-                                <LogIn className="h-4 w-4 mr-2" />
+                                <LogIn className="h-4 w-4 mr-2" />{' '}
                                 {dict.navigation.login}
                             </Link>
                             <Link
                                 href={`/${lang}/register`}
-                                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 "
+                                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600"
                                 onClick={() => setIsMenuOpen(false)}>
                                 {dict.navigation.register}
                             </Link>
@@ -69,10 +68,6 @@ export function Header() {
 
     const mobileAuthLinks = (
         <div className="flex flex-col gap-4 p-4 bg-gray-100 dark:bg-zinc-800 shadow-md rounded-lg items-center">
-            <div className="flex justify-center items-center w-full">
-                <LanguageToggler currentLang={lang} />
-                <ThemeToggle />
-            </div>
             <div className="flex flex-wrap justify-center items-center gap-4 w-full">
                 {isAuthenticated ? (
                     <>
@@ -101,14 +96,14 @@ export function Header() {
                     <>
                         <Link
                             href={`/${lang}/login`}
-                            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/50 hover:bg-indigo-100 dark:hover:bg-indigo-900 "
+                            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/50 hover:bg-indigo-100 dark:hover:bg-indigo-900"
                             onClick={() => setIsMenuOpen(false)}>
-                            <LogIn className="h-4 w-4 mr-2" />
+                            <LogIn className="h-4 w-4 mr-2" />{' '}
                             {dict.navigation.login}
                         </Link>
                         <Link
                             href={`/${lang}/register`}
-                            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 "
+                            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600"
                             onClick={() => setIsMenuOpen(false)}>
                             {dict.navigation.register}
                         </Link>
@@ -132,10 +127,20 @@ export function Header() {
                             </span>
                         </Link>
                     </div>
+
                     <div className="flex items-center">
+                        {/* Desktop View */}
                         <div className="hidden sm:ml-6 sm:flex sm:items-center space-x-4">
                             {authLinks}
                         </div>
+
+                        {/* Mobile View - Togglers moved to header */}
+                        <div className="sm:hidden flex items-center mr-2">
+                            <LanguageToggler currentLang={lang} />
+                            <ThemeToggle />
+                        </div>
+
+                        {/* Mobile Burger Menu Button */}
                         <div className="sm:hidden">
                             <button
                                 type="button"
