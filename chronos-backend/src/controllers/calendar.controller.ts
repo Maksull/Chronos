@@ -11,6 +11,158 @@ export class CalendarController {
         this.eventService = new EventService();
     }
 
+    async inviteUserByEmail(
+        request: FastifyRequest<{
+            Params: { id: string };
+            Body: {
+                email: string;
+                role?: ParticipantRole;
+                expireInDays?: number;
+            };
+        }>,
+        reply: FastifyReply,
+    ) {
+        try {
+            const { id } = request.params;
+            const { email, role, expireInDays } = request.body;
+
+            const emailInvite = await this.calendarService.inviteUserByEmail(request.user!.userId, id, email, role, expireInDays);
+
+            return reply.status(201).send({
+                status: 'success',
+                message: `Invitation sent to ${email}`,
+                data: emailInvite,
+            });
+        } catch (error) {
+            if (error instanceof Error) {
+                if (error.message === 'Calendar not found') {
+                    return reply.status(404).send({ status: 'error', message: error.message });
+                }
+                if (error.message === 'Only the calendar owner or admin can invite users' || error.message === 'Cannot invite users to a personal calendar') {
+                    return reply.status(403).send({ status: 'error', message: error.message });
+                }
+                if (
+                    error.message === 'This user is already a participant in the calendar' ||
+                    error.message === 'An invitation has already been sent to this email'
+                ) {
+                    return reply.status(409).send({ status: 'error', message: error.message });
+                }
+            }
+            request.log.error(error);
+            return reply.status(500).send({ status: 'error', message: 'Internal server error' });
+        }
+    }
+
+    async getEmailInvites(request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) {
+        try {
+            const { id } = request.params;
+            const emailInvites = await this.calendarService.getCalendarEmailInvites(request.user!.userId, id);
+
+            return reply.send({
+                status: 'success',
+                data: emailInvites,
+            });
+        } catch (error) {
+            if (error instanceof Error) {
+                if (error.message === 'Calendar not found') {
+                    return reply.status(404).send({ status: 'error', message: error.message });
+                }
+                if (error.message === 'Only the calendar owner or admin can view invites') {
+                    return reply.status(403).send({ status: 'error', message: error.message });
+                }
+            }
+            request.log.error(error);
+            return reply.status(500).send({ status: 'error', message: 'Internal server error' });
+        }
+    }
+
+    async deleteEmailInvite(
+        request: FastifyRequest<{
+            Params: { calendarId: string; inviteId: string };
+        }>,
+        reply: FastifyReply,
+    ) {
+        try {
+            const { inviteId } = request.params;
+            await this.calendarService.deleteEmailInvite(request.user!.userId, inviteId);
+
+            return reply.send({
+                status: 'success',
+                message: 'Invitation cancelled successfully',
+            });
+        } catch (error) {
+            if (error instanceof Error) {
+                if (error.message === 'Invitation not found') {
+                    return reply.status(404).send({ status: 'error', message: error.message });
+                }
+                if (error.message === 'Only the calendar owner or admin can cancel invitations') {
+                    return reply.status(403).send({ status: 'error', message: error.message });
+                }
+            }
+            request.log.error(error);
+            return reply.status(500).send({ status: 'error', message: 'Internal server error' });
+        }
+    }
+
+    async getEmailInviteInfo(request: FastifyRequest<{ Params: { token: string } }>, reply: FastifyReply) {
+        try {
+            const { token } = request.params;
+            const inviteInfo = await this.calendarService.getEmailInviteInfo(token);
+
+            return reply.send({
+                status: 'success',
+                data: inviteInfo,
+            });
+        } catch (error) {
+            if (error instanceof Error) {
+                if (
+                    error.message === 'Invitation not found or invalid' ||
+                    error.message === 'Invitation has expired' ||
+                    error.message === 'Calendar associated with this invitation was not found'
+                ) {
+                    return reply.status(404).send({ status: 'error', message: error.message });
+                }
+            }
+            request.log.error(error);
+            return reply.status(500).send({ status: 'error', message: 'Internal server error' });
+        }
+    }
+
+    async acceptEmailInvite(request: FastifyRequest<{ Params: { token: string } }>, reply: FastifyReply) {
+        try {
+            const { token } = request.params;
+            const calendar = await this.calendarService.acceptEmailInvite(request.user!.userId, token);
+
+            return reply.send({
+                status: 'success',
+                message: `You've been added to "${calendar.name}" calendar`,
+                data: calendar,
+            });
+        } catch (error) {
+            if (error instanceof Error) {
+                if (
+                    error.message === 'Invitation not found or invalid' ||
+                    error.message === 'Calendar associated with this invitation was not found' ||
+                    error.message === 'User not found'
+                ) {
+                    return reply.status(404).send({ status: 'error', message: error.message });
+                }
+                if (error.message === 'Invitation has expired') {
+                    return reply.status(410).send({ status: 'error', message: error.message });
+                }
+                if (
+                    error.message === 'This invitation was sent to a different email address' ||
+                    error.message === 'You are already the owner of this calendar' ||
+                    error.message === 'You are already a participant in this calendar'
+                ) {
+                    return reply.status(409).send({ status: 'error', message: error.message });
+                }
+            }
+            request.log.error(error);
+            return reply.status(500).send({ status: 'error', message: 'Internal server error' });
+        }
+    }
+
     async createCalendar(
         request: FastifyRequest<{
             Body: { name: string; description?: string; color: string };

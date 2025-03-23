@@ -184,28 +184,31 @@ export class AuthService {
         return this.userRepository.save(user);
     }
 
-    // async resendVerificationEmail(userId: string): Promise<void> {
-    //     const user = await this.userRepository.findOne({
-    //         where: { id: userId },
-    //     });
+    async resendVerificationCode(email: string): Promise<void> {
+        const user = await this.userRepository.findOne({
+            where: { email },
+        });
 
-    //     if (!user) {
-    //         throw new Error('User not found');
-    //     }
+        if (!user) {
+            throw new Error('User not found');
+        }
 
-    //     if (user.isEmailVerified) {
-    //         throw new Error('Email already verified');
-    //     }
+        if (user.isEmailVerified) {
+            throw new Error('Email already verified');
+        }
 
-    //     // Generate new verification token
-    //     user.verificationToken = this.generateVerificationToken();
-    //     user.verificationTokenExpiresAt = addHours(new Date(), 24);
+        // Generate a new verification code
+        const verificationCode = this.generateVerificationCode();
 
-    //     await this.userRepository.save(user);
+        // Update the user with the new code
+        user.verificationCode = verificationCode;
+        user.verificationCodeExpiresAt = addMinutes(new Date(), 15);
 
-    //     // Send new verification email
-    //     await this.emailService.sendVerificationEmail(user.email, user.verificationToken);
-    // }
+        await this.userRepository.save(user);
+
+        // Send the verification email with the new code
+        await this.emailService.sendVerificationEmail(user.email, verificationCode);
+    }
 
     async changePassword(userId: string, data: ChangePasswordDto): Promise<void> {
         const user = await this.userRepository.findOneBy({ id: userId });
@@ -240,6 +243,28 @@ export class AuthService {
 
         await this.userRepository.save(user);
 
+        await this.emailService.sendResetPasswordEmail(user.email, resetCode);
+    }
+
+    async resendResetPasswordToken(email: string): Promise<void> {
+        const user = await this.userRepository.findOne({
+            where: { email },
+        });
+
+        if (!user) {
+            throw new Error('User not found');
+        }
+
+        // Generate a new reset code
+        const resetCode = this.generateVerificationCode();
+
+        // Update the user with the new code
+        user.resetPasswordToken = resetCode;
+        user.resetPasswordTokenExpiresAt = addMinutes(new Date(), 15);
+
+        await this.userRepository.save(user);
+
+        // Send the reset password email with the new code
         await this.emailService.sendResetPasswordEmail(user.email, resetCode);
     }
 

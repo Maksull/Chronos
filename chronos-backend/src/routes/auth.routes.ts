@@ -3,6 +3,7 @@ import { authenticateToken } from '@/middlewares/auth.middleware';
 import { ChangeEmailDto, ChangePasswordDto } from '@/types/auth';
 import { AuthController } from '@/controllers';
 
+// Auth schemas with simple validation
 const registerSchema = {
     body: {
         type: 'object',
@@ -15,7 +16,7 @@ const registerSchema = {
             region: { type: 'string', nullable: true },
         },
     },
-};
+} as const;
 
 const loginSchema = {
     body: {
@@ -26,7 +27,7 @@ const loginSchema = {
             password: { type: 'string' },
         },
     },
-};
+} as const;
 
 const changePasswordSchema = {
     body: {
@@ -61,9 +62,9 @@ const verifyEmailSchema = {
             },
         },
     },
-};
+} as const;
 
-const checkResetTokeSchema = {
+const checkResetTokenSchema = {
     body: {
         type: 'object',
         required: ['token'],
@@ -71,7 +72,7 @@ const checkResetTokeSchema = {
             token: { type: 'string' },
         },
     },
-};
+} as const;
 
 const resetPasswordWithTokenSchema = {
     body: {
@@ -82,7 +83,27 @@ const resetPasswordWithTokenSchema = {
             newPassword: { type: 'string', minLength: 8 },
         },
     },
-};
+} as const;
+
+const resendVerificationCodeSchema = {
+    body: {
+        type: 'object',
+        required: ['email'],
+        properties: {
+            email: { type: 'string', format: 'email' },
+        },
+    },
+} as const;
+
+const resendResetPasswordTokenSchema = {
+    body: {
+        type: 'object',
+        required: ['email'],
+        properties: {
+            email: { type: 'string', format: 'email' },
+        },
+    },
+} as const;
 
 export async function authRoutes(app: FastifyInstance) {
     const authController = new AuthController();
@@ -101,21 +122,17 @@ export async function authRoutes(app: FastifyInstance) {
 
     app.post('/auth/verify-email', { schema: verifyEmailSchema }, authController.verifyEmail.bind(authController));
 
+    app.post('/auth/resend-verification-code', { schema: resendVerificationCodeSchema }, authController.resendVerificationCode.bind(authController));
+
     app.post('/auth/verify-email-change', { schema: verifyEmailSchema }, authController.confirmEmailChange.bind(authController));
 
     app.post('/auth/reset-password', authController.resetPassword.bind(authController));
 
+    app.post('/auth/resend-reset-password-token', { schema: resendResetPasswordTokenSchema }, authController.resendResetPasswordToken.bind(authController));
+
     app.post('/auth/reset-password-with-token', { schema: resetPasswordWithTokenSchema }, authController.resetPasswordWithToken.bind(authController));
 
-    app.post('/auth/check-reset-token', { schema: checkResetTokeSchema }, authController.checkResetToken.bind(authController));
-
-    // app.post(
-    //     '/auth/resend-verification',
-    //     {
-    //         preHandler: [authenticateToken],
-    //     },
-    //     authController.resendVerification.bind(authController),
-    // );
+    app.post('/auth/check-reset-token', { schema: checkResetTokenSchema }, authController.checkResetToken.bind(authController));
 
     app.put<{
         Body: ChangePasswordDto;

@@ -1,4 +1,3 @@
-// app/[lang]/verify-email/page.tsx
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
@@ -10,12 +9,14 @@ import { useDictionary } from '@/contexts';
 export default function VerifyEmailPage() {
     const { dict, lang } = useDictionary();
     const router = useRouter();
+
     const [code, setCode] = useState(['', '', '', '', '', '']);
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
-    const [isResending] = useState(false);
+    const [isResending, setIsResending] = useState(false);
     const [resendTimer, setResendTimer] = useState(0);
     const [resendSuccess, setResendSuccess] = useState(false);
+    const [email, setEmail] = useState('');
 
     const inputRefs = [
         useRef<HTMLInputElement>(null),
@@ -25,6 +26,14 @@ export default function VerifyEmailPage() {
         useRef<HTMLInputElement>(null),
         useRef<HTMLInputElement>(null),
     ];
+
+    useEffect(() => {
+        // Get the email from localStorage
+        const storedEmail = localStorage.getItem('verificationEmail');
+        if (storedEmail) {
+            setEmail(storedEmail);
+        }
+    }, []);
 
     useEffect(() => {
         if (resendTimer > 0) {
@@ -37,7 +46,44 @@ export default function VerifyEmailPage() {
     }, [resendTimer]);
 
     const handleResendCode = async () => {
-        // ... (rest of the handleResendCode function remains the same)
+        if (!email) {
+            setError(
+                dict.auth.errors.emailRequired ||
+                    'Email is required to resend the verification code',
+            );
+            return;
+        }
+
+        setIsResending(true);
+        setError('');
+        setResendSuccess(false);
+
+        try {
+            const response = await fetch(
+                'http://localhost:3001/auth/resend-verification-code',
+                {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email }),
+                },
+            );
+
+            const data = await response.json();
+
+            if (data.status === 'error') {
+                setError(data.message || dict.auth.errors.generic);
+                return;
+            }
+
+            setResendSuccess(true);
+            setResendTimer(60); // 60-second cooldown
+        } catch (error) {
+            setError(dict.auth.errors.generic);
+        } finally {
+            setIsResending(false);
+        }
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -67,6 +113,8 @@ export default function VerifyEmailPage() {
                 return;
             }
 
+            // Clear the stored email as it's no longer needed
+            localStorage.removeItem('verificationEmail');
             setResendSuccess(true);
             setTimeout(() => router.push(`/${lang}/login`), 1500);
         } catch {
@@ -82,7 +130,6 @@ export default function VerifyEmailPage() {
             const newCode = [...code];
             newCode[index] = newValue;
             setCode(newCode);
-
             if (index < 5) {
                 inputRefs[index + 1].current?.focus();
             }
@@ -90,11 +137,9 @@ export default function VerifyEmailPage() {
             if (!/^\d*$/.test(value)) {
                 return;
             }
-
             const newCode = [...code];
             newCode[index] = value;
             setCode(newCode);
-
             if (value && index < 5) {
                 inputRefs[index + 1].current?.focus();
             }
@@ -105,9 +150,18 @@ export default function VerifyEmailPage() {
         e.preventDefault();
         const pastedText = e.clipboardData.getData('text/plain');
         const digits = pastedText.replace(/\D/g, '').slice(0, 6);
-        const newCode = digits.split('').slice(0, 6);
+        const newCode = [...code];
+
+        digits.split('').forEach((digit, index) => {
+            if (index < 6) {
+                newCode[index] = digit;
+            }
+        });
+
         setCode(newCode);
-        inputRefs[newCode.length - 1].current?.focus();
+        if (digits.length > 0 && digits.length < 6) {
+            inputRefs[digits.length].current?.focus();
+        }
     };
 
     const handleKeyDown = (
@@ -130,10 +184,11 @@ export default function VerifyEmailPage() {
                     <Calendar className="h-12 w-12 text-indigo-600 dark:text-indigo-400" />
                 </div>
                 <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900 dark:text-white">
-                    {dict.auth.verifyEmail.title}
+                    {dict.auth.verifyEmail.title || 'Verify your email'}
                 </h2>
                 <p className="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">
-                    {dict.auth.verifyEmail.description}
+                    {dict.auth.verifyEmail.description ||
+                        'Please enter the code sent to your email address'}
                 </p>
             </div>
 
@@ -144,16 +199,19 @@ export default function VerifyEmailPage() {
                             {error}
                         </div>
                     )}
+
                     {resendSuccess && (
                         <div className="mb-4 p-4 bg-green-50 dark:bg-green-900/50 text-green-700 dark:text-green-200 rounded-md">
-                            {dict.auth.verifyEmail.success}
+                            {dict.auth.verifyEmail.resendSuccess ||
+                                'Verification code has been resent to your email.'}
                         </div>
                     )}
 
                     <form onSubmit={handleSubmit} className="space-y-6">
                         <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 text-center mb-4">
-                                {dict.auth.verifyEmail.enterCode}
+                                {dict.auth.verifyEmail.enterCode ||
+                                    'Enter 6-digit code'}
                             </label>
                             <div className="flex justify-center space-x-2">
                                 {code.map((digit, index) => (
@@ -176,7 +234,8 @@ export default function VerifyEmailPage() {
                                 ))}
                             </div>
                             <p className="mt-2 text-sm text-gray-500 dark:text-gray-400 text-center">
-                                {dict.auth.verifyEmail.codeExpiry}
+                                {dict.auth.verifyEmail.codeExpiry ||
+                                    'Code expires in 15 minutes'}
                             </p>
                         </div>
 
@@ -185,8 +244,9 @@ export default function VerifyEmailPage() {
                             disabled={isLoading || code.some(digit => !digit)}
                             className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:bg-indigo-500 dark:hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed">
                             {isLoading
-                                ? dict.auth.verifyEmail.loading
-                                : dict.auth.verifyEmail.submit}
+                                ? dict.auth.verifyEmail.loading ||
+                                  'Verifying...'
+                                : dict.auth.verifyEmail.submit || 'Verify'}
                         </button>
 
                         <div className="text-center">
@@ -196,13 +256,18 @@ export default function VerifyEmailPage() {
                                 disabled={isResending || resendTimer > 0}
                                 className="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed">
                                 {isResending
-                                    ? dict.auth.verifyEmail.resending
+                                    ? dict.auth.verifyEmail.resending ||
+                                      'Resending...'
                                     : resendTimer > 0
-                                      ? dict.auth.verifyEmail.waitResend.replace(
+                                      ? (
+                                            dict.auth.verifyEmail.waitResend ||
+                                            'Resend code in {seconds}s'
+                                        ).replace(
                                             '{seconds}',
                                             resendTimer.toString(),
                                         )
-                                      : dict.auth.verifyEmail.resendCode}
+                                      : dict.auth.verifyEmail.resendCode ||
+                                        'Resend code'}
                             </button>
                         </div>
 
@@ -210,7 +275,8 @@ export default function VerifyEmailPage() {
                             <Link
                                 href={`/${lang}/login`}
                                 className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-500">
-                                {dict.auth.verifyEmail.backToLogin}
+                                {dict.auth.verifyEmail.backToLogin ||
+                                    'Back to login'}
                             </Link>
                         </div>
                     </form>

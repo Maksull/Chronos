@@ -6,8 +6,9 @@ import Link from 'next/link';
 import { Calendar } from 'lucide-react';
 import type { RegisterFormData, AuthResponse } from '@/types/auth';
 import { useDictionary } from '@/contexts';
+import { useError } from '@/contexts/ErrorContext';
+import { useApi } from '@/lib/useApi';
 
-// Define the Country interface
 interface Country {
     code: string;
     name: string;
@@ -16,6 +17,8 @@ interface Country {
 export default function RegisterPage() {
     const { dict, lang } = useDictionary();
     const router = useRouter();
+    const { setError } = useError();
+    const api = useApi();
 
     const [formData, setFormData] = useState<RegisterFormData>({
         username: '',
@@ -24,17 +27,14 @@ export default function RegisterPage() {
         fullName: '',
         region: '',
     });
-
-    const [error, setError] = useState<string>('');
+    const [pageError, setPageError] = useState<string>('');
     const [isLoading, setIsLoading] = useState(false);
     const [countries, setCountries] = useState<Country[]>([]);
     const [isDetectingLocation, setIsDetectingLocation] = useState(false);
 
-    // Fetch list of countries
     useEffect(() => {
         const fetchCountries = async () => {
             try {
-                // First set some default countries in case API fails
                 const defaultCountries: Country[] = [
                     { code: 'US', name: 'United States' },
                     { code: 'GB', name: 'United Kingdom' },
@@ -53,8 +53,6 @@ export default function RegisterPage() {
                         'https://restcountries.com/v3.1/all',
                     );
                     const data = await response.json();
-
-                    // Format countries data
                     const formattedCountries = data
                         .map((country: any) => ({
                             code: country.cca2,
@@ -70,7 +68,10 @@ export default function RegisterPage() {
                         'Failed to fetch countries from API:',
                         apiError,
                     );
-                    // Fall back to default countries
+                    setError(
+                        dict.auth.errors.countriesApi ||
+                            'Failed to load countries',
+                    );
                     setCountries(defaultCountries);
                 }
             } catch (error) {
@@ -78,15 +79,16 @@ export default function RegisterPage() {
                     'Unexpected error in country initialization:',
                     error,
                 );
+                setError(dict.errors.generic);
             }
         };
 
         fetchCountries();
-    }, []);
+    }, [dict, setError]);
 
-    // Get location based on IP address when the button is clicked
     const detectLocationByIP = async () => {
         setIsDetectingLocation(true);
+
         try {
             const response = await fetch('https://ipapi.co/json/');
             const data = await response.json();
@@ -96,10 +98,18 @@ export default function RegisterPage() {
                     ...prev,
                     region: data.country_code,
                 }));
+            } else {
+                // Show a non-critical notification
+                setPageError(
+                    dict.auth.register.locationDetectionFailed ||
+                        'Could not determine location, please select your country manually.',
+                );
             }
         } catch (error) {
-            console.log(
-                'Could not determine location, please select your country manually.',
+            console.log('Could not determine location', error);
+            setPageError(
+                dict.auth.register.locationDetectionFailed ||
+                    'Could not determine location, please select your country manually.',
             );
         } finally {
             setIsDetectingLocation(false);
@@ -108,32 +118,45 @@ export default function RegisterPage() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        setError('');
+        setPageError('');
         setIsLoading(true);
 
+        // Fallback error message
+        const genericErrorMessage =
+            dict?.auth?.errors?.generic ||
+            'Registration failed. Please try again.';
+
         try {
-            const response = await fetch(
-                'http://localhost:3001/auth/register',
-                {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(formData),
-                },
+            // Always show errors automatically
+            const response = await api.post<AuthResponse>(
+                '/auth/register',
+                formData,
+                true, // Always show error in modal
             );
 
-            const data: AuthResponse = await response.json();
-
-            if (data.status === 'error') {
-                setError(data.message || dict.auth.errors.generic);
+            if (response.status === 'error') {
+                // Also set the page error for better accessibility
+                const errorMessage = response.message || genericErrorMessage;
+                setPageError(errorMessage);
                 return;
             }
 
-            if (data.data?.token) {
-                localStorage.setItem('token', data.data.token);
-                router.push(`/${lang}/verify-email-sent`);
+            if (response.data?.data?.token) {
+                localStorage.setItem('token', response.data.data.token);
+                localStorage.setItem('verificationEmail', formData.email);
+                router.push(`/${lang}/verify-email`);
+            } else {
+                // Handle the case where we got a success response but no token
+                setPageError(genericErrorMessage);
+                setError(genericErrorMessage);
             }
-        } catch {
-            setError(dict.auth.errors.generic);
+        } catch (err) {
+            // Log the error for debugging
+            console.error('Registration error:', err);
+
+            // Show a generic error message
+            setPageError(genericErrorMessage);
+            setError(genericErrorMessage);
         } finally {
             setIsLoading(false);
         }
@@ -169,9 +192,10 @@ export default function RegisterPage() {
 
             <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
                 <div className="bg-white dark:bg-dark-surface py-8 px-4 shadow sm:rounded-lg sm:px-10">
-                    {error && (
+                    {/* Inline error display for accessibility */}
+                    {pageError && (
                         <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/50 text-red-700 dark:text-red-200 rounded-md">
-                            {error}
+                            {pageError}
                         </div>
                     )}
 

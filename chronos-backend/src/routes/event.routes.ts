@@ -54,7 +54,11 @@ const createEventSchema = {
             endDate: { type: 'string', format: 'date-time' },
             description: { type: 'string', nullable: true },
             color: { type: 'string', pattern: '^#[0-9a-fA-F]{6}$', nullable: true },
-            invitees: { type: 'array', items: { type: 'string', format: 'uuid' }, nullable: true },
+            invitees: {
+                type: 'array',
+                items: { type: 'string', format: 'uuid' },
+                nullable: true,
+            },
         },
     },
 } as const;
@@ -77,7 +81,11 @@ const updateEventSchema = {
             description: { type: 'string', nullable: true },
             color: { type: 'string', pattern: '^#[0-9a-fA-F]{6}$', nullable: true },
             isCompleted: { type: 'boolean' },
-            invitees: { type: 'array', items: { type: 'string', format: 'uuid' }, nullable: true },
+            invitees: {
+                type: 'array',
+                items: { type: 'string', format: 'uuid' },
+                nullable: true,
+            },
         },
     },
 } as const;
@@ -111,7 +119,11 @@ const updateCalendarEventSchema = {
             description: { type: 'string', nullable: true },
             color: { type: 'string', pattern: '^#[0-9a-fA-F]{6}$', nullable: true },
             isCompleted: { type: 'boolean' },
-            invitees: { type: 'array', items: { type: 'string', format: 'uuid' }, nullable: true },
+            invitees: {
+                type: 'array',
+                items: { type: 'string', format: 'uuid' },
+                nullable: true,
+            },
         },
     },
 } as const;
@@ -132,46 +144,31 @@ export async function eventRoutes(app: FastifyInstance) {
 
     app.post<{ Params: CalendarParams; Body: CreateEventBody }>(
         '/calendars/:calendarId/events',
-        {
-            schema: createEventSchema,
-            preHandler: [authenticateToken],
-        },
+        { schema: createEventSchema, preHandler: [authenticateToken] },
         eventController.createEvent.bind(eventController),
     );
 
     app.put<{ Params: EventParams; Body: UpdateEventBody }>(
         '/events/:id',
-        {
-            schema: updateEventSchema,
-            preHandler: [authenticateToken],
-        },
+        { schema: updateEventSchema, preHandler: [authenticateToken] },
         eventController.updateEvent.bind(eventController),
     );
 
     app.put<{ Params: CalendarEventParams; Body: UpdateEventBody }>(
         '/calendars/:calendarId/events/:id',
-        {
-            schema: updateCalendarEventSchema,
-            preHandler: [authenticateToken],
-        },
+        { schema: updateCalendarEventSchema, preHandler: [authenticateToken] },
         eventController.updateEvent.bind(eventController),
     );
 
     app.delete<{ Params: EventParams }>(
         '/events/:id',
-        {
-            schema: deleteEventSchema,
-            preHandler: [authenticateToken],
-        },
+        { schema: deleteEventSchema, preHandler: [authenticateToken] },
         eventController.deleteEvent.bind(eventController),
     );
 
     app.delete<{ Params: CalendarEventParams }>(
         '/calendars/:calendarId/events/:id',
-        {
-            schema: deleteCalendarEventSchema,
-            preHandler: [authenticateToken],
-        },
+        { schema: deleteCalendarEventSchema, preHandler: [authenticateToken] },
         eventController.deleteEvent.bind(eventController),
     );
 }

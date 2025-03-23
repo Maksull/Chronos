@@ -33,6 +33,7 @@ interface UpdateParticipantRoleBody {
     role: ParticipantRole;
 }
 
+// Schema definitions remain the same, as our validation error handler will transform the error messages
 const createCalendarSchema = {
     body: {
         type: 'object',
@@ -90,10 +91,7 @@ const getCalendarEventsSchema = {
             endDate: { type: 'string', format: 'date-time', nullable: true },
             categoryId: {
                 type: ['string', 'array', 'null'],
-                items: {
-                    type: 'string',
-                    format: 'uuid',
-                },
+                items: { type: 'string', format: 'uuid' },
                 format: 'uuid',
             },
         },
@@ -137,11 +135,7 @@ const createInviteLinkSchema = {
         type: 'object',
         properties: {
             expireInDays: { type: 'number', minimum: 1, nullable: true },
-            role: {
-                type: 'string',
-                enum: Object.values(ParticipantRole),
-                nullable: true,
-            },
+            role: { type: 'string', enum: Object.values(ParticipantRole), nullable: true },
         },
     },
 } as const;
@@ -167,13 +161,8 @@ const acceptInviteSchema = {
     body: {
         type: 'object',
         properties: {
-            role: {
-                type: 'string',
-                enum: Object.values(ParticipantRole),
-                nullable: true,
-            },
+            role: { type: 'string', enum: Object.values(ParticipantRole), nullable: true },
         },
-        // Allow an empty object
         additionalProperties: false,
     },
 } as const;
@@ -222,10 +211,7 @@ const updateParticipantRoleSchema = {
         type: 'object',
         required: ['role'],
         properties: {
-            role: {
-                type: 'string',
-                enum: Object.values(ParticipantRole),
-            },
+            role: { type: 'string', enum: Object.values(ParticipantRole) },
         },
     },
 } as const;
@@ -251,10 +237,69 @@ const leaveCalendarSchema = {
     },
 } as const;
 
+const inviteUserByEmailSchema = {
+    params: {
+        type: 'object',
+        required: ['id'],
+        properties: {
+            id: { type: 'string', format: 'uuid' },
+        },
+    },
+    body: {
+        type: 'object',
+        required: ['email'],
+        properties: {
+            email: { type: 'string', format: 'email' },
+            role: { type: 'string', enum: Object.values(ParticipantRole), nullable: true },
+            expireInDays: { type: 'number', minimum: 1, nullable: true },
+        },
+    },
+} as const;
+
+const getEmailInvitesSchema = {
+    params: {
+        type: 'object',
+        required: ['id'],
+        properties: {
+            id: { type: 'string', format: 'uuid' },
+        },
+    },
+} as const;
+
+const deleteEmailInviteSchema = {
+    params: {
+        type: 'object',
+        required: ['calendarId', 'inviteId'],
+        properties: {
+            calendarId: { type: 'string', format: 'uuid' },
+            inviteId: { type: 'string', format: 'uuid' },
+        },
+    },
+} as const;
+
+const getEmailInviteInfoSchema = {
+    params: {
+        type: 'object',
+        required: ['token'],
+        properties: {
+            token: { type: 'string' },
+        },
+    },
+} as const;
+
+const acceptEmailInviteSchema = {
+    params: {
+        type: 'object',
+        required: ['token'],
+        properties: {
+            token: { type: 'string' },
+        },
+    },
+} as const;
+
 export async function calendarRoutes(app: FastifyInstance) {
     const calendarController = new CalendarController();
 
-    // Existing routes
     app.get('/calendars', { preHandler: [authenticateToken] }, calendarController.getUserCalendars.bind(calendarController));
 
     app.get<{ Params: CalendarParams }>(
@@ -265,10 +310,7 @@ export async function calendarRoutes(app: FastifyInstance) {
 
     app.get<{ Params: CalendarParams; Querystring: CalendarEventsQuery }>(
         '/calendars/:id/events',
-        {
-            schema: getCalendarEventsSchema,
-            preHandler: [authenticateToken],
-        },
+        { schema: getCalendarEventsSchema, preHandler: [authenticateToken] },
         calendarController.getCalendarEvents.bind(calendarController),
     );
 
@@ -326,7 +368,6 @@ export async function calendarRoutes(app: FastifyInstance) {
         calendarController.getInviteLinkInfo.bind(calendarController),
     );
 
-    // New routes for participant role management
     app.get<{ Params: { id: string } }>(
         '/calendars/:id/participants',
         { schema: getCalendarParticipantsSchema, preHandler: [authenticateToken] },
@@ -349,5 +390,38 @@ export async function calendarRoutes(app: FastifyInstance) {
         '/calendars/:id/leave',
         { schema: leaveCalendarSchema, preHandler: [authenticateToken] },
         calendarController.leaveCalendar.bind(calendarController),
+    );
+
+    app.post<{
+        Params: { id: string };
+        Body: { email: string; role?: ParticipantRole; expireInDays?: number };
+    }>(
+        '/calendars/:id/email-invites',
+        { schema: inviteUserByEmailSchema, preHandler: [authenticateToken] },
+        calendarController.inviteUserByEmail.bind(calendarController),
+    );
+
+    app.get<{ Params: { id: string } }>(
+        '/calendars/:id/email-invites',
+        { schema: getEmailInvitesSchema, preHandler: [authenticateToken] },
+        calendarController.getEmailInvites.bind(calendarController),
+    );
+
+    app.delete<{ Params: { calendarId: string; inviteId: string } }>(
+        '/calendars/:calendarId/email-invites/:inviteId',
+        { schema: deleteEmailInviteSchema, preHandler: [authenticateToken] },
+        calendarController.deleteEmailInvite.bind(calendarController),
+    );
+
+    app.get<{ Params: { token: string } }>(
+        '/calendar-email-invites/:token',
+        { schema: getEmailInviteInfoSchema },
+        calendarController.getEmailInviteInfo.bind(calendarController),
+    );
+
+    app.post<{ Params: { token: string } }>(
+        '/calendar-email-invites/:token/accept',
+        { schema: acceptEmailInviteSchema, preHandler: [authenticateToken] },
+        calendarController.acceptEmailInvite.bind(calendarController),
     );
 }

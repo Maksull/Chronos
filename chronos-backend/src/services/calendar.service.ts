@@ -1,8 +1,10 @@
 import { AppDataSource } from '@/database/data-source';
-import { Calendar, User, CalendarParticipant, ParticipantRole } from '@/entities';
+import { Calendar, User, CalendarParticipant, ParticipantRole, CalendarEmailInvite } from '@/entities';
 import { CalendarInviteLink } from '@/entities/CalendarInviteLink';
 import { seedDefaultCategories } from '@/utils/seedDefaultCategories';
 import { CalendarDto, ParticipantWithRoleDto } from '@/types/calendar';
+import { EmailService } from '.';
+import { randomBytes } from 'crypto';
 
 interface CreateCalendarDto {
     name: string;
@@ -25,6 +27,246 @@ export class CalendarService {
     private userRepository = AppDataSource.getRepository(User);
     private participantRepository = AppDataSource.getRepository(CalendarParticipant);
     private inviteLinkRepository = AppDataSource.getRepository(CalendarInviteLink);
+    private emailInviteRepository = AppDataSource.getRepository(CalendarEmailInvite);
+
+    private emailService: EmailService;
+
+    constructor() {
+        this.emailService = new EmailService();
+    }
+
+    async inviteUserByEmail(
+        currentUserId: string,
+        calendarId: string,
+        email: string,
+        role: ParticipantRole = ParticipantRole.READER,
+        expireInDays?: number,
+    ): Promise<CalendarEmailInvite> {
+        // Verify calendar exists and check permissions
+        const calendar = await this.calendarRepository.findOne({
+            where: { id: calendarId },
+            relations: ['owner'],
+        });
+
+        if (!calendar) {
+            throw new Error('Calendar not found');
+        }
+
+        if (calendar.isMain) {
+            throw new Error('Cannot invite users to a personal calendar');
+        }
+
+        // Check if current user is owner or admin
+        const isOwner = calendar.owner.id === currentUserId;
+        if (!isOwner) {
+            const participantRole = await this.participantRepository.findOne({
+                where: { calendarId, userId: currentUserId },
+            });
+
+            if (!participantRole || participantRole.role !== ParticipantRole.ADMIN) {
+                throw new Error('Only the calendar owner or admin can invite users');
+            }
+        }
+
+        // Check if user with this email already exists
+        const existingUser = await this.userRepository.findOne({
+            where: { email },
+        });
+
+        if (existingUser) {
+            // Check if already a participant
+            const existingParticipant = await this.participantRepository.findOne({
+                where: { calendarId, userId: existingUser.id },
+            });
+
+            if (existingParticipant) {
+                throw new Error('This user is already a participant in the calendar');
+            }
+
+            // Check if there's already a pending invite for this email
+            const existingInvite = await this.emailInviteRepository.findOne({
+                where: { calendarId, email },
+            });
+
+            if (existingInvite) {
+                throw new Error('An invitation has already been sent to this email');
+            }
+        }
+
+        // Generate token and set expiration date
+        const token = randomBytes(32).toString('hex');
+        let expiresAt: Date | null = null;
+        if (expireInDays) {
+            expiresAt = new Date();
+            expiresAt.setDate(expiresAt.getDate() + expireInDays);
+        }
+
+        // Create email invite record
+        const emailInvite = this.emailInviteRepository.create({
+            calendar,
+            calendarId,
+            email,
+            role,
+            token,
+            expiresAt,
+        });
+
+        const savedInvite = await this.emailInviteRepository.save(emailInvite);
+
+        // Send invitation email
+        await this.sendCalendarInviteEmail(email, calendar.name, token);
+
+        return savedInvite;
+    }
+
+    private async sendCalendarInviteEmail(email: string, calendarName: string, token: string): Promise<void> {
+        const inviteUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/calendar/email-invite/${token}`;
+
+        await this.emailService.sendCalendarInviteEmail(email, calendarName, inviteUrl);
+    }
+
+    async acceptEmailInvite(userId: string, token: string): Promise<Calendar> {
+        // Find the email invite by token
+        const emailInvite = await this.emailInviteRepository.findOne({
+            where: { token },
+            relations: ['calendar', 'calendar.owner'],
+        });
+
+        if (!emailInvite) {
+            throw new Error('Invitation not found or invalid');
+        }
+
+        // Check if invite has expired
+        if (emailInvite.expiresAt && emailInvite.expiresAt < new Date()) {
+            throw new Error('Invitation has expired');
+        }
+
+        // Check if calendar still exists
+        if (!emailInvite.calendar) {
+            throw new Error('Calendar associated with this invitation was not found');
+        }
+
+        // Get the user
+        const user = await this.userRepository.findOne({
+            where: { id: userId },
+        });
+
+        if (!user) {
+            throw new Error('User not found');
+        }
+
+        // Verify user email matches the invited email
+        if (user.email.toLowerCase() !== emailInvite.email.toLowerCase()) {
+            throw new Error('This invitation was sent to a different email address');
+        }
+
+        const calendar = emailInvite.calendar;
+
+        // Make sure user is not already a participant or owner
+        if (calendar.owner.id === userId) {
+            throw new Error('You are already the owner of this calendar');
+        }
+
+        const existingParticipation = await this.participantRepository.findOne({
+            where: { calendarId: calendar.id, userId },
+        });
+
+        if (existingParticipation) {
+            throw new Error('You are already a participant in this calendar');
+        }
+
+        // Add user as a participant with the specified role
+        const participant = this.participantRepository.create({
+            calendar,
+            calendarId: calendar.id,
+            user,
+            userId,
+            role: emailInvite.role,
+        });
+
+        await this.participantRepository.save(participant);
+
+        // Delete the email invite after it's been used
+        await this.emailInviteRepository.remove(emailInvite);
+
+        return calendar;
+    }
+
+    async getEmailInviteInfo(token: string): Promise<{ id: string; name: string; email: string }> {
+        const emailInvite = await this.emailInviteRepository.findOne({
+            where: { token },
+            relations: ['calendar'],
+        });
+
+        if (!emailInvite) {
+            throw new Error('Invitation not found or invalid');
+        }
+
+        if (emailInvite.expiresAt && emailInvite.expiresAt < new Date()) {
+            throw new Error('Invitation has expired');
+        }
+
+        if (!emailInvite.calendar) {
+            throw new Error('Calendar associated with this invitation was not found');
+        }
+
+        return {
+            id: emailInvite.calendar.id,
+            name: emailInvite.calendar.name,
+            email: emailInvite.email,
+        };
+    }
+
+    async getCalendarEmailInvites(userId: string, calendarId: string): Promise<CalendarEmailInvite[]> {
+        const calendar = await this.calendarRepository.findOne({
+            where: { id: calendarId },
+            relations: ['owner'],
+        });
+
+        if (!calendar) {
+            throw new Error('Calendar not found');
+        }
+
+        const isOwner = calendar.owner.id === userId;
+        if (!isOwner) {
+            const participantRole = await this.participantRepository.findOne({
+                where: { calendarId, userId },
+            });
+
+            if (!participantRole || participantRole.role !== ParticipantRole.ADMIN) {
+                throw new Error('Only the calendar owner or admin can view invites');
+            }
+        }
+
+        return this.emailInviteRepository.find({
+            where: { calendarId },
+            order: { createdAt: 'DESC' },
+        });
+    }
+
+    async deleteEmailInvite(userId: string, inviteId: string): Promise<void> {
+        const emailInvite = await this.emailInviteRepository.findOne({
+            where: { id: inviteId },
+            relations: ['calendar', 'calendar.owner'],
+        });
+
+        if (!emailInvite) {
+            throw new Error('Invitation not found');
+        }
+
+        const isOwner = emailInvite.calendar.owner.id === userId;
+        if (!isOwner) {
+            const participantRole = await this.participantRepository.findOne({
+                where: { calendarId: emailInvite.calendarId, userId },
+            });
+
+            if (!participantRole || participantRole.role !== ParticipantRole.ADMIN) {
+                throw new Error('Only the calendar owner or admin can cancel invitations');
+            }
+        }
+
+        await this.emailInviteRepository.remove(emailInvite);
+    }
 
     async createPersonalCalendar(userId: string): Promise<Calendar> {
         const user = await this.userRepository.findOneBy({ id: userId });
