@@ -149,6 +149,9 @@ export type Dictionary = {
             pleaseLoginToContinue: string;
         };
         register: {
+            selectCountry: string;
+            detectingLocation: string;
+            useIpLocation: string;
             title: string;
             subtitle: string;
             loginLink: string;
@@ -195,6 +198,22 @@ export type Dictionary = {
         };
     };
     calendar?: {
+        creatorRoleNotice: string;
+        readerRoleNotice: string;
+        cannotDeleteSystemCalendar: string;
+        noPermission: string;
+        viewOnlyMode: string;
+        youCreatedThis: string;
+        createdBy: string;
+        showHolidays: string;
+        roleAdmin: string;
+        editRole: string;
+        removeParticipant: string;
+        saveRole: string;
+        cancel: string;
+        roleCreator: string;
+        roleReader: string;
+        participant: string;
         noDescription: string;
         deleteConfirmationError: string;
         editCalendar: string;

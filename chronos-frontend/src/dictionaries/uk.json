@@ -47,7 +47,7 @@
             "newPassword": "Новий пароль",
             "newEmail": "Нова адреса пошти"
         },
-        "welcome": "Вітаємо, {name}",
+        "welcome": "Вітаємо, ",
         "stats": {
             "totalCalendars": "Всього календарів",
             "region": "Ваш регіон",
@@ -145,6 +145,9 @@
             "pleaseLoginToContinue": "Будь ласка, увійдіть, щоб продовжити"
         },
         "register": {
+            "selectCountry": "Обрати країну",
+            "detectingLocation": "Визначаємо ваше місцезнаходження",
+            "useIpLocation": "Визначити мою країну",
             "title": "Створити обліковий запис",
             "subtitle": "Вже маєте обліковий запис?",
             "loginLink": "Увійти",
@@ -191,6 +194,22 @@
         }
     },
     "calendar": {
+        "creatorRoleNotice": "Ви редактор. Певні налаштування можуть бути обмежені.",
+        "readerRoleNotice": "Ви читач. Ви можете тільки проглядати але не редагувати налаштування.",
+        "cannotDeleteSystemCalendar": "Це основний календар і він не може бути видалений.",
+        "noPermission": "У вас немає прав на виконання цієї операції",
+        "viewOnlyMode": "Тільки для перегляду. Ви не можете редагувати цю подію",
+        "youCreatedThis": "Ви створили цю подію",
+        "createdBy": "Створена",
+        "showHolidays": "Показати свята",
+        "roleAdmin": "Адмін",
+        "editRole": "Змінити роль",
+        "removeParticipant": "Видалити учасника",
+        "saveRole": "Зберегти роль",
+        "cancel": "Скасувати",
+        "roleCreator": "Редактор",
+        "roleReader": "Читач",
+        "participant": "Учасник",
         "noDescription": "Опис не надано",
         "deleteConfirmationError": "Помилка при підтвердженні видалення",
         "editCalendar": "Редагувати календар",

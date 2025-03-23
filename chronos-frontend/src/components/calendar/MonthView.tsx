@@ -388,10 +388,10 @@ export const MonthView: React.FC<MonthViewProps> = ({
                                             }
                                         }}
                                         className={`
-                p-1 rounded-md transition-all group relative
+p-1 border dark:border-gray-700 rounded-md transition-all group relative
                 ${
                     day.inCurrentMonth
-                        ? 'bg-white dark:bg-gray-800 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 hover:shadow-md cursor-pointer active:bg-indigo-100 dark:active:bg-indigo-900/30'
+                        ? 'text-gray-600 dark:text-white bg-white dark:bg-gray-800 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 hover:shadow-md cursor-pointer active:bg-indigo-100 dark:active:bg-indigo-900/30'
                         : 'bg-gray-50 dark:bg-gray-700/50 text-gray-400 dark:text-gray-500'
                 }
                 ${

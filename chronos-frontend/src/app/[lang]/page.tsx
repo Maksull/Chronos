@@ -1,6 +1,5 @@
 // app/[lang]/page.tsx
 import { Calendar, Clock, Users, Target, Lock, Globe } from 'lucide-react';
-import Link from 'next/link';
 import { getDictionary } from '@/lib/dictionary';
 import { Locale } from '@/middleware';
 
@@ -82,22 +81,6 @@ export default async function Home({
                                 <p className="mt-3 text-base text-gray-500 dark:text-gray-400 sm:mt-5 sm:text-lg sm:max-w-xl sm:mx-auto md:mt-5 md:text-xl lg:mx-0">
                                     {dict.home.hero.description}
                                 </p>
-                                <div className="mt-5 sm:mt-8 sm:flex sm:justify-center lg:justify-start">
-                                    <div className="rounded-md shadow">
-                                        <Link
-                                            href={`/${lang}/signup`}
-                                            className="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 md:py-4 md:text-lg md:px-10">
-                                            {dict.home.hero.buttons.getStarted}
-                                        </Link>
-                                    </div>
-                                    <div className="mt-3 sm:mt-0 sm:ml-3">
-                                        <Link
-                                            href={`/${lang}/demo`}
-                                            className="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-indigo-600 dark:text-indigo-400 bg-indigo-100 hover:bg-indigo-200 dark:bg-indigo-900 dark:hover:bg-indigo-800 md:py-4 md:text-lg md:px-10">
-                                            {dict.home.hero.buttons.liveDemo}
-                                        </Link>
-                                    </div>
-                                </div>
                             </div>
                         </main>
                     </div>
@@ -135,27 +118,6 @@ export default async function Home({
                             ))}
                         </div>
                     </div>
-                </div>
-            </div>
-
-            <div className="bg-indigo-700 dark:bg-indigo-900">
-                <div className="max-w-2xl mx-auto text-center py-16 px-4 sm:py-20 sm:px-6 lg:px-8">
-                    <h2 className="text-3xl font-extrabold text-white sm:text-4xl">
-                        <span className="block">
-                            {dict.home.cta.title.first}
-                        </span>
-                        <span className="block">
-                            {dict.home.cta.title.second}
-                        </span>
-                    </h2>
-                    <p className="mt-4 text-lg leading-6 text-indigo-200">
-                        {dict.home.cta.description}
-                    </p>
-                    <Link
-                        href={`/${lang}/signup`}
-                        className="mt-8 w-full inline-flex items-center justify-center px-5 py-3 border border-transparent text-base font-medium rounded-md text-indigo-600 dark:text-indigo-300 bg-white hover:bg-indigo-50 dark:bg-indigo-800 dark:hover:bg-indigo-700 sm:w-auto">
-                        {dict.home.cta.button}
-                    </Link>
                 </div>
             </div>
         </>

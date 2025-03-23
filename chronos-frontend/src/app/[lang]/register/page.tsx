@@ -338,17 +338,6 @@ export default function RegisterPage() {
                             </div>
                         </div>
 
-                        <div className="flex items-center justify-between">
-                            <p className="text-sm text-gray-600 dark:text-gray-400">
-                                {dict.auth.register.termsText}{' '}
-                                <Link
-                                    href={`/${lang}/terms`}
-                                    className="font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-500">
-                                    {dict.auth.register.termsLink}
-                                </Link>
-                            </p>
-                        </div>
-
                         <button
                             type="submit"
                             disabled={isLoading}

@@ -434,7 +434,16 @@ export const EventModal: React.FC<EventModalProps> = ({
                                 <CategorySelector
                                     categories={categories}
                                     selectedCategoryId={categoryId}
-                                    onChange={setCategoryId}
+                                    onChange={id => {
+                                        setCategoryId(id); // Set the selected category
+                                        const selectedCategory =
+                                            categories.find(
+                                                cat => cat.id === id,
+                                            );
+                                        if (selectedCategory) {
+                                            setColor(selectedCategory.color); // Set the color to the selected category's color
+                                        }
+                                    }}
                                     calendarId={calendarId}
                                     mode={mode}
                                     dict={dict}

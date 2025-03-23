@@ -47,7 +47,7 @@
             "newPassword": "New Password",
             "newEmail": "New Email Address"
         },
-        "welcome": "Welcome, {name}",
+        "welcome": "Welcome, ",
         "stats": {
             "totalCalendars": "Total Calendars",
             "region": "Your Region",
@@ -145,6 +145,9 @@
             "pleaseLoginToContinue": "Please sign in to continue"
         },
         "register": {
+            "selectCountry": "Select a country",
+            "detectingLocation": "Detecting your location",
+            "useIpLocation": "Detect my country",
             "title": "Create your account",
             "subtitle": "Already have an account?",
             "loginLink": "Sign in",
@@ -191,6 +194,22 @@
         }
     },
     "calendar": {
+        "creatorRoleNotice": "You are a Creator. Some settings may be limited.",
+        "readerRoleNotice": "You are a Reader. You can view but not edit settings.",
+        "cannotDeleteSystemCalendar": "This is a system calendar and cannot be deleted.",
+        "noPermission": "You do not have permission to perform this action",
+        "viewOnlyMode": "View-only mode. You cannot edit this event.",
+        "youCreatedThis": "You created this event",
+        "createdBy": "Created by",
+        "showHolidays": "Show holidays",
+        "roleAdmin": "Admin",
+        "editRole": "Edit role",
+        "removeParticipant": "Remove participant",
+        "saveRole": "Save role",
+        "cancel": "Cancel",
+        "roleCreator": "Creator",
+        "roleReader": "Reader",
+        "participant": "Participant",
         "noDescription": "No description provided",
         "deleteConfirmationError": "Error when confirming deletion",
         "editCalendar": "Edit Calendar",

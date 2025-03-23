@@ -161,8 +161,7 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
                                         className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-4 py-2.5 text-gray-900 dark:text-white appearance-none"
                                         disabled={isDetectingLocation}>
                                         <option value="">
-                                            {dict.account.profile
-                                                .selectCountry ||
+                                            {dict.auth.register.selectCountry ||
                                                 'Select a country'}
                                         </option>
                                         {countries.map(country => (
@@ -190,13 +189,13 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
                                         className="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 focus:outline-none flex items-center">
                                         {isDetectingLocation ? (
                                             <span>
-                                                {dict.account.profile
+                                                {dict.auth.register
                                                     .detectingLocation ||
                                                     'Detecting your location...'}
                                             </span>
                                         ) : (
                                             <span>
-                                                {dict.account.profile
+                                                {dict.auth.register
                                                     .useIpLocation ||
                                                     'Detect my country'}
                                             </span>
