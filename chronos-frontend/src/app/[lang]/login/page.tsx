@@ -6,21 +6,24 @@ import Link from 'next/link';
 import { Calendar } from 'lucide-react';
 import { AuthResponse, LoginFormData } from '@/types/auth';
 import { useAuth, useDictionary } from '@/contexts';
+import { useError } from '@/contexts/ErrorContext';
+import { useApi } from '@/lib/useApi';
 
 export default function LoginPage() {
     const { dict, lang } = useDictionary();
     const router = useRouter();
     const searchParams = useSearchParams();
     const { login, isAuthenticated, isLoading } = useAuth();
+    const { setError } = useError();
+    const api = useApi();
 
     const [formData, setFormData] = useState<LoginFormData>({
         username: '',
         password: '',
     });
-    const [error, setError] = useState<string>('');
+    const [pageError, setPageError] = useState<string>(''); // For inline page display
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    // Redirect if already authenticated
     useEffect(() => {
         if (!isLoading && isAuthenticated) {
             const returnUrl = searchParams.get('returnUrl');
@@ -34,32 +37,43 @@ export default function LoginPage() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        setError('');
+        setPageError('');
         setIsSubmitting(true);
 
+        // Fallback error message
+        const genericErrorMessage =
+            dict?.auth?.errors?.generic || 'Login failed. Please try again.';
+
         try {
-            const response = await fetch('http://localhost:3001/auth/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(formData),
-            });
+            // Always show errors automatically
+            const response = await api.post<AuthResponse>(
+                '/auth/login',
+                formData,
+                true, // Always show error modal
+            );
 
-            const data: AuthResponse = await response.json();
-
-            if (data.status === 'error') {
-                setError(data.message || dict.auth.errors.generic);
+            if (response.status === 'error') {
+                // Also set the page error for better accessibility
+                const errorMessage = response.message || genericErrorMessage;
+                setPageError(errorMessage);
                 return;
             }
 
-            if (data.data?.token && data.data?.user) {
-                // Use the context login function
-                login(data.data.token, data.data.user);
-
-                // Set token in cookie for middleware
-                document.cookie = `token=${data.data.token}; path=/; max-age=86400; SameSite=Strict;`;
+            if (response.data?.data?.token && response.data?.data.user) {
+                login(response.data.data.token, response.data.data.user);
+                document.cookie = `token=${response.data.data.token}; path=/; max-age=86400; SameSite=Strict;`;
+            } else {
+                // Handle the case where we got a success response but incorrect data
+                setPageError(genericErrorMessage);
+                setError(genericErrorMessage);
             }
-        } catch {
-            setError(dict.auth.errors.generic);
+        } catch (err) {
+            // Log the error for debugging
+            console.error('Login error:', err);
+
+            // Show a generic error message
+            setPageError(genericErrorMessage);
+            setError(genericErrorMessage);
         } finally {
             setIsSubmitting(false);
         }
@@ -72,7 +86,6 @@ export default function LoginPage() {
         }));
     };
 
-    // Show loading state while checking authentication
     if (isLoading) {
         return (
             <div className="min-h-screen flex items-center justify-center">
@@ -102,9 +115,10 @@ export default function LoginPage() {
 
             <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
                 <div className="bg-white dark:bg-dark-surface py-8 px-4 shadow sm:rounded-lg sm:px-10">
-                    {error && (
+                    {/* Inline error display for accessibility */}
+                    {pageError && (
                         <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/50 text-red-700 dark:text-red-200 rounded-md">
-                            {error}
+                            {pageError}
                         </div>
                     )}
 

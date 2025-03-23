@@ -3,6 +3,7 @@ import { authenticateToken } from '@/middlewares/auth.middleware';
 import { ChangeEmailDto, ChangePasswordDto } from '@/types/auth';
 import { AuthController } from '@/controllers';
 
+// Auth schemas with simple validation
 const registerSchema = {
     body: {
         type: 'object',
@@ -63,7 +64,7 @@ const verifyEmailSchema = {
     },
 } as const;
 
-const checkResetTokeSchema = {
+const checkResetTokenSchema = {
     body: {
         type: 'object',
         required: ['token'],
@@ -131,7 +132,7 @@ export async function authRoutes(app: FastifyInstance) {
 
     app.post('/auth/reset-password-with-token', { schema: resetPasswordWithTokenSchema }, authController.resetPasswordWithToken.bind(authController));
 
-    app.post('/auth/check-reset-token', { schema: checkResetTokeSchema }, authController.checkResetToken.bind(authController));
+    app.post('/auth/check-reset-token', { schema: checkResetTokenSchema }, authController.checkResetToken.bind(authController));
 
     app.put<{
         Body: ChangePasswordDto;
