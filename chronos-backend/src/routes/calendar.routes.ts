@@ -33,7 +33,12 @@ interface UpdateParticipantRoleBody {
     role: ParticipantRole;
 }
 
-// Schema definitions remain the same, as our validation error handler will transform the error messages
+interface CalendarQueryParams {
+    page?: number;
+    limit?: number;
+    visibility?: 'visible' | 'hidden' | 'all';
+}
+
 const createCalendarSchema = {
     body: {
         type: 'object',
@@ -300,7 +305,23 @@ const acceptEmailInviteSchema = {
 export async function calendarRoutes(app: FastifyInstance) {
     const calendarController = new CalendarController();
 
-    app.get('/calendars', { preHandler: [authenticateToken] }, calendarController.getUserCalendars.bind(calendarController));
+    app.get<{ Querystring: CalendarQueryParams }>(
+        '/calendars',
+        {
+            schema: {
+                querystring: {
+                    type: 'object',
+                    properties: {
+                        page: { type: 'number', default: 1 },
+                        limit: { type: 'number', default: 7 },
+                        visibility: { type: 'string', enum: ['visible', 'hidden', 'all'], default: 'all' },
+                    },
+                },
+            },
+            preHandler: [authenticateToken],
+        },
+        calendarController.getUserCalendars.bind(calendarController),
+    );
 
     app.get<{ Params: CalendarParams }>(
         '/calendars/:id',

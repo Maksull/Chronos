@@ -2,6 +2,12 @@ import { CalendarService, EventService } from '@/services';
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { ParticipantRole } from '@/entities';
 
+interface CalendarQueryParams {
+    page?: number;
+    limit?: number;
+    visibility?: 'visible' | 'hidden' | 'all';
+}
+
 export class CalendarController {
     private calendarService: CalendarService;
     private eventService: EventService;
@@ -209,18 +215,48 @@ export class CalendarController {
         }
     }
 
-    async getUserCalendars(request: FastifyRequest, reply: FastifyReply) {
+    async getUserCalendars(request: FastifyRequest<{ Querystring: CalendarQueryParams }>, reply: FastifyReply) {
         try {
-            const calendars = await this.calendarService.getUserCalendars(request.user!.userId);
-            return reply.send({ status: 'success', data: calendars });
+            const page = request.query.page || 1;
+            const limit = request.query.limit || 7;
+            const visibility = request.query.visibility || 'all';
+
+            const { calendars, totalCount, visibleCount, hiddenCount, filteredCount } = await this.calendarService.getUserCalendars(
+                request.user!.userId,
+                page,
+                limit,
+                visibility,
+            );
+
+            return reply.send({
+                status: 'success',
+                data: calendars,
+                pagination: {
+                    page,
+                    limit,
+                    totalCount: filteredCount, // Use filtered count for pagination
+                    totalPages: Math.ceil(filteredCount / limit),
+                },
+                counts: {
+                    visible: visibleCount,
+                    hidden: hiddenCount,
+                    total: totalCount,
+                },
+            });
         } catch (error) {
             if (error instanceof Error) {
                 if (error.message === 'User not found') {
-                    return reply.status(404).send({ status: 'error', message: error.message });
+                    return reply.status(404).send({
+                        status: 'error',
+                        message: error.message,
+                    });
                 }
             }
             request.log.error(error);
-            return reply.status(500).send({ status: 'error', message: 'Internal server error' });
+            return reply.status(500).send({
+                status: 'error',
+                message: 'Internal server error',
+            });
         }
     }
 

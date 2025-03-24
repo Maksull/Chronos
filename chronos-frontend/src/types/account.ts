@@ -1,5 +1,25 @@
 // src/types/account.ts
 
+export interface PaginationData {
+    page: number;
+    limit: number;
+    totalCount: number;
+    totalPages: number;
+}
+
+export interface CalendarCounts {
+    visible: number;
+    hidden: number;
+    total: number;
+}
+
+export interface CalendarApiResponse {
+    status: string;
+    data: CalendarData[];
+    pagination?: PaginationData;
+    counts?: CalendarCounts;
+}
+
 export enum ParticipantRole {
     ADMIN = 'admin',
     CREATOR = 'creator',
