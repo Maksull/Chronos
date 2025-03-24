@@ -3,7 +3,7 @@ import { Calendar, User, CalendarParticipant, ParticipantRole, CalendarEmailInvi
 import { CalendarInviteLink } from '@/entities/CalendarInviteLink';
 import { seedDefaultCategories } from '@/utils/seedDefaultCategories';
 import { CalendarDto, ParticipantWithRoleDto } from '@/types/calendar';
-import { EmailService } from '.';
+import { EmailService, NotificationService } from '.';
 import { randomBytes } from 'crypto';
 
 interface CreateCalendarDto {
@@ -28,11 +28,12 @@ export class CalendarService {
     private participantRepository = AppDataSource.getRepository(CalendarParticipant);
     private inviteLinkRepository = AppDataSource.getRepository(CalendarInviteLink);
     private emailInviteRepository = AppDataSource.getRepository(CalendarEmailInvite);
-
+    private notificationService: NotificationService;
     private emailService: EmailService;
 
     constructor() {
         this.emailService = new EmailService();
+        this.notificationService = new NotificationService();
     }
 
     async inviteUserByEmail(
@@ -126,7 +127,6 @@ export class CalendarService {
     }
 
     async acceptEmailInvite(userId: string, token: string): Promise<Calendar> {
-        // Find the email invite by token
         const emailInvite = await this.emailInviteRepository.findOne({
             where: { token },
             relations: ['calendar', 'calendar.owner'],
@@ -136,7 +136,6 @@ export class CalendarService {
             throw new Error('Invitation not found or invalid');
         }
 
-        // Check if invite has expired
         if (emailInvite.expiresAt && emailInvite.expiresAt < new Date()) {
             throw new Error('Invitation has expired');
         }
@@ -188,6 +187,18 @@ export class CalendarService {
 
         // Delete the email invite after it's been used
         await this.emailInviteRepository.remove(emailInvite);
+
+        // Notify other participants about the new member
+        try {
+            await this.notificationService.notifyParticipantAdded(
+                calendar.owner.id, // Use calendar owner as the initiator for email invites
+                calendar.id,
+                userId,
+                emailInvite.role,
+            );
+        } catch (error) {
+            console.error('Failed to send participant added notifications:', error);
+        }
 
         return calendar;
     }
@@ -351,11 +362,37 @@ export class CalendarService {
             }
         }
 
-        if (data.name !== undefined) calendar.name = data.name;
-        if (data.description !== undefined) calendar.description = data.description;
-        if (data.color !== undefined) calendar.color = data.color;
+        // Track changed fields for notifications
+        const changedFields: string[] = [];
 
-        return this.calendarRepository.save(calendar);
+        if (data.name !== undefined && data.name !== calendar.name) {
+            changedFields.push('name');
+            calendar.name = data.name;
+        }
+
+        if (data.description !== undefined && data.description !== calendar.description) {
+            changedFields.push('description');
+            calendar.description = data.description;
+        }
+
+        if (data.color !== undefined && data.color !== calendar.color) {
+            changedFields.push('color');
+            calendar.color = data.color;
+        }
+
+        const updatedCalendar = await this.calendarRepository.save(calendar);
+
+        // Only send notifications if fields actually changed
+        if (changedFields.length > 0) {
+            try {
+                await this.notificationService.notifyCalendarUpdated(userId, calendarId, changedFields);
+            } catch (error) {
+                console.error('Failed to send calendar update notifications:', error);
+                // Continue with the function as the calendar was successfully updated
+            }
+        }
+
+        return updatedCalendar;
     }
 
     async toggleCalendarVisibility(userId: string, calendarId: string, isVisible: boolean): Promise<Calendar> {
@@ -643,7 +680,6 @@ export class CalendarService {
     }
 
     async acceptInvite(userId: string, inviteLinkId: string, role: ParticipantRole = ParticipantRole.READER): Promise<Calendar> {
-        // Default to READER when accepting an invite
         const inviteLink = await this.inviteLinkRepository
             .createQueryBuilder('inviteLink')
             .leftJoinAndSelect('inviteLink.calendar', 'calendar')
@@ -693,6 +729,19 @@ export class CalendarService {
         });
 
         await this.participantRepository.save(participant);
+
+        // Notify other participants about the new member
+        try {
+            await this.notificationService.notifyParticipantAdded(
+                calendar.owner.id, // Use calendar owner as the initiator for self-joins
+                calendar.id,
+                userId,
+                role,
+            );
+        } catch (error) {
+            console.error('Failed to send participant added notifications:', error);
+        }
+
         return calendar;
     }
 
@@ -831,9 +880,31 @@ export class CalendarService {
             throw new Error('Participant not found');
         }
 
+        // Only proceed with notification if role is actually changing
+        const roleChanged = participant.role !== role;
+
         // Update the role
         participant.role = role;
         await this.participantRepository.save(participant);
+
+        // Notify participants if role changed
+        if (roleChanged) {
+            try {
+                // Notify the user whose role was changed specifically
+                await this.emailService.sendMail({
+                    from: process.env.EMAIL_FROM || 'noreply@example.com',
+                    to: participant.user.email,
+                    subject: `Your role in ${calendar.name} has been updated`,
+                    html: `
+                <h1>Calendar Role Update</h1>
+                <p>Your role in the calendar <strong>${calendar.name}</strong> has been updated to <strong>${role}</strong>.</p>
+                <p>Log in to see your updated permissions.</p>
+              `,
+                });
+            } catch (error) {
+                console.error('Failed to send role change notification:', error);
+            }
+        }
 
         return {
             userId: participant.user.id,

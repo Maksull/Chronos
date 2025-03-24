@@ -1,6 +1,7 @@
 import { AppDataSource } from '@/database/data-source';
 import { Event, EventCategory, Calendar, User, CalendarParticipant, ParticipantRole } from '@/entities';
 import { In, LessThanOrEqual, MoreThanOrEqual } from 'typeorm';
+import { NotificationService } from '.';
 
 export interface CreateEventDto {
     name: string;
@@ -29,14 +30,13 @@ export class EventService {
     private calendarRepository = AppDataSource.getRepository(Calendar);
     private userRepository = AppDataSource.getRepository(User);
     private participantRepository = AppDataSource.getRepository(CalendarParticipant);
+    private notificationService: NotificationService;
 
-    async getEventsByCalendarId(
-        userId: string,
-        calendarId: string,
-        startDate?: Date,
-        endDate?: Date,
-        categoryIds?: string[], // Changed to array of category IDs
-    ): Promise<Event[]> {
+    constructor() {
+        this.notificationService = new NotificationService();
+    }
+
+    async getEventsByCalendarId(userId: string, calendarId: string, startDate?: Date, endDate?: Date, categoryIds?: string[]): Promise<Event[]> {
         const calendar = await this.calendarRepository.findOne({
             where: { id: calendarId },
             relations: ['owner'],
@@ -95,7 +95,6 @@ export class EventService {
             throw new Error('Calendar not found');
         }
 
-        // Check if user is the owner
         const isOwner = calendar.owner.id === userId;
 
         // If not owner, check if they're a participant with appropriate permissions
@@ -141,7 +140,17 @@ export class EventService {
             isCompleted: false,
         });
 
-        return this.eventRepository.save(event);
+        const savedEvent = await this.eventRepository.save(event);
+
+        // Send notifications to all calendar participants
+        try {
+            await this.notificationService.notifyEventCreated(userId, calendarId, savedEvent);
+        } catch (error) {
+            console.error('Failed to send event creation notifications:', error);
+            // Continue with the function as the event was successfully created
+        }
+
+        return savedEvent;
     }
 
     async updateEvent(userId: string, eventId: string, data: UpdateEventDto): Promise<Event> {
@@ -159,7 +168,6 @@ export class EventService {
         const isCreator = event.creator.id === userId;
         // 2. Calendar owner can update any event
         const isCalendarOwner = event.calendar.owner.id === userId;
-
         let userRole = null;
 
         if (!isCreator && !isCalendarOwner) {
@@ -172,11 +180,36 @@ export class EventService {
             }
 
             userRole = participantRole.role;
-
-            // ADMIN can update any event, CREATOR can only update their own events, READER can't update events
             if (userRole !== ParticipantRole.ADMIN && (userRole !== ParticipantRole.CREATOR || event.creator.id !== userId)) {
                 throw new Error('Not authorized to update this event');
             }
+        }
+
+        // Track changed fields for notifications
+        const changedFields: string[] = [];
+
+        if (data.name !== undefined && data.name !== event.name) {
+            changedFields.push('name');
+        }
+
+        if (data.startDate !== undefined && data.startDate.toString() !== event.startDate.toString()) {
+            changedFields.push('startDate');
+        }
+
+        if (data.endDate !== undefined && data.endDate.toString() !== event.endDate.toString()) {
+            changedFields.push('endDate');
+        }
+
+        if (data.description !== undefined && data.description !== event.description) {
+            changedFields.push('description');
+        }
+
+        if (data.color !== undefined && data.color !== event.color) {
+            changedFields.push('color');
+        }
+
+        if (data.isCompleted !== undefined && data.isCompleted !== event.isCompleted) {
+            changedFields.push('isCompleted');
         }
 
         if (data.categoryId) {
@@ -188,14 +221,34 @@ export class EventService {
                 throw new Error('Category not found');
             }
 
+            if (category.id !== event.category.id) {
+                changedFields.push('categoryId');
+            }
+
             event.category = category;
         }
 
         if (data.invitees) {
             const invitees = await this.userRepository.findBy({ id: { $in: data.invitees } as any });
+
+            // Check if invitees list has changed
+            const oldInviteeIds = event.invitees
+                .map(inv => inv.id)
+                .sort()
+                .join(',');
+            const newInviteeIds = invitees
+                .map(inv => inv.id)
+                .sort()
+                .join(',');
+
+            if (oldInviteeIds !== newInviteeIds) {
+                changedFields.push('invitees');
+            }
+
             event.invitees = invitees;
         }
 
+        // Update other fields
         Object.assign(event, {
             name: data.name ?? event.name,
             startDate: data.startDate ?? event.startDate,
@@ -205,7 +258,19 @@ export class EventService {
             isCompleted: data.isCompleted ?? event.isCompleted,
         });
 
-        return this.eventRepository.save(event);
+        const updatedEvent = await this.eventRepository.save(event);
+
+        // Only send notifications if fields actually changed
+        if (changedFields.length > 0) {
+            try {
+                await this.notificationService.notifyEventUpdated(userId, event.calendar.id, updatedEvent, changedFields);
+            } catch (error) {
+                console.error('Failed to send event update notifications:', error);
+                // Continue with the function as the event was successfully updated
+            }
+        }
+
+        return updatedEvent;
     }
 
     async deleteEvent(userId: string, eventId: string): Promise<void> {
@@ -218,10 +283,7 @@ export class EventService {
             throw new Error('Event not found');
         }
 
-        // Check permissions:
-        // 1. Creator of the event can delete it
         const isCreator = event.creator.id === userId;
-        // 2. Calendar owner can delete any event
         const isCalendarOwner = event.calendar.owner.id === userId;
 
         if (!isCreator && !isCalendarOwner) {
@@ -229,12 +291,22 @@ export class EventService {
                 where: { calendarId: event.calendar.id, userId },
             });
 
-            // Only ADMIN can delete others' events
             if (!participantRole || participantRole.role !== ParticipantRole.ADMIN) {
                 throw new Error('Not authorized');
             }
         }
 
+        const calendarId = event.calendar.id;
+        const eventName = event.name;
+
         await this.eventRepository.remove(event);
+
+        // Send notification about event deletion
+        try {
+            await this.notificationService.notifyEventDeleted(userId, calendarId, eventName);
+        } catch (error) {
+            console.error('Failed to send event deletion notifications:', error);
+            // Continue with the function as the event was successfully deleted
+        }
     }
 }
