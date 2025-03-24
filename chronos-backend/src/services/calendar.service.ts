@@ -389,7 +389,18 @@ export class CalendarService {
         return this.calendarRepository.save(calendar);
     }
 
-    async getUserCalendars(userId: string): Promise<CalendarWithRole[]> {
+    async getUserCalendars(
+        userId: string,
+        page: number = 1,
+        limit: number = 7,
+        visibility: 'visible' | 'hidden' | 'all' = 'all',
+    ): Promise<{
+        calendars: CalendarWithRole[];
+        totalCount: number;
+        visibleCount: number;
+        hiddenCount: number;
+        filteredCount: number; // Add filtered count for pagination
+    }> {
         const user = await this.userRepository.findOne({
             where: { id: userId },
             relations: ['ownedCalendars'],
@@ -399,25 +410,121 @@ export class CalendarService {
             throw new Error('User not found');
         }
 
+        // Count visible and hidden owned calendars
         const ownedCalendars = user.ownedCalendars || [];
 
-        // Fetch calendars where user is a participant and their roles
-        const participations = await this.participantRepository.find({
-            where: { userId },
-            relations: ['calendar', 'calendar.owner'],
+        let visibleOwnedCount = 0;
+        let hiddenOwnedCount = 0;
+
+        const filteredOwnedCalendars = ownedCalendars.filter(calendar => {
+            if (calendar.isVisible) {
+                visibleOwnedCount++;
+                return visibility === 'visible' || visibility === 'all';
+            } else {
+                hiddenOwnedCount++;
+                return visibility === 'hidden' || visibility === 'all';
+            }
         });
 
-        // Add role information to shared calendars
-        const sharedCalendars = participations.map(p => {
-            // Create a new object that includes the calendar properties and the role
-            return {
-                ...p.calendar,
-                role: p.role,
-            } as CalendarWithRole;
+        // Get counts for shared calendars
+        const visibleSharedCount = await this.participantRepository.count({
+            where: {
+                userId,
+                calendar: {
+                    isVisible: true,
+                },
+            },
+            relations: ['calendar'],
         });
 
-        // Combine owned and shared calendars
-        return [...ownedCalendars, ...sharedCalendars];
+        const hiddenSharedCount = await this.participantRepository.count({
+            where: {
+                userId,
+                calendar: {
+                    isVisible: false,
+                },
+            },
+            relations: ['calendar'],
+        });
+
+        // Calculate total visible and hidden counts
+        const visibleCount = visibleOwnedCount + visibleSharedCount;
+        const hiddenCount = hiddenOwnedCount + hiddenSharedCount;
+        const totalCount = visibleCount + hiddenCount;
+
+        // Calculate the filtered count based on visibility parameter
+        let filteredCount = totalCount;
+        if (visibility === 'visible') {
+            filteredCount = visibleCount;
+        } else if (visibility === 'hidden') {
+            filteredCount = hiddenCount;
+        }
+
+        // Calculate pagination
+        const skip = (page - 1) * limit;
+
+        // Apply visibility filter to shared calendars query
+        const visibilityCondition = visibility === 'all' ? {} : { isVisible: visibility === 'visible' };
+
+        // If we need to fetch some or all owned calendars
+        let currentOwnedCount = 0;
+        const ownedCalendarsPaginated: Calendar[] = [];
+
+        // Only include owned calendars if they match the visibility filter
+        if (filteredOwnedCalendars.length > 0) {
+            const ownedSkip = skip;
+            const ownedTake = Math.min(limit, filteredOwnedCalendars.length - ownedSkip);
+
+            if (ownedSkip < filteredOwnedCalendars.length && ownedTake > 0) {
+                ownedCalendarsPaginated.push(...filteredOwnedCalendars.slice(ownedSkip, ownedSkip + ownedTake));
+                currentOwnedCount = ownedCalendarsPaginated.length;
+            }
+        }
+
+        // For the remaining limit, fetch shared calendars
+        let sharedCalendars: CalendarWithRole[] = [];
+
+        if (currentOwnedCount < limit) {
+            const remainingLimit = limit - currentOwnedCount;
+            const sharedSkip = Math.max(0, skip - filteredOwnedCalendars.length);
+
+            if (sharedSkip >= 0) {
+                // Fetch calendars where user is a participant
+                const whereCondition: any = { userId };
+
+                if (visibility !== 'all') {
+                    whereCondition.calendar = visibilityCondition;
+                }
+
+                const participations = await this.participantRepository.find({
+                    where: whereCondition,
+                    relations: ['calendar', 'calendar.owner'],
+                    skip: sharedSkip,
+                    take: remainingLimit,
+                    order: {
+                        createdAt: 'DESC',
+                    },
+                });
+
+                // Add role information to shared calendars
+                sharedCalendars = participations.map(
+                    p =>
+                        ({
+                            ...p.calendar,
+                            role: p.role,
+                        }) as CalendarWithRole,
+                );
+            }
+        }
+
+        // Combine and return both sets of calendars
+        return {
+            calendars: [...ownedCalendarsPaginated, ...sharedCalendars],
+            totalCount,
+            visibleCount,
+            hiddenCount,
+            filteredCount,
+        };
     }
 
     async getCalendarById(userId: string, calendarId: string): Promise<CalendarDto> {

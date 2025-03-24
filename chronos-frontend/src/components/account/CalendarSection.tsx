@@ -7,14 +7,26 @@ import {
     Loader2,
     Eye,
     EyeOff,
-    Trash2,
     ChevronRight,
+    ChevronLeft,
 } from 'lucide-react';
 import { CalendarData, CalendarFormData } from '@/types/account';
 import { Dictionary } from '@/lib/dictionary';
 import { CalendarForm, CalendarItem } from '.';
 import { DeleteConfirmationModal } from '..';
-import { useRouter } from 'next/navigation';
+
+interface PaginationData {
+    page: number;
+    limit: number;
+    totalCount: number;
+    totalPages: number;
+}
+
+interface CalendarCounts {
+    visible: number;
+    hidden: number;
+    total: number;
+}
 
 interface CalendarSectionProps {
     calendars: CalendarData[];
@@ -22,6 +34,11 @@ interface CalendarSectionProps {
     setError: React.Dispatch<React.SetStateAction<string>>;
     setSuccess: React.Dispatch<React.SetStateAction<string>>;
     dict: Dictionary;
+    activeTab: 'active' | 'hidden';
+    onTabChange: (tab: 'active' | 'hidden') => void;
+    pagination?: PaginationData;
+    calendarCounts?: CalendarCounts;
+    onPageChange?: (page: number) => void;
 }
 
 export const CalendarSection: React.FC<CalendarSectionProps> = ({
@@ -30,9 +47,12 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
     setError,
     setSuccess,
     dict,
+    activeTab,
+    onTabChange,
+    pagination,
+    calendarCounts,
+    onPageChange,
 }) => {
-    const router = useRouter();
-    const [activeTab, setActiveTab] = useState<'active' | 'hidden'>('active');
     const [isCreatingCalendar, setIsCreatingCalendar] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [newCalendarData, setNewCalendarData] = useState<CalendarFormData>({
@@ -51,7 +71,7 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
         setSuccess('');
         setIsLoading(true);
         try {
-            const defaultName = `${dict.account.calendars.defaultName || 'New Calendar'} ${calendars.length + 1}`;
+            const defaultName = `${dict.account.calendars.defaultName || 'New Calendar'} ${(calendarCounts?.total || calendars.length) + 1}`;
             const response = await fetch('http://localhost:3001/calendars', {
                 method: 'POST',
                 headers: {
@@ -84,6 +104,7 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
         setError('');
         setSuccess('');
         setIsLoading(true);
+
         if (!newCalendarData.name.trim()) {
             setError(
                 dict.account.calendars.nameRequired ||
@@ -92,6 +113,7 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
             setIsLoading(false);
             return;
         }
+
         try {
             const response = await fetch('http://localhost:3001/calendars', {
                 method: 'POST',
@@ -105,11 +127,13 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
                     color: newCalendarData.color || '#3B82F6',
                 }),
             });
+
             const data = await response.json();
             if (data.status === 'error') {
                 setError(data.message || dict.account.errors.generic);
                 return;
             }
+
             setSuccess(dict.account.calendars.createSuccess);
             setNewCalendarData({
                 name: '',
@@ -164,6 +188,7 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
 
     const deleteCalendar = async () => {
         if (!calendarToDelete) return;
+
         try {
             const response = await fetch(
                 `http://localhost:3001/calendars/${calendarToDelete.id}`,
@@ -190,75 +215,25 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
         }
     };
 
-    // Updated CalendarItem component inline
-    const ModernCalendarItem = ({
-        calendar,
-        onToggleVisibility,
-        onDelete,
-        dict,
-    }) => {
-        const navigateToCalendar = e => {
-            // Prevent triggering if clicking on the buttons
-            if (e.target.closest('button')) return;
-            router.push(`/calendar/${calendar.id}`);
-        };
+    // Get the count of visible and hidden calendars
+    const visibleCount = calendarCounts?.visible || 0;
+    const hiddenCount = calendarCounts?.hidden || 0;
 
-        return (
-            <div
-                className="relative bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl p-4 hover:shadow-md transition-all duration-200 group cursor-pointer"
-                style={{ borderLeft: `4px solid ${calendar.color}` }}
-                onClick={navigateToCalendar}>
-                <div className="flex justify-between items-center">
-                    <div className="flex items-center gap-3">
-                        <div
-                            className="w-10 h-10 rounded-lg flex items-center justify-center"
-                            style={{ backgroundColor: `${calendar.color}20` }}>
-                            <Calendar
-                                className="h-5 w-5"
-                                style={{ color: calendar.color }}
-                            />
-                        </div>
-                        <div>
-                            <h3 className="font-medium text-gray-900 dark:text-white line-clamp-1 flex items-center gap-1">
-                                {calendar.name}
-                                <ChevronRight className="h-4 w-4 opacity-0 -ml-4 group-hover:opacity-100 group-hover:ml-0 transition-all duration-200 text-indigo-500" />
-                            </h3>
-                            {calendar.description && (
-                                <p className="text-sm text-gray-500 dark:text-gray-400 line-clamp-1 mt-0.5">
-                                    {calendar.description}
-                                </p>
-                            )}
-                        </div>
-                    </div>
+    // Pagination controls
+    const nextPage = () => {
+        if (
+            pagination &&
+            onPageChange &&
+            pagination.page < pagination.totalPages
+        ) {
+            onPageChange(pagination.page + 1);
+        }
+    };
 
-                    <div className="flex items-center gap-2 z-10">
-                        <button
-                            onClick={e => {
-                                e.stopPropagation();
-                                onToggleVisibility(
-                                    calendar.id,
-                                    !calendar.isVisible,
-                                );
-                            }}
-                            className="p-1.5 rounded-lg text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
-                            {calendar.isVisible ? (
-                                <Eye className="h-5 w-5" />
-                            ) : (
-                                <EyeOff className="h-5 w-5" />
-                            )}
-                        </button>
-                        <button
-                            onClick={e => {
-                                e.stopPropagation();
-                                onDelete();
-                            }}
-                            className="p-1.5 rounded-lg text-gray-500 hover:text-red-500 dark:text-gray-400 dark:hover:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
-                            <Trash2 className="h-5 w-5" />
-                        </button>
-                    </div>
-                </div>
-            </div>
-        );
+    const prevPage = () => {
+        if (pagination && onPageChange && pagination.page > 1) {
+            onPageChange(pagination.page - 1);
+        }
     };
 
     return (
@@ -275,7 +250,6 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
                                 {dict.account.calendars.title}
                             </h2>
                         </div>
-
                         <div className="flex w-full sm:w-auto gap-2 justify-between">
                             <button
                                 onClick={createEmptyCalendar}
@@ -315,7 +289,7 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
                     {/* Tabs Navigation */}
                     <div className="flex space-x-2 mb-6 border-b border-gray-200 dark:border-gray-700">
                         <button
-                            onClick={() => setActiveTab('active')}
+                            onClick={() => onTabChange('active')}
                             className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
                                 activeTab === 'active'
                                     ? 'text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-500 dark:border-indigo-400'
@@ -326,16 +300,12 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
                                 {dict.account.calendars.activeTabs?.visible ||
                                     'Active Calendars'}
                                 <span className="bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 text-xs font-medium px-2 py-0.5 rounded-full">
-                                    {
-                                        calendars.filter(
-                                            calendar => calendar.isVisible,
-                                        ).length
-                                    }
+                                    {visibleCount}
                                 </span>
                             </div>
                         </button>
                         <button
-                            onClick={() => setActiveTab('hidden')}
+                            onClick={() => onTabChange('hidden')}
                             className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
                                 activeTab === 'hidden'
                                     ? 'text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-500 dark:border-indigo-400'
@@ -346,11 +316,7 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
                                 {dict.account.calendars.activeTabs?.hidden ||
                                     'Hidden Calendars'}
                                 <span className="bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 text-xs font-medium px-2 py-0.5 rounded-full">
-                                    {
-                                        calendars.filter(
-                                            calendar => !calendar.isVisible,
-                                        ).length
-                                    }
+                                    {hiddenCount}
                                 </span>
                             </div>
                         </button>
@@ -369,12 +335,8 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
                     )}
 
                     <div className="space-y-4">
-                        {/* Filter calendars based on active tab */}
-                        {calendars.filter(calendar =>
-                            activeTab === 'active'
-                                ? calendar.isVisible
-                                : !calendar.isVisible,
-                        ).length === 0 ? (
+                        {/* Show empty state if no calendars match the current tab */}
+                        {calendars.length === 0 ? (
                             <div className="text-center py-10 bg-gray-50 dark:bg-gray-700/30 rounded-xl border border-dashed border-gray-200 dark:border-gray-700">
                                 <div
                                     className={
@@ -407,15 +369,10 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
                                 )}
                             </div>
                         ) : (
-                            <div className="grid gap-4">
-                                {calendars
-                                    .filter(calendar =>
-                                        activeTab === 'active'
-                                            ? calendar.isVisible
-                                            : !calendar.isVisible,
-                                    )
-                                    .map(calendar => (
-                                        <ModernCalendarItem
+                            <>
+                                <div className="grid gap-4">
+                                    {calendars.map(calendar => (
+                                        <CalendarItem
                                             key={calendar.id}
                                             calendar={calendar}
                                             onToggleVisibility={
@@ -427,7 +384,39 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
                                             dict={dict}
                                         />
                                     ))}
-                            </div>
+                                </div>
+
+                                {/* Pagination controls */}
+                                {pagination && pagination.totalPages > 1 && (
+                                    <div className="flex justify-center mt-6">
+                                        <div className="flex items-center space-x-2">
+                                            <button
+                                                onClick={prevPage}
+                                                disabled={pagination.page === 1}
+                                                className="p-2 rounded-lg bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed">
+                                                <ChevronLeft className="h-4 w-4" />
+                                            </button>
+                                            <span className="text-sm text-gray-600 dark:text-gray-300">
+                                                {dict.account.calendars.page ||
+                                                    'Page'}{' '}
+                                                {pagination.page}{' '}
+                                                {dict.account.calendars.of ||
+                                                    'of'}{' '}
+                                                {pagination.totalPages}
+                                            </span>
+                                            <button
+                                                onClick={nextPage}
+                                                disabled={
+                                                    pagination.page ===
+                                                    pagination.totalPages
+                                                }
+                                                className="p-2 rounded-lg bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed">
+                                                <ChevronRight className="h-4 w-4" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+                            </>
                         )}
                     </div>
                 </div>
