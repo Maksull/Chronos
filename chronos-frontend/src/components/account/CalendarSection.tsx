@@ -32,6 +32,7 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
     dict,
 }) => {
     const router = useRouter();
+    const [activeTab, setActiveTab] = useState<'active' | 'hidden'>('active');
     const [isCreatingCalendar, setIsCreatingCalendar] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [newCalendarData, setNewCalendarData] = useState<CalendarFormData>({
@@ -311,6 +312,50 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
                         </div>
                     </div>
 
+                    {/* Tabs Navigation */}
+                    <div className="flex space-x-2 mb-6 border-b border-gray-200 dark:border-gray-700">
+                        <button
+                            onClick={() => setActiveTab('active')}
+                            className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
+                                activeTab === 'active'
+                                    ? 'text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-500 dark:border-indigo-400'
+                                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                            }`}>
+                            <div className="flex items-center gap-2">
+                                <Eye className="h-4 w-4" />
+                                {dict.account.calendars.activeTabs?.visible ||
+                                    'Active Calendars'}
+                                <span className="bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 text-xs font-medium px-2 py-0.5 rounded-full">
+                                    {
+                                        calendars.filter(
+                                            calendar => calendar.isVisible,
+                                        ).length
+                                    }
+                                </span>
+                            </div>
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('hidden')}
+                            className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
+                                activeTab === 'hidden'
+                                    ? 'text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-500 dark:border-indigo-400'
+                                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                            }`}>
+                            <div className="flex items-center gap-2">
+                                <EyeOff className="h-4 w-4" />
+                                {dict.account.calendars.activeTabs?.hidden ||
+                                    'Hidden Calendars'}
+                                <span className="bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 text-xs font-medium px-2 py-0.5 rounded-full">
+                                    {
+                                        calendars.filter(
+                                            calendar => !calendar.isVisible,
+                                        ).length
+                                    }
+                                </span>
+                            </div>
+                        </button>
+                    </div>
+
                     {isCreatingCalendar && (
                         <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl border border-gray-200 dark:border-gray-600">
                             <CalendarForm
@@ -324,37 +369,64 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
                     )}
 
                     <div className="space-y-4">
-                        {calendars.length === 0 ? (
+                        {/* Filter calendars based on active tab */}
+                        {calendars.filter(calendar =>
+                            activeTab === 'active'
+                                ? calendar.isVisible
+                                : !calendar.isVisible,
+                        ).length === 0 ? (
                             <div className="text-center py-10 bg-gray-50 dark:bg-gray-700/30 rounded-xl border border-dashed border-gray-200 dark:border-gray-700">
-                                <Calendar className="h-12 w-12 mx-auto text-gray-400 dark:text-gray-500 mb-3" />
+                                <div
+                                    className={
+                                        activeTab === 'active'
+                                            ? 'text-indigo-500 dark:text-indigo-400'
+                                            : 'text-gray-400 dark:text-gray-500'
+                                    }>
+                                    {activeTab === 'active' ? (
+                                        <Calendar className="h-12 w-12 mx-auto mb-3" />
+                                    ) : (
+                                        <EyeOff className="h-12 w-12 mx-auto mb-3" />
+                                    )}
+                                </div>
                                 <p className="text-gray-500 dark:text-gray-400 mb-4">
-                                    {dict.account.calendars.empty ||
-                                        'No calendars found. Create one to get started!'}
+                                    {activeTab === 'active'
+                                        ? dict.account.calendars.emptyActive ||
+                                          'No active calendars found. Create one to get started!'
+                                        : dict.account.calendars.emptyHidden ||
+                                          'No hidden calendars found.'}
                                 </p>
-                                <button
-                                    onClick={createEmptyCalendar}
-                                    disabled={isLoading}
-                                    className="inline-flex items-center gap-2 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-200 dark:hover:bg-indigo-900/50 transition-colors">
-                                    <Plus className="h-4 w-4" />
-                                    {dict.account.calendars.createFirst ||
-                                        'Create Your First Calendar'}
-                                </button>
+                                {activeTab === 'active' && (
+                                    <button
+                                        onClick={createEmptyCalendar}
+                                        disabled={isLoading}
+                                        className="inline-flex items-center gap-2 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-200 dark:hover:bg-indigo-900/50 transition-colors">
+                                        <Plus className="h-4 w-4" />
+                                        {dict.account.calendars.createFirst ||
+                                            'Create Your First Calendar'}
+                                    </button>
+                                )}
                             </div>
                         ) : (
                             <div className="grid gap-4">
-                                {calendars.map(calendar => (
-                                    <ModernCalendarItem
-                                        key={calendar.id}
-                                        calendar={calendar}
-                                        onToggleVisibility={
-                                            toggleCalendarVisibility
-                                        }
-                                        onDelete={() =>
-                                            handleDeleteRequest(calendar)
-                                        }
-                                        dict={dict}
-                                    />
-                                ))}
+                                {calendars
+                                    .filter(calendar =>
+                                        activeTab === 'active'
+                                            ? calendar.isVisible
+                                            : !calendar.isVisible,
+                                    )
+                                    .map(calendar => (
+                                        <ModernCalendarItem
+                                            key={calendar.id}
+                                            calendar={calendar}
+                                            onToggleVisibility={
+                                                toggleCalendarVisibility
+                                            }
+                                            onDelete={() =>
+                                                handleDeleteRequest(calendar)
+                                            }
+                                            dict={dict}
+                                        />
+                                    ))}
                             </div>
                         )}
                     </div>
