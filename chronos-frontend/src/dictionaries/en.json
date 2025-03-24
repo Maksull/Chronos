@@ -129,6 +129,9 @@
             "region": "Region (optional)"
         },
         "errors": {
+            "emailRequired": "Email is required to resend the verification code",
+            "locationDetectionFailed": "Could not determine location, please select your country manually.",
+            "countriesApi": "Failed to load countries",
             "generic": "Something went wrong. Please try again.",
             "invalidCode": "Invalid verification code. Please try again.",
             "expiredCode": "Verification code has expired. Please request a new one.",
@@ -158,8 +161,9 @@
             "termsLink": "Terms and Conditions"
         },
         "verifyEmail": {
+            "resendSuccess": "Verification code has been resent to your email.",
             "title": "Verify your email",
-            "description": "We've sent a 6-digit code to your email address.",
+            "description": "Please enter the code sent to your email address",
             "subtitle": "Enter the verification code",
             "checkSpam": "If you don't see the email, please check your spam folder.",
             "backToLogin": "Back to login",
@@ -343,7 +347,12 @@
         }
     },
     "home": {
+        "testimonials": {
+            "title": "Trusted by organizers worldwide",
+            "subtitle": "Here's what our users are saying about Chronos"
+        },
         "hero": {
+            "users": "users already joined",
             "title": {
                 "first": "Organize your time with",
                 "second": "Chronos"
@@ -386,6 +395,9 @@
             }
         },
         "cta": {
+            "ready": "Ready to dive in?",
+            "start": "Start organizing your time today.",
+            "learn": "Learn more",
             "title": {
                 "first": "Ready to get started?",
                 "second": "Start your free trial today."

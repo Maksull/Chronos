@@ -113,7 +113,6 @@ export default function VerifyResetPasswordPage() {
                 return;
             }
 
-            setResendSuccess(true);
             setTimeout(
                 () =>
                     router.push(
@@ -179,10 +178,10 @@ export default function VerifyResetPasswordPage() {
                     <Calendar className="h-12 w-12 text-indigo-600 dark:text-indigo-400" />
                 </div>
                 <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900 dark:text-white">
-                    {dict.auth.resetPassword.verifyTitle || 'Verify Reset Code'}
+                    {dict.auth.resetPassword.title || 'Verify Reset Code'}
                 </h2>
                 <p className="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">
-                    {dict.auth.resetPassword.verifyDescription ||
+                    {dict.auth.verifyEmail.description ||
                         'Please enter the code sent to your email address'}
                 </p>
             </div>
@@ -197,7 +196,7 @@ export default function VerifyResetPasswordPage() {
 
                     {resendSuccess && (
                         <div className="mb-4 p-4 bg-green-50 dark:bg-green-900/50 text-green-700 dark:text-green-200 rounded-md">
-                            {dict.auth.resetPassword.resendSuccess ||
+                            {dict.auth.resetPassword.success ||
                                 'Reset code has been resent to your email.'}
                         </div>
                     )}
@@ -205,7 +204,7 @@ export default function VerifyResetPasswordPage() {
                     <form onSubmit={handleSubmit} className="space-y-6">
                         <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 text-center mb-4">
-                                {dict.auth.resetPassword.enterCode ||
+                                {dict.auth.verifyEmail.enterCode ||
                                     'Enter 6-digit code'}
                             </label>
                             <div className="flex justify-center space-x-2">
@@ -224,12 +223,12 @@ export default function VerifyResetPasswordPage() {
                                         }
                                         onPaste={handlePaste}
                                         onKeyDown={e => handleKeyDown(index, e)}
-                                        className="w-12 h-12 text-center text-2xl border border-gray-300 dark:border-dark-border rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-dark-bg dark:text-white"
+                                        className="w-12 h-12 text-center text-2xl border border-gray-300 dark:border-dark-border rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-dark-bg text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700/50"
                                     />
                                 ))}
                             </div>
                             <p className="mt-2 text-sm text-gray-500 dark:text-gray-400 text-center">
-                                {dict.auth.resetPassword.codeExpiry ||
+                                {dict.auth.verifyEmail.codeExpiry ||
                                     'Code expires in 15 minutes'}
                             </p>
                         </div>
@@ -239,9 +238,9 @@ export default function VerifyResetPasswordPage() {
                             disabled={isLoading || token.some(digit => !digit)}
                             className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:bg-indigo-500 dark:hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed">
                             {isLoading
-                                ? dict.auth.resetPassword.verifying ||
+                                ? dict.auth.resetPassword.loading ||
                                   'Verifying...'
-                                : dict.auth.resetPassword.verify || 'Verify'}
+                                : dict.auth.resetPassword.submit || 'Verify'}
                         </button>
 
                         <div className="text-center">
@@ -251,18 +250,17 @@ export default function VerifyResetPasswordPage() {
                                 disabled={isResending || resendTimer > 0}
                                 className="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed">
                                 {isResending
-                                    ? dict.auth.resetPassword.resending ||
+                                    ? dict.auth.verifyEmail.resending ||
                                       'Resending...'
                                     : resendTimer > 0
                                       ? (
-                                            dict.auth.resetPassword
-                                                .waitResend ||
+                                            dict.auth.verifyEmail.waitResend ||
                                             'Resend code in {seconds}s'
                                         ).replace(
                                             '{seconds}',
                                             resendTimer.toString(),
                                         )
-                                      : dict.auth.resetPassword.resendCode ||
+                                      : dict.auth.verifyEmail.resendCode ||
                                         'Resend code'}
                             </button>
                         </div>
@@ -271,8 +269,8 @@ export default function VerifyResetPasswordPage() {
                             <Link
                                 href={`/${lang}/reset-password`}
                                 className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-500">
-                                {dict.auth.resetPassword.backToReset ||
-                                    'Back to reset password'}
+                                {dict.auth.verifyEmail.backToLogin ||
+                                    'Back to login'}
                             </Link>
                         </div>
                     </form>

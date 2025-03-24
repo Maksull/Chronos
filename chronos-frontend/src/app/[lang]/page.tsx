@@ -335,8 +335,10 @@ export default async function Home({
                                         ))}
                                     </div>
                                     <p className="text-gray-600 dark:text-gray-300 mb-6 flex-grow">
-                                        {dict.home.testimonials?.quote ||
-                                            'Chronos has completely transformed how I manage my time. The intuitive interface and powerful features make it easy to stay organized.'}
+                                        Chronos has completely transformed how I
+                                        manage my time. The intuitive interface
+                                        and powerful features make it easy to
+                                        stay organized.
                                     </p>
                                     <div className="flex items-center">
                                         <div
