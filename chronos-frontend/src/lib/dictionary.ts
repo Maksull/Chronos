@@ -133,6 +133,9 @@ export type Dictionary = {
             region: string;
         };
         errors: {
+            emailRequired: string;
+            locationDetectionFailed: string;
+            countriesApi: string;
             generic: string;
             invalidCode: string;
             expiredCode: string;
@@ -162,6 +165,7 @@ export type Dictionary = {
             termsLink: string;
         };
         verifyEmail: {
+            resendSuccess: string;
             title: string;
             description: string;
             subtitle: string;
@@ -331,7 +335,12 @@ export type Dictionary = {
         };
     };
     home: {
+        testimonials: {
+            title: string;
+            subtitle: string;
+        };
         hero: {
+            users: string;
             title: {
                 first: string;
                 second: string;
@@ -374,6 +383,9 @@ export type Dictionary = {
             };
         };
         cta: {
+            ready: string;
+            start: string;
+            learn: string;
             title: {
                 first: string;
                 second: string;

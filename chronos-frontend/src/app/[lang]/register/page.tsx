@@ -79,7 +79,7 @@ export default function RegisterPage() {
                     'Unexpected error in country initialization:',
                     error,
                 );
-                setError(dict.errors.generic);
+                setError(dict.auth.errors.generic);
             }
         };
 
@@ -101,14 +101,14 @@ export default function RegisterPage() {
             } else {
                 // Show a non-critical notification
                 setPageError(
-                    dict.auth.register.locationDetectionFailed ||
+                    dict.auth.errors.locationDetectionFailed ||
                         'Could not determine location, please select your country manually.',
                 );
             }
         } catch (error) {
             console.log('Could not determine location', error);
             setPageError(
-                dict.auth.register.locationDetectionFailed ||
+                dict.auth.errors.locationDetectionFailed ||
                     'Could not determine location, please select your country manually.',
             );
         } finally {
@@ -274,7 +274,7 @@ export default function RegisterPage() {
                                     type="text"
                                     value={formData.fullName}
                                     onChange={handleChange}
-                                    className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 px-4 py-1.5 text-gray-900 dark:text-white"
+                                    className="w-full rounded-lg border border-gray-300 dark:border-gray-600  px-4 py-1.5 text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700/50"
                                 />
                             </div>
                         </div>

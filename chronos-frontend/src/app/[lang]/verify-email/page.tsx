@@ -115,7 +115,6 @@ export default function VerifyEmailPage() {
 
             // Clear the stored email as it's no longer needed
             localStorage.removeItem('verificationEmail');
-            setResendSuccess(true);
             setTimeout(() => router.push(`/${lang}/login`), 1500);
         } catch {
             setError(dict.auth.errors.generic);
@@ -229,7 +228,7 @@ export default function VerifyEmailPage() {
                                         }
                                         onPaste={handlePaste}
                                         onKeyDown={e => handleKeyDown(index, e)}
-                                        className="w-12 h-12 text-center text-2xl border border-gray-300 dark:border-dark-border rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-dark-bg dark:text-white"
+                                        className="w-12 h-12 text-center text-2xl border border-gray-300 dark:border-dark-border rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-dark-bg text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700/50"
                                     />
                                 ))}
                             </div>
