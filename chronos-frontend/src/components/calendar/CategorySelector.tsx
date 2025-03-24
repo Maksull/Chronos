@@ -1,5 +1,4 @@
 'use client';
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Check, Plus, Edit2, Trash2 } from 'lucide-react';
 import { CategoryData } from '@/types/account';
@@ -13,6 +12,7 @@ interface CategorySelectorProps {
     mode: 'view' | 'edit' | 'create';
     dict: Dictionary;
     onCategoriesUpdated?: () => void;
+    readOnly?: boolean; // Added the readOnly prop
 }
 
 export const CategorySelector: React.FC<CategorySelectorProps> = ({
@@ -23,6 +23,7 @@ export const CategorySelector: React.FC<CategorySelectorProps> = ({
     mode,
     dict,
     onCategoriesUpdated,
+    readOnly = false, // Default to false
 }) => {
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const [isAddingCategory, setIsAddingCategory] = useState(false);
@@ -40,7 +41,6 @@ export const CategorySelector: React.FC<CategorySelectorProps> = ({
         categories.find(cat => cat.id === selectedCategoryId) || categories[0];
 
     useEffect(() => {
-        // Close dropdown when clicking outside
         const handleClickOutside = (event: MouseEvent) => {
             if (
                 dropdownRef.current &&
@@ -56,13 +56,11 @@ export const CategorySelector: React.FC<CategorySelectorProps> = ({
         };
     }, []);
 
-    // Reset form if categories are updated
     useEffect(() => {
         setNewCategoryName('');
         setNewCategoryColor('#3B82F6');
         setNewCategoryDescription('');
         setError('');
-
         if (
             selectedCategoryId &&
             !categories.some(cat => cat.id === selectedCategoryId) &&
@@ -74,10 +72,8 @@ export const CategorySelector: React.FC<CategorySelectorProps> = ({
 
     const handleAddCategory = async () => {
         if (!newCategoryName.trim()) return;
-
         setLoading(true);
         setError('');
-
         try {
             const response = await fetch(
                 `http://localhost:3001/calendars/${calendarId}/categories`,
@@ -94,20 +90,15 @@ export const CategorySelector: React.FC<CategorySelectorProps> = ({
                     }),
                 },
             );
-
             const data = await response.json();
-
             if (data.status === 'success') {
                 setIsAddingCategory(false);
                 setNewCategoryName('');
                 setNewCategoryColor('#3B82F6');
                 setNewCategoryDescription('');
-
                 if (onCategoriesUpdated) {
                     onCategoriesUpdated();
                 }
-
-                // Select the newly created category
                 if (data.data?.id) {
                     onChange(data.data.id);
                 }
@@ -124,10 +115,8 @@ export const CategorySelector: React.FC<CategorySelectorProps> = ({
 
     const handleEditCategory = async () => {
         if (!categoryBeingEdited || !newCategoryName.trim()) return;
-
         setLoading(true);
         setError('');
-
         try {
             const response = await fetch(
                 `http://localhost:3001/categories/${categoryBeingEdited.id}`,
@@ -144,16 +133,13 @@ export const CategorySelector: React.FC<CategorySelectorProps> = ({
                     }),
                 },
             );
-
             const data = await response.json();
-
             if (data.status === 'success') {
                 setIsEditingCategory(false);
                 setCategoryBeingEdited(null);
                 setNewCategoryName('');
                 setNewCategoryColor('#3B82F6');
                 setNewCategoryDescription('');
-
                 if (onCategoriesUpdated) {
                     onCategoriesUpdated();
                 }
@@ -177,10 +163,8 @@ export const CategorySelector: React.FC<CategorySelectorProps> = ({
         ) {
             return;
         }
-
         setLoading(true);
         setError('');
-
         try {
             const response = await fetch(
                 `http://localhost:3001/categories/${categoryId}`,
@@ -191,20 +175,15 @@ export const CategorySelector: React.FC<CategorySelectorProps> = ({
                     },
                 },
             );
-
             const data = await response.json();
-
             if (data.status === 'success') {
                 if (onCategoriesUpdated) {
                     onCategoriesUpdated();
                 }
-
-                // If the deleted category was selected, select the first available category
                 if (
                     selectedCategoryId === categoryId &&
                     categories.length > 0
                 ) {
-                    // Find a different category to select
                     const otherCategory = categories.find(
                         cat => cat.id !== categoryId,
                     );
@@ -224,6 +203,7 @@ export const CategorySelector: React.FC<CategorySelectorProps> = ({
     };
 
     const startEditCategory = (category: CategoryData) => {
+        if (readOnly) return; // Don't allow editing in readOnly mode
         setCategoryBeingEdited(category);
         setNewCategoryName(category.name);
         setNewCategoryColor(category.color);
@@ -232,7 +212,7 @@ export const CategorySelector: React.FC<CategorySelectorProps> = ({
         setIsAddingCategory(false);
     };
 
-    if (mode === 'view') {
+    if (mode === 'view' || readOnly) {
         return (
             <div className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white opacity-80 flex items-center">
                 {selectedCategory && (
@@ -255,7 +235,6 @@ export const CategorySelector: React.FC<CategorySelectorProps> = ({
             <button
                 type="button"
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                disabled={mode === 'view'}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm 
                 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 
                 bg-white dark:bg-gray-700 text-gray-900 dark:text-white
@@ -311,31 +290,35 @@ export const CategorySelector: React.FC<CategorySelectorProps> = ({
                                         <Check className="ml-2 h-4 w-4 text-indigo-600 dark:text-indigo-400" />
                                     )}
                                 </div>
-                                <div className="flex items-center space-x-1">
-                                    <button
-                                        type="button"
-                                        onClick={e => {
-                                            e.stopPropagation();
-                                            startEditCategory(category);
-                                        }}
-                                        className="p-1 text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400">
-                                        <Edit2 className="h-4 w-4" />
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={e => {
-                                            e.stopPropagation();
-                                            handleDeleteCategory(category.id);
-                                        }}
-                                        className="p-1 text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400">
-                                        <Trash2 className="h-4 w-4" />
-                                    </button>
-                                </div>
+                                {!readOnly && (
+                                    <div className="flex items-center space-x-1">
+                                        <button
+                                            type="button"
+                                            onClick={e => {
+                                                e.stopPropagation();
+                                                startEditCategory(category);
+                                            }}
+                                            className="p-1 text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400">
+                                            <Edit2 className="h-4 w-4" />
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={e => {
+                                                e.stopPropagation();
+                                                handleDeleteCategory(
+                                                    category.id,
+                                                );
+                                            }}
+                                            className="p-1 text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400">
+                                            <Trash2 className="h-4 w-4" />
+                                        </button>
+                                    </div>
+                                )}
                             </div>
                         ))}
                     </div>
 
-                    {!isAddingCategory && !isEditingCategory && (
+                    {!readOnly && !isAddingCategory && !isEditingCategory && (
                         <div className="border-t border-gray-200 dark:border-gray-700 py-2 px-4">
                             <button
                                 type="button"
@@ -354,8 +337,7 @@ export const CategorySelector: React.FC<CategorySelectorProps> = ({
                         </div>
                     )}
 
-                    {/* Add Category Form */}
-                    {isAddingCategory && (
+                    {!readOnly && isAddingCategory && (
                         <div className="border-t border-gray-200 dark:border-gray-700 p-4">
                             <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-2">
                                 {dict.calendar?.addNewCategory ||
@@ -386,7 +368,6 @@ export const CategorySelector: React.FC<CategorySelectorProps> = ({
                                         required
                                     />
                                 </div>
-
                                 <div>
                                     <input
                                         type="text"
@@ -401,11 +382,10 @@ export const CategorySelector: React.FC<CategorySelectorProps> = ({
                                             'Description (optional)'
                                         }
                                         className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm 
-                            focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 
+                            focus:outline-none focus:ring-indigo-500 focus:border-indigo-500
                             bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
                                     />
                                 </div>
-
                                 <div className="flex items-center">
                                     <label className="text-sm text-gray-700 dark:text-gray-300 mr-2">
                                         {dict.calendar?.color || 'Color'}:
@@ -419,7 +399,6 @@ export const CategorySelector: React.FC<CategorySelectorProps> = ({
                                         className="w-8 h-8 p-0 border-0 rounded cursor-pointer"
                                     />
                                 </div>
-
                                 <div className="flex justify-end space-x-2">
                                     <button
                                         type="button"
@@ -468,8 +447,7 @@ export const CategorySelector: React.FC<CategorySelectorProps> = ({
                         </div>
                     )}
 
-                    {/* Edit Category Form */}
-                    {isEditingCategory && categoryBeingEdited && (
+                    {!readOnly && isEditingCategory && categoryBeingEdited && (
                         <div className="border-t border-gray-200 dark:border-gray-700 p-4">
                             <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-2">
                                 {dict.calendar?.editCategory || 'Edit Category'}
@@ -499,7 +477,6 @@ export const CategorySelector: React.FC<CategorySelectorProps> = ({
                                         required
                                     />
                                 </div>
-
                                 <div>
                                     <input
                                         type="text"
@@ -514,11 +491,10 @@ export const CategorySelector: React.FC<CategorySelectorProps> = ({
                                             'Description (optional)'
                                         }
                                         className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm 
-                            focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 
+                            focus:outline-none focus:ring-indigo-500 focus:border-indigo-500
                             bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
                                     />
                                 </div>
-
                                 <div className="flex items-center">
                                     <label className="text-sm text-gray-700 dark:text-gray-300 mr-2">
                                         {dict.calendar?.color || 'Color'}:
@@ -532,7 +508,6 @@ export const CategorySelector: React.FC<CategorySelectorProps> = ({
                                         className="w-8 h-8 p-0 border-0 rounded cursor-pointer"
                                     />
                                 </div>
-
                                 <div className="flex justify-end space-x-2">
                                     <button
                                         type="button"

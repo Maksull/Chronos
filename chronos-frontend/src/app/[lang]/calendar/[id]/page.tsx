@@ -102,7 +102,8 @@ export default function CalendarPage() {
                     setCanManageCalendar(true);
                 } else {
                     const userParticipation = data.data.participants?.find(
-                        p => String(p.userId) === String(userId),
+                        (p: { userId: string | number }) =>
+                            String(p.userId) === String(userId),
                     );
 
                     if (userParticipation) {

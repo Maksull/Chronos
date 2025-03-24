@@ -1,5 +1,4 @@
 'use client';
-
 import React, { useState, useEffect } from 'react';
 import { Edit2, Trash2, Plus, X } from 'lucide-react';
 import { CategoryData } from '@/types/account';
@@ -8,11 +7,13 @@ import { Dictionary } from '@/lib/dictionary';
 interface CategoryManagementProps {
     calendarId: string;
     dict: Dictionary;
+    readOnly?: boolean;
 }
 
 export const CategoryManagement: React.FC<CategoryManagementProps> = ({
     calendarId,
     dict,
+    readOnly = false,
 }) => {
     const [categories, setCategories] = useState<CategoryData[]>([]);
     const [loading, setLoading] = useState(false);
@@ -58,10 +59,8 @@ export const CategoryManagement: React.FC<CategoryManagementProps> = ({
 
     const handleAddCategory = async () => {
         if (!newCategoryName.trim()) return;
-
         setLoading(true);
         setError('');
-
         try {
             const response = await fetch(
                 `http://localhost:3001/calendars/${calendarId}/categories`,
@@ -78,9 +77,7 @@ export const CategoryManagement: React.FC<CategoryManagementProps> = ({
                     }),
                 },
             );
-
             const data = await response.json();
-
             if (data.status === 'success') {
                 setIsAddingCategory(false);
                 setNewCategoryName('');
@@ -100,10 +97,8 @@ export const CategoryManagement: React.FC<CategoryManagementProps> = ({
 
     const handleEditCategory = async () => {
         if (!categoryBeingEdited || !newCategoryName.trim()) return;
-
         setLoading(true);
         setError('');
-
         try {
             const response = await fetch(
                 `http://localhost:3001/categories/${categoryBeingEdited.id}`,
@@ -120,9 +115,7 @@ export const CategoryManagement: React.FC<CategoryManagementProps> = ({
                     }),
                 },
             );
-
             const data = await response.json();
-
             if (data.status === 'success') {
                 setIsEditingCategory(false);
                 setCategoryBeingEdited(null);
@@ -150,10 +143,8 @@ export const CategoryManagement: React.FC<CategoryManagementProps> = ({
         ) {
             return;
         }
-
         setLoading(true);
         setError('');
-
         try {
             const response = await fetch(
                 `http://localhost:3001/categories/${categoryId}`,
@@ -164,9 +155,7 @@ export const CategoryManagement: React.FC<CategoryManagementProps> = ({
                     },
                 },
             );
-
             const data = await response.json();
-
             if (data.status === 'success') {
                 fetchCategories();
             } else {
@@ -181,6 +170,7 @@ export const CategoryManagement: React.FC<CategoryManagementProps> = ({
     };
 
     const startEditCategory = (category: CategoryData) => {
+        if (readOnly) return;
         setCategoryBeingEdited(category);
         setNewCategoryName(category.name);
         setNewCategoryColor(category.color);
@@ -238,32 +228,34 @@ export const CategoryManagement: React.FC<CategoryManagementProps> = ({
                                             )}
                                         </div>
                                     </div>
-                                    <div className="flex items-center space-x-1">
-                                        <button
-                                            type="button"
-                                            onClick={() =>
-                                                startEditCategory(category)
-                                            }
-                                            className="p-1 text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-full hover:bg-gray-100 dark:hover:bg-gray-600">
-                                            <Edit2 className="h-4 w-4" />
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() =>
-                                                handleDeleteCategory(
-                                                    category.id,
-                                                )
-                                            }
-                                            className="p-1 text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 rounded-full hover:bg-gray-100 dark:hover:bg-gray-600">
-                                            <Trash2 className="h-4 w-4" />
-                                        </button>
-                                    </div>
+                                    {!readOnly && (
+                                        <div className="flex items-center space-x-1">
+                                            <button
+                                                type="button"
+                                                onClick={() =>
+                                                    startEditCategory(category)
+                                                }
+                                                className="p-1 text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-full hover:bg-gray-100 dark:hover:bg-gray-600">
+                                                <Edit2 className="h-4 w-4" />
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() =>
+                                                    handleDeleteCategory(
+                                                        category.id,
+                                                    )
+                                                }
+                                                className="p-1 text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 rounded-full hover:bg-gray-100 dark:hover:bg-gray-600">
+                                                <Trash2 className="h-4 w-4" />
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
                             ))}
                         </div>
                     )}
 
-                    {!isAddingCategory && !isEditingCategory && (
+                    {!readOnly && !isAddingCategory && !isEditingCategory && (
                         <button
                             type="button"
                             onClick={() => {
@@ -281,7 +273,7 @@ export const CategoryManagement: React.FC<CategoryManagementProps> = ({
                     )}
 
                     {/* Add Category Form */}
-                    {isAddingCategory && (
+                    {!readOnly && isAddingCategory && (
                         <div className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-md mb-4">
                             <div className="flex justify-between items-center mb-2">
                                 <h4 className="text-sm font-medium text-gray-900 dark:text-white">
@@ -314,7 +306,6 @@ export const CategoryManagement: React.FC<CategoryManagementProps> = ({
                                         required
                                     />
                                 </div>
-
                                 <div>
                                     <input
                                         type="text"
@@ -329,11 +320,10 @@ export const CategoryManagement: React.FC<CategoryManagementProps> = ({
                                             'Description (optional)'
                                         }
                                         className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm 
-                            focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 
+                            focus:outline-none focus:ring-indigo-500 focus:border-indigo-500
                             bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
                                     />
                                 </div>
-
                                 <div className="flex items-center">
                                     <label className="text-sm text-gray-700 dark:text-gray-300 mr-2">
                                         {dict.calendar?.color || 'Color'}:
@@ -347,7 +337,6 @@ export const CategoryManagement: React.FC<CategoryManagementProps> = ({
                                         className="w-8 h-8 p-0 border-0 rounded cursor-pointer"
                                     />
                                 </div>
-
                                 <div className="flex justify-end space-x-2">
                                     <button
                                         type="button"
@@ -396,8 +385,7 @@ export const CategoryManagement: React.FC<CategoryManagementProps> = ({
                         </div>
                     )}
 
-                    {/* Edit Category Form */}
-                    {isEditingCategory && categoryBeingEdited && (
+                    {!readOnly && isEditingCategory && categoryBeingEdited && (
                         <div className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-md mb-4">
                             <div className="flex justify-between items-center mb-2">
                                 <h4 className="text-sm font-medium text-gray-900 dark:text-white">
@@ -433,7 +421,6 @@ export const CategoryManagement: React.FC<CategoryManagementProps> = ({
                                         required
                                     />
                                 </div>
-
                                 <div>
                                     <input
                                         type="text"
@@ -448,11 +435,10 @@ export const CategoryManagement: React.FC<CategoryManagementProps> = ({
                                             'Description (optional)'
                                         }
                                         className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm 
-                            focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 
+                            focus:outline-none focus:ring-indigo-500 focus:border-indigo-500
                             bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
                                     />
                                 </div>
-
                                 <div className="flex items-center">
                                     <label className="text-sm text-gray-700 dark:text-gray-300 mr-2">
                                         {dict.calendar?.color || 'Color'}:
@@ -466,7 +452,6 @@ export const CategoryManagement: React.FC<CategoryManagementProps> = ({
                                         className="w-8 h-8 p-0 border-0 rounded cursor-pointer"
                                     />
                                 </div>
-
                                 <div className="flex justify-end space-x-2">
                                     <button
                                         type="button"

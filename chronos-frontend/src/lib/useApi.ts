@@ -9,6 +9,12 @@ interface ApiResponse<T> {
     data?: T;
 }
 
+interface ErrorResponse {
+    message?: string;
+    error?: string;
+    data?: unknown;
+}
+
 export const useApi = () => {
     const { dict } = useDictionary();
     const { setError } = useError();
@@ -42,7 +48,7 @@ export const useApi = () => {
             // First check for HTTP error status codes
             if (!response.ok) {
                 let errorMessage = getGenericErrorMessage();
-                let errorData: any = null;
+                let errorData: ErrorResponse | null = null;
 
                 // Try to get a more specific error message from the response
                 try {
@@ -52,8 +58,8 @@ export const useApi = () => {
                     } else if (errorData && errorData.error) {
                         errorMessage = errorData.error;
                     }
-                } catch (parseError) {
-                    // If parsing fails, use status text
+                } catch {
+                    // If parsing fails, use status text (removed unused parseError variable)
                     errorMessage = `${response.status}: ${response.statusText || getGenericErrorMessage()}`;
                 }
 
@@ -64,7 +70,7 @@ export const useApi = () => {
                 return {
                     status: 'error',
                     message: errorMessage,
-                    data: errorData?.data,
+                    data: errorData?.data as T | undefined,
                 };
             }
 
@@ -99,7 +105,11 @@ export const useApi = () => {
                 showErrorModal,
             ),
 
-        post: <T>(endpoint: string, data: any, showErrorModal = true) =>
+        post: <T, D = Record<string, unknown>>(
+            endpoint: string,
+            data: D,
+            showErrorModal = true,
+        ) =>
             fetchWithErrorHandling<T>(
                 endpoint,
                 {
@@ -109,7 +119,11 @@ export const useApi = () => {
                 showErrorModal,
             ),
 
-        put: <T>(endpoint: string, data: any, showErrorModal = true) =>
+        put: <T, D = Record<string, unknown>>(
+            endpoint: string,
+            data: D,
+            showErrorModal = true,
+        ) =>
             fetchWithErrorHandling<T>(
                 endpoint,
                 {
