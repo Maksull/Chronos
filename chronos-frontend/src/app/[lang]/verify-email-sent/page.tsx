@@ -1,4 +1,3 @@
-// app/[lang]/verify-email-sent/page.tsx
 'use client';
 
 import { Calendar } from 'lucide-react';

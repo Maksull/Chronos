@@ -1,4 +1,3 @@
-// src/components/account/CalendarForm.tsx
 import React from 'react';
 import { Dictionary } from '@/lib/dictionary';
 import { CalendarFormData } from '@/types/account';

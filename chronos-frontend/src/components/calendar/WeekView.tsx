@@ -32,7 +32,6 @@ interface DayColumn {
 export const WeekView: React.FC<WeekViewProps> = ({
     currentDate,
     dict,
-    lang,
     calendar,
     onAddEvent,
     onEventClick,

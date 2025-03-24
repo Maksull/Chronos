@@ -72,16 +72,8 @@ export const EventModal: React.FC<EventModalProps> = ({
         isAdmin ||
         isCreator ||
         (mode === 'create' &&
-            (userRole === ParticipantRole.CREATOR ||
-                userRole === ParticipantRole.ADMIN));
-
-    // Get role label
-    const getRoleLabel = () => {
-        if (isAdmin) return dict.calendar?.roleAdmin || 'Admin';
-        if (userRole === ParticipantRole.CREATOR)
-            return dict.calendar?.roleCreator || 'Creator';
-        return dict.calendar?.roleReader || 'Reader';
-    };
+            userRole !== undefined &&
+            userRole === ParticipantRole.CREATOR);
 
     useEffect(() => {
         fetchCategories();

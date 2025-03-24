@@ -14,6 +14,13 @@ interface Country {
     name: string;
 }
 
+interface CountryApiResponse {
+    cca2: string;
+    name: {
+        common: string;
+    };
+}
+
 export default function RegisterPage() {
     const { dict, lang } = useDictionary();
     const router = useRouter();
@@ -54,7 +61,7 @@ export default function RegisterPage() {
                     );
                     const data = await response.json();
                     const formattedCountries = data
-                        .map((country: any) => ({
+                        .map((country: CountryApiResponse) => ({
                             code: country.cca2,
                             name: country.name.common,
                         }))

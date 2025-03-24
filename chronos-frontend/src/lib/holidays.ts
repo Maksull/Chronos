@@ -1,5 +1,11 @@
 import { EventData } from '@/types/account';
 
+interface NagerHoliday {
+    date: string;
+    localName: string;
+    name: string;
+}
+
 const holidayCache = new Map<string, EventData[]>();
 
 export async function fetchHolidaysForRegion(
@@ -27,12 +33,12 @@ export async function fetchHolidaysForRegion(
             throw new Error(`Failed to fetch holidays: ${response.status}`);
         }
 
-        const holidays = await response.json();
+        const holidays = (await response.json()) as NagerHoliday[];
 
         // Use a Map to deduplicate holidays based on date + name
         const uniqueHolidays = new Map();
 
-        holidays.forEach((holiday: any) => {
+        holidays.forEach((holiday: NagerHoliday) => {
             const holidayDate = new Date(holiday.date);
             const dateKey = holidayDate.toISOString().split('T')[0]; // YYYY-MM-DD format
             const holidayKey = `${dateKey}-${holiday.localName}`;

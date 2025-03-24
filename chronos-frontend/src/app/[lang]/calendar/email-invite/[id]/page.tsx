@@ -10,7 +10,6 @@ export default function CalendarEmailInvitePage() {
     const params = useParams();
     const { dict, lang } = useDictionary();
 
-    // Fix: Use 'id' parameter instead of 'token' since that's what's in the URL
     const token = params.id as string;
 
     const [loading, setLoading] = useState(true);
@@ -22,34 +21,11 @@ export default function CalendarEmailInvitePage() {
         name: string;
         email: string;
     } | null>(null);
-    const [debugInfo, setDebugInfo] = useState<string>('');
-
-    // Add debug info
-    useEffect(() => {
-        setDebugInfo(
-            prev => prev + `\nParams received: ${JSON.stringify(params)}`,
-        );
-        setDebugInfo(prev => prev + `\nToken extracted: ${token}`);
-    }, [params, token]);
 
     useEffect(() => {
         const fetchInviteDetails = async () => {
-            setDebugInfo(
-                prev => prev + `\nFetching invite details starting...`,
-            );
-
             try {
-                setDebugInfo(
-                    prev =>
-                        prev +
-                        `\nMaking API request to: http://localhost:3001/calendar-email-invites/${token}`,
-                );
-
                 const savedToken = localStorage.getItem('token');
-                setDebugInfo(
-                    prev =>
-                        prev + `\nAuth token exists: ${Boolean(savedToken)}`,
-                );
 
                 const response = await fetch(
                     `http://localhost:3001/calendar-email-invites/${token}`,
@@ -60,63 +36,32 @@ export default function CalendarEmailInvitePage() {
                     },
                 );
 
-                setDebugInfo(
-                    prev => prev + `\nResponse status: ${response.status}`,
-                );
-
                 const data = await response.json();
-                setDebugInfo(
-                    prev => prev + `\nResponse data: ${JSON.stringify(data)}`,
-                );
 
                 if (data.status === 'success') {
                     setCalendarInfo(data.data);
-                    setDebugInfo(
-                        prev =>
-                            prev +
-                            `\nCalendar info set: ${JSON.stringify(data.data)}`,
-                    );
                 } else {
                     setError(
                         data.message ||
                             dict.calendar?.inviteNotFound ||
                             'Invite not found or invalid',
                     );
-                    setDebugInfo(
-                        prev =>
-                            prev +
-                            `\nError set from response: ${data.message || 'No message'}`,
-                    );
                 }
             } catch (error) {
                 console.error('Error fetching invite details:', error);
-                setDebugInfo(
-                    prev =>
-                        prev +
-                        `\nCaught error: ${error instanceof Error ? error.message : String(error)}`,
-                );
                 setError(
                     dict.account?.errors?.generic ||
                         'An error occurred. The invite may be invalid or expired.',
                 );
             } finally {
                 setLoading(false);
-                setDebugInfo(
-                    prev => prev + `\nFinally block: Loading set to false`,
-                );
             }
         };
 
         // Make sure we're on the client side and have a token
         if (typeof window !== 'undefined' && token) {
-            setDebugInfo(
-                prev => prev + `\nInitiating fetch (client-side confirmed)`,
-            );
             fetchInviteDetails();
         } else {
-            setDebugInfo(
-                prev => prev + `\nSkipping fetch - not on client or no token`,
-            );
             if (!token) {
                 setError('No invitation token provided');
                 setLoading(false);
@@ -127,7 +72,6 @@ export default function CalendarEmailInvitePage() {
     const handleAcceptInvite = async () => {
         setAccepting(true);
         setError('');
-        setDebugInfo(prev => prev + `\nAccepting invite...`);
 
         try {
             const response = await fetch(
@@ -143,9 +87,6 @@ export default function CalendarEmailInvitePage() {
             );
 
             const data = await response.json();
-            setDebugInfo(
-                prev => prev + `\nAccept response: ${JSON.stringify(data)}`,
-            );
 
             if (data.status === 'success') {
                 setSuccess(true);
@@ -159,11 +100,6 @@ export default function CalendarEmailInvitePage() {
             }
         } catch (error) {
             console.error('Error accepting invite:', error);
-            setDebugInfo(
-                prev =>
-                    prev +
-                    `\nError accepting: ${error instanceof Error ? error.message : String(error)}`,
-            );
             setError(
                 dict.account?.errors?.generic ||
                     'An error occurred while accepting the invitation.',
@@ -195,16 +131,6 @@ export default function CalendarEmailInvitePage() {
                             {dict.calendar?.backToAccount || 'Back to Account'}
                         </Link>
                     </div>
-
-                    {/* Debug panel - only visible during development */}
-                    {process.env.NODE_ENV === 'development' && (
-                        <div className="mb-4 p-3 bg-gray-100 dark:bg-gray-800 rounded border border-gray-300 dark:border-gray-700 text-xs font-mono overflow-auto max-h-60">
-                            <h4 className="font-bold mb-2">Debug Info:</h4>
-                            <pre className="whitespace-pre-wrap">
-                                {debugInfo}
-                            </pre>
-                        </div>
-                    )}
 
                     <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden border border-gray-200 dark:border-gray-700">
                         <div className="p-6">

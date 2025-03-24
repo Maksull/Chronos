@@ -1,5 +1,5 @@
 'use client';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { Dictionary } from '@/lib/dictionary';
 import { Plus, ChevronDown, ChevronUp } from 'lucide-react';
 import { CalendarData, EventData, CategoryData } from '@/types/account';
@@ -41,24 +41,28 @@ export const MonthView: React.FC<MonthViewProps> = ({
     const [showHolidays, setShowHolidays] = useState(true);
     const [userRegion, setUserRegion] = useState<string>('');
 
-    const firstDayOfMonth = new Date(
-        currentDate.getFullYear(),
-        currentDate.getMonth(),
-        1,
-    );
-    const lastDayOfMonth = new Date(
-        currentDate.getFullYear(),
-        currentDate.getMonth() + 1,
-        0,
-    );
-    const startDate = new Date(firstDayOfMonth);
-    startDate.setDate(1 - firstDayOfMonth.getDay());
-    const endDate = new Date(lastDayOfMonth);
-    const daysToAdd = 6 - lastDayOfMonth.getDay();
-    endDate.setDate(lastDayOfMonth.getDate() + daysToAdd);
-    endDate.setHours(23, 59, 59, 999);
+    // Move date calculations to useMemo to prevent recreation on every render
+    const { startDate, endDate } = useMemo(() => {
+        const firstDayOfMonth = new Date(
+            currentDate.getFullYear(),
+            currentDate.getMonth(),
+            1,
+        );
+        const lastDayOfMonth = new Date(
+            currentDate.getFullYear(),
+            currentDate.getMonth() + 1,
+            0,
+        );
+        const startDate = new Date(firstDayOfMonth);
+        startDate.setDate(1 - firstDayOfMonth.getDay());
+        const endDate = new Date(lastDayOfMonth);
+        const daysToAdd = 6 - lastDayOfMonth.getDay();
+        endDate.setDate(lastDayOfMonth.getDate() + daysToAdd);
+        endDate.setHours(23, 59, 59, 999);
 
-    // Fetch user profile to get region
+        return { startDate, endDate };
+    }, [currentDate]);
+
     useEffect(() => {
         const fetchUserProfile = async () => {
             try {
@@ -70,7 +74,6 @@ export const MonthView: React.FC<MonthViewProps> = ({
                         },
                     },
                 );
-
                 if (response.ok) {
                     const data = await response.json();
                     if (data.status === 'success' && data.data.region) {
@@ -85,11 +88,9 @@ export const MonthView: React.FC<MonthViewProps> = ({
         fetchUserProfile();
     }, []);
 
-    // Fetch holidays when region or current date changes
     useEffect(() => {
         const fetchHolidays = async () => {
             if (!userRegion) return;
-
             setLoadingHolidays(true);
             try {
                 const year = currentDate.getFullYear();
@@ -109,68 +110,64 @@ export const MonthView: React.FC<MonthViewProps> = ({
     }, [userRegion, currentDate.getFullYear()]);
 
     useEffect(() => {
+        const fetchCategories = async () => {
+            if (!calendar?.id) return;
+            try {
+                const response = await fetch(
+                    `http://localhost:3001/calendars/${calendar.id}/categories`,
+                    {
+                        headers: {
+                            Authorization: `Bearer ${localStorage.getItem('token')}`,
+                        },
+                    },
+                );
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.status === 'success') {
+                        setCategories(data.data);
+                    }
+                }
+            } catch (error) {
+                console.error('Error fetching categories:', error);
+            }
+        };
+
         fetchCategories();
-        fetchEvents();
         setExpandedRows(new Set());
     }, [currentDate, calendar?.id]);
 
+    // Define fetchEvents inside useEffect to avoid recreating it on every render
     useEffect(() => {
-        fetchEvents();
-    }, [selectedCategoryIds]);
-
-    const fetchCategories = async () => {
-        if (!calendar?.id) return;
-        try {
-            const response = await fetch(
-                `http://localhost:3001/calendars/${calendar.id}/categories`,
-                {
+        const fetchEvents = async () => {
+            if (!calendar?.id) return;
+            try {
+                setLoading(true);
+                let url = `http://localhost:3001/calendars/${calendar.id}/events?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`;
+                if (selectedCategoryIds.length > 0) {
+                    selectedCategoryIds.forEach(categoryId => {
+                        url += `&categoryId=${categoryId}`;
+                    });
+                }
+                const response = await fetch(url, {
                     headers: {
                         Authorization: `Bearer ${localStorage.getItem('token')}`,
                     },
-                },
-            );
-
-            if (response.ok) {
-                const data = await response.json();
-                if (data.status === 'success') {
-                    setCategories(data.data);
-                }
-            }
-        } catch (error) {
-            console.error('Error fetching categories:', error);
-        }
-    };
-
-    const fetchEvents = async () => {
-        if (!calendar?.id) return;
-        try {
-            setLoading(true);
-            let url = `http://localhost:3001/calendars/${calendar.id}/events?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`;
-
-            if (selectedCategoryIds.length > 0) {
-                selectedCategoryIds.forEach(categoryId => {
-                    url += `&categoryId=${categoryId}`;
                 });
-            }
-
-            const response = await fetch(url, {
-                headers: {
-                    Authorization: `Bearer ${localStorage.getItem('token')}`,
-                },
-            });
-
-            if (response.ok) {
-                const data = await response.json();
-                if (data.status === 'success') {
-                    setEvents(data.data);
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.status === 'success') {
+                        setEvents(data.data);
+                    }
                 }
+            } catch (error) {
+                console.error('Error fetching events:', error);
+            } finally {
+                setLoading(false);
             }
-        } catch (error) {
-            console.error('Error fetching events:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
+        };
+
+        fetchEvents();
+    }, [selectedCategoryIds, calendar?.id, startDate, endDate]);
 
     const handleCategoryChange = (categoryIds: string[]) => {
         setSelectedCategoryIds(categoryIds);
@@ -180,98 +177,95 @@ export const MonthView: React.FC<MonthViewProps> = ({
         setShowHolidays(!showHolidays);
     };
 
-    const daysInMonth = new Date(
-        currentDate.getFullYear(),
-        currentDate.getMonth() + 1,
-        0,
-    ).getDate();
-    const firstDayOfMonthWeekday = new Date(
-        currentDate.getFullYear(),
-        currentDate.getMonth(),
-        1,
-    ).getDay();
-    const lastDayOfPrevMonth = new Date(
-        currentDate.getFullYear(),
-        currentDate.getMonth(),
-        0,
-    ).getDate();
-
-    const daysArray: DayInfo[] = [];
-    const today = new Date();
-
-    // Previous month days
-    for (let i = firstDayOfMonthWeekday - 1; i >= 0; i--) {
-        const date = new Date(
-            currentDate.getFullYear(),
-            currentDate.getMonth() - 1,
-            lastDayOfPrevMonth - i,
-        );
-        daysArray.push({
-            day: lastDayOfPrevMonth - i,
-            inCurrentMonth: false,
-            isToday: false,
-            date,
-            rowIndex: 0,
-        });
-    }
-
-    // Current month days
-    for (let i = 1; i <= daysInMonth; i++) {
-        const date = new Date(
-            currentDate.getFullYear(),
-            currentDate.getMonth(),
-            i,
-        );
-        const isToday =
-            i === today.getDate() &&
-            currentDate.getMonth() === today.getMonth() &&
-            currentDate.getFullYear() === today.getFullYear();
-        daysArray.push({
-            day: i,
-            inCurrentMonth: true,
-            isToday,
-            date,
-            rowIndex: 0,
-        });
-    }
-
-    // Next month days
-    const remainingDays = 42 - daysArray.length;
-    for (let i = 1; i <= remainingDays; i++) {
-        const date = new Date(
+    // Move calculations into useMemo to prevent recreation on every render
+    const { rows } = useMemo(() => {
+        const daysInMonth = new Date(
             currentDate.getFullYear(),
             currentDate.getMonth() + 1,
-            i,
-        );
-        daysArray.push({
-            day: i,
-            inCurrentMonth: false,
-            isToday: false,
-            date,
-            rowIndex: 0,
+            0,
+        ).getDate();
+        const firstDayOfMonthWeekday = new Date(
+            currentDate.getFullYear(),
+            currentDate.getMonth(),
+            1,
+        ).getDay();
+        const lastDayOfPrevMonth = new Date(
+            currentDate.getFullYear(),
+            currentDate.getMonth(),
+            0,
+        ).getDate();
+        const daysArray: DayInfo[] = [];
+        const today = new Date();
+
+        for (let i = firstDayOfMonthWeekday - 1; i >= 0; i--) {
+            const date = new Date(
+                currentDate.getFullYear(),
+                currentDate.getMonth() - 1,
+                lastDayOfPrevMonth - i,
+            );
+            daysArray.push({
+                day: lastDayOfPrevMonth - i,
+                inCurrentMonth: false,
+                isToday: false,
+                date,
+                rowIndex: 0,
+            });
+        }
+
+        for (let i = 1; i <= daysInMonth; i++) {
+            const date = new Date(
+                currentDate.getFullYear(),
+                currentDate.getMonth(),
+                i,
+            );
+            const isToday =
+                i === today.getDate() &&
+                currentDate.getMonth() === today.getMonth() &&
+                currentDate.getFullYear() === today.getFullYear();
+            daysArray.push({
+                day: i,
+                inCurrentMonth: true,
+                isToday,
+                date,
+                rowIndex: 0,
+            });
+        }
+
+        const remainingDays = 42 - daysArray.length;
+        for (let i = 1; i <= remainingDays; i++) {
+            const date = new Date(
+                currentDate.getFullYear(),
+                currentDate.getMonth() + 1,
+                i,
+            );
+            daysArray.push({
+                day: i,
+                inCurrentMonth: false,
+                isToday: false,
+                date,
+                rowIndex: 0,
+            });
+        }
+
+        daysArray.forEach((day, index) => {
+            day.rowIndex = Math.floor(index / 7);
         });
-    }
 
-    // Assign row index
-    daysArray.forEach((day, index) => {
-        day.rowIndex = Math.floor(index / 7);
-    });
+        const rows = daysArray.reduce(
+            (acc, day) => {
+                if (!acc[day.rowIndex]) {
+                    acc[day.rowIndex] = [];
+                }
+                acc[day.rowIndex].push(day);
+                return acc;
+            },
+            {} as Record<number, DayInfo[]>,
+        );
 
-    // Group days by row
-    const rows = daysArray.reduce(
-        (acc, day) => {
-            if (!acc[day.rowIndex]) {
-                acc[day.rowIndex] = [];
-            }
-            acc[day.rowIndex].push(day);
-            return acc;
-        },
-        {} as Record<number, DayInfo[]>,
-    );
+        return { rows };
+    }, [currentDate]);
 
-    // Get all events for a specific day, including holidays if enabled
     const getEventsForDay = (date: Date) => {
-        // Get regular events
         const dayEvents = events.filter(event => {
             const eventStart = new Date(event.startDate);
             return (
@@ -281,7 +275,6 @@ export const MonthView: React.FC<MonthViewProps> = ({
             );
         });
 
-        // Add holidays if enabled
         const dayHolidays = showHolidays
             ? holidays.filter(holiday => {
                   const holidayDate = new Date(holiday.startDate);
@@ -293,7 +286,6 @@ export const MonthView: React.FC<MonthViewProps> = ({
               })
             : [];
 
-        // Combine and sort by time
         return [...dayEvents, ...dayHolidays].sort((a, b) => {
             return (
                 new Date(a.startDate).getTime() -
@@ -318,7 +310,6 @@ export const MonthView: React.FC<MonthViewProps> = ({
         return expandedRows.has(rowIndex);
     };
 
-    // Check if an event is a holiday
     const isHolidayEvent = (event: EventData) => {
         return event.id.startsWith('holiday-');
     };
@@ -333,7 +324,6 @@ export const MonthView: React.FC<MonthViewProps> = ({
                     selectedCategoryIds={selectedCategoryIds}
                     onCategoryChange={handleCategoryChange}
                 />
-
                 <div className="flex items-center">
                     <label className="inline-flex items-center cursor-pointer mr-2">
                         <input
@@ -367,7 +357,9 @@ export const MonthView: React.FC<MonthViewProps> = ({
                     return (
                         <div
                             key={rowIndex}
-                            className={`grid grid-cols-7 gap-1 ${isExpanded ? 'min-h-56' : 'min-h-28'}`}>
+                            className={`grid grid-cols-7 gap-1 ${
+                                isExpanded ? 'min-h-56' : 'min-h-28'
+                            }`}>
                             {rowDays.map((day, dayIndex) => {
                                 const dayEvents = getEventsForDay(day.date);
                                 const hasMoreEvents = dayEvents.length > 3;
@@ -388,20 +380,24 @@ export const MonthView: React.FC<MonthViewProps> = ({
                                             }
                                         }}
                                         className={`
-p-1 border dark:border-gray-700 rounded-md transition-all group relative
-                ${
-                    day.inCurrentMonth
-                        ? 'text-gray-600 dark:text-white bg-white dark:bg-gray-800 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 hover:shadow-md cursor-pointer active:bg-indigo-100 dark:active:bg-indigo-900/30'
-                        : 'bg-gray-50 dark:bg-gray-700/50 text-gray-400 dark:text-gray-500'
-                }
-                ${
-                    day.isToday
-                        ? 'border-2 border-indigo-500 dark:border-indigo-400'
-                        : 'border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
-                }
-            `}>
+                      p-1 border dark:border-gray-700 rounded-md transition-all group relative
+                      ${
+                          day.inCurrentMonth
+                              ? 'text-gray-600 dark:text-white bg-white dark:bg-gray-800 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 hover:shadow-md cursor-pointer active:bg-indigo-100 dark:active:bg-indigo-900/30'
+                              : 'bg-gray-50 dark:bg-gray-700/50 text-gray-400 dark:text-gray-500'
+                      }
+                      ${
+                          day.isToday
+                              ? 'border-2 border-indigo-500 dark:border-indigo-400'
+                              : 'border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                      }
+                    `}>
                                         <div
-                                            className={`flex justify-between items-center p-1 ${day.isToday ? 'font-bold text-indigo-600 dark:text-indigo-400' : ''}`}>
+                                            className={`flex justify-between items-center p-1 ${
+                                                day.isToday
+                                                    ? 'font-bold text-indigo-600 dark:text-indigo-400'
+                                                    : ''
+                                            }`}>
                                             <span
                                                 className={
                                                     day.isToday
@@ -468,7 +464,11 @@ p-1 border dark:border-gray-700 rounded-md transition-all group relative
                                                                     isHoliday
                                                                         ? event.description ||
                                                                           ''
-                                                                        : `${event.name}${event.description ? `\n${event.description}` : ''}`
+                                                                        : `${event.name}${
+                                                                              event.description
+                                                                                  ? `\n${event.description}`
+                                                                                  : ''
+                                                                          }`
                                                                 }
                                                                 onClick={e => {
                                                                     e.stopPropagation(); // Prevent triggering parent onClick

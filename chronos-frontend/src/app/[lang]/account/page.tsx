@@ -10,22 +10,8 @@ import {
     ProtectedRoute,
     StatsSection,
 } from '@/components';
-import { ProfileData, CalendarData } from '@/types/account';
+import { ProfileData, CalendarData, PaginationData, CalendarCounts } from '@/types/account';
 import { useRouter } from 'next/navigation';
-
-// Add pagination and count interfaces
-interface PaginationData {
-    page: number;
-    limit: number;
-    totalCount: number;
-    totalPages: number;
-}
-
-interface CalendarCounts {
-    visible: number;
-    hidden: number;
-    total: number;
-}
 
 export default function AccountPage() {
     const { dict, lang } = useDictionary();

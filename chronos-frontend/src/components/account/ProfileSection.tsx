@@ -9,6 +9,13 @@ interface Country {
     name: string;
 }
 
+interface CountryApiResponse {
+    cca2: string;
+    name: {
+        common: string;
+    };
+}
+
 interface ProfileSectionProps {
     profileData: ProfileData;
     setProfileData: React.Dispatch<React.SetStateAction<ProfileData>>;
@@ -49,7 +56,7 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
                     );
                     const data = await response.json();
                     const formattedCountries = data
-                        .map((country: any) => ({
+                        .map((country: CountryApiResponse) => ({
                             code: country.cca2,
                             name: country.name.common,
                         }))
@@ -86,7 +93,7 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
                     region: data.country_code,
                 }));
             }
-        } catch (error) {
+        } catch {
             console.log(
                 'Could not determine location, please select your country manually.',
             );
@@ -109,11 +116,6 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
         }));
     };
 
-    const getCountryNameByCode = (code: string): string => {
-        const country = countries.find(c => c.code === code);
-        return country ? country.name : code;
-    };
-
     return (
         <div className="space-y-8">
             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-md overflow-hidden border border-gray-100 dark:border-gray-700">
@@ -127,7 +129,6 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
                             {dict.account.profile.title}
                         </h2>
                     </div>
-
                     <form onSubmit={handleSubmit} className="space-y-6">
                         <div className="grid grid-cols-1 gap-6">
                             <div>
@@ -142,7 +143,6 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
                                     className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-4 py-2.5 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200"
                                 />
                             </div>
-
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                     {dict.account.fields.fullName}
@@ -155,7 +155,6 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
                                     className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-4 py-2.5 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200"
                                 />
                             </div>
-
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                     {dict.account.fields.region}
@@ -188,7 +187,6 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
                                         </svg>
                                     </div>
                                 </div>
-
                                 <div className="mt-2">
                                     <button
                                         type="button"

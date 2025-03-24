@@ -79,7 +79,7 @@ export default function VerifyEmailPage() {
 
             setResendSuccess(true);
             setResendTimer(60); // 60-second cooldown
-        } catch (error) {
+        } catch {
             setError(dict.auth.errors.generic);
         } finally {
             setIsResending(false);

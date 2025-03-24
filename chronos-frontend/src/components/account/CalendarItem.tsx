@@ -1,5 +1,4 @@
 'use client';
-
 import React from 'react';
 import { Calendar, ChevronRight, Eye, EyeOff, Trash2 } from 'lucide-react';
 import { CalendarData } from '@/types/account';
@@ -17,11 +16,11 @@ export const CalendarItem: React.FC<CalendarItemProps> = ({
     calendar,
     onToggleVisibility,
     onDelete,
-    dict,
 }) => {
     const router = useRouter();
-    const navigateToCalendar = e => {
-        if (e.target.closest('button')) return;
+
+    const navigateToCalendar = (e: React.MouseEvent) => {
+        if ((e.target as Element).closest('button')) return;
         router.push(`/calendar/${calendar.id}`);
     };
 
@@ -72,7 +71,7 @@ export const CalendarItem: React.FC<CalendarItemProps> = ({
                         <button
                             onClick={e => {
                                 e.stopPropagation();
-                                onDelete();
+                                onDelete(calendar);
                             }}
                             className="p-1.5 rounded-lg text-gray-500 hover:text-red-500 dark:text-gray-400 dark:hover:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
                             <Trash2 className="h-5 w-5" />

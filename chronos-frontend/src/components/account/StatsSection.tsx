@@ -1,4 +1,4 @@
-import { Calendar, Globe, UserCircle, TrendingUp } from 'lucide-react';
+import { Calendar, Globe, UserCircle } from 'lucide-react';
 import { Dictionary } from '@/lib/dictionary';
 import { ProfileData } from '@/types/account';
 

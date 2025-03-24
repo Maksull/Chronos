@@ -1,5 +1,5 @@
 'use client';
-import { Calendar, Bell, User, LogIn, LogOut, Menu, X } from 'lucide-react';
+import { Calendar, User, LogIn, LogOut, Menu, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { ThemeToggle } from '@/components';
 import Link from 'next/link';
@@ -25,11 +25,6 @@ export function Header() {
                 <ThemeToggle />
                 {isAuthenticated ? (
                     <>
-                        <button
-                            className="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-white"
-                            aria-label={dict.navigation.notifications}>
-                            <Bell className="h-6 w-6" />
-                        </button>
                         <button
                             onClick={() => router.push(`/${lang}/account`)}
                             className="p-2 text-gray-500 dark:text-gray-400"
@@ -71,11 +66,6 @@ export function Header() {
             <div className="flex flex-wrap justify-center items-center gap-4 w-full">
                 {isAuthenticated ? (
                     <>
-                        <button
-                            className="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-white"
-                            aria-label={dict.navigation.notifications}>
-                            <Bell className="h-6 w-6" />
-                        </button>
                         <button
                             onClick={() => {
                                 router.push(`/${lang}/account`);

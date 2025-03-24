@@ -1,4 +1,3 @@
-// app/[lang]/not-found.tsx
 import Link from 'next/link';
 import { defaultLocale, Locale } from '@/middleware';
 import { getDictionary } from '@/lib/dictionary';

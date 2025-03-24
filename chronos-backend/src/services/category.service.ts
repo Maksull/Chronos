@@ -32,7 +32,7 @@ export class CategoryService {
         });
     }
 
-    async createCategory(userId: string, calendarId: string, data: { name: string; color: string }): Promise<EventCategory> {
+    async createCategory(userId: string, calendarId: string, data: { name: string; color?: string }): Promise<EventCategory> {
         const calendar = await this.calendarRepository.findOne({
             where: { id: calendarId },
             relations: ['owner'],
@@ -54,7 +54,7 @@ export class CategoryService {
 
         const category = this.categoryRepository.create({
             name: data.name,
-            color: data.color,
+            color: data.color || '#CCCCCC',
             calendar,
         });
 

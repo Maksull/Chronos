@@ -59,7 +59,6 @@ export default function VerifyEmailChangePage() {
 
         try {
             // The backend expects a 6-digit code in the request body
-            // Looking at the backend implementation, the code should be sent as the 'code' field in the request body
             const response = await fetch(
                 'http://localhost:3001/auth/verify-email-change',
                 {
@@ -84,7 +83,6 @@ export default function VerifyEmailChangePage() {
             setRedirectCountdown(5);
 
             // Refresh the authentication token since the email has changed
-            // This ensures the JWT token reflects the new email
             const userInfo = JSON.parse(localStorage.getItem('user') || '{}');
             userInfo.email = data.data?.email || userInfo.email;
             localStorage.setItem('user', JSON.stringify(userInfo));
@@ -127,7 +125,6 @@ export default function VerifyEmailChangePage() {
             setRedirectCountdown(5);
 
             // Refresh the authentication token since the email has changed
-            // This ensures the JWT token reflects the new email
             const userInfo = JSON.parse(localStorage.getItem('user') || '{}');
             userInfo.email = data.data?.email || userInfo.email;
             localStorage.setItem('user', JSON.stringify(userInfo));
@@ -142,11 +139,10 @@ export default function VerifyEmailChangePage() {
         if (countdown > 0) return;
 
         setError('');
-        setCountdown(60); // Set a 60-second cooldown
+        setCountdown(60);
 
         try {
             // We need to wait for the backend to expose a resend endpoint for email change verification
-            // This is a placeholder for now
             setSuccess(dict.auth.verifyEmail.codeSent);
         } catch {
             setError(dict.auth.errors.generic);
