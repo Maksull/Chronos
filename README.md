@@ -10,7 +10,6 @@ A brief description of your project, its purpose, and what it does.
 - [UI features](#ui-features)
 - [Technologies Used](#technologies-used)
 - [Contributing](#contributing)
-- [License](#license)
 
 ## Installation
 
@@ -43,7 +42,7 @@ Make sure to replace placeholders like `your email` and `your email app password
 
 4. Start the database (PostgreSQL) and ensure it's running.
 
-5. Run the both frontend and backend of application:
+5. To run both the frontend and backend of the application, please execute the following command in each of the respective repositories:
    ```bash
    npm start
    ```
@@ -176,7 +175,3 @@ The application communicates with a backend API:
 ## Contributing
 
 Contributions are welcome! Please open an issue or submit a pull request.
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
