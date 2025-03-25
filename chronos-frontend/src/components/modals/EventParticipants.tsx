@@ -13,6 +13,7 @@ import {
     Trash,
 } from 'lucide-react';
 import { ParticipantRole } from '@/types/account';
+import { Dictionary } from '@/lib/dictionary';
 
 interface EventParticipant {
     id: string;
@@ -39,16 +40,14 @@ interface EventParticipantsProps {
     calendarId: string;
     mode: 'view' | 'edit' | 'create';
     userRole?: ParticipantRole;
-    dict: any;
+    dict: Dictionary;
     isCreator: boolean;
     isAdmin: boolean;
 }
 
 export const EventParticipants: React.FC<EventParticipantsProps> = ({
     eventId,
-    calendarId,
     mode,
-    userRole,
     dict,
     isCreator,
     isAdmin,

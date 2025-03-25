@@ -113,6 +113,7 @@ export default function EventEmailInvitePage() {
         try {
             const date = new Date(dateString);
             return date.toLocaleString();
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
         } catch (e) {
             return dateString;
         }
@@ -180,9 +181,13 @@ export default function EventEmailInvitePage() {
                                             'Invitation Accepted!'}
                                     </h3>
                                     <p className="text-gray-600 dark:text-gray-400 mb-6">
-                                        {dict.calendar
-                                            ?.eventInviteAcceptedDesc ||
-                                            `You've been added to "${eventInfo?.eventName}" event successfully.`}
+                                        {eventInfo?.eventName
+                                            ? dict.calendar?.eventInviteAcceptedDesc.replace(
+                                                  '{eventName}',
+                                                  eventInfo?.eventName,
+                                              ) ||
+                                              `You've been added to "${eventInfo?.eventName}" event successfully.`
+                                            : `You've been added to an event successfully.`}
                                     </p>
                                     <div className="flex flex-col sm:flex-row items-center justify-center space-y-3 sm:space-y-0 sm:space-x-3">
                                         <Link
