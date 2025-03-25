@@ -47,6 +47,7 @@ export const WeekView: React.FC<WeekViewProps> = ({
     const [categories, setCategories] = useState<CategoryData[]>([]);
     const [showHolidays, setShowHolidays] = useState(true);
     const [userRegion, setUserRegion] = useState<string>('');
+    const [error, setError] = useState('');
 
     const timeGridRef = useRef<HTMLDivElement>(null);
     const [currentTimePosition, setCurrentTimePosition] = useState<number>(0);
@@ -115,6 +116,9 @@ export const WeekView: React.FC<WeekViewProps> = ({
                     userRegion,
                     year,
                 );
+                if (!holidaysData || holidaysData.length === 0) {
+                    setError(`No holidays found for ${userRegion} in ${year}`);
+                }
 
                 // Filter only holidays for the current week view
                 const weekHolidays = holidaysData.filter(holiday => {
@@ -348,19 +352,25 @@ export const WeekView: React.FC<WeekViewProps> = ({
                     onCategoryChange={handleCategoryChange}
                 />
 
-                <div className="flex items-center">
-                    <label className="inline-flex items-center cursor-pointer mr-2">
-                        <input
-                            type="checkbox"
-                            checked={showHolidays}
-                            onChange={toggleHolidaysDisplay}
-                            className="form-checkbox h-4 w-4 text-indigo-600 transition duration-150 ease-in-out"
-                        />
-                        <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">
-                            {dict.calendar?.showHolidays || 'Show Holidays'}
-                        </span>
-                    </label>
-                </div>
+                {error ? (
+                    <div className="mb-4 mr-4 p-4 bg-red-50 dark:bg-red-900/50 text-red-700 dark:text-red-200 rounded-md">
+                        {error}
+                    </div>
+                ) : (
+                    <div className="flex items-center">
+                        <label className="inline-flex items-center cursor-pointer mr-2">
+                            <input
+                                type="checkbox"
+                                checked={showHolidays}
+                                onChange={toggleHolidaysDisplay}
+                                className="form-checkbox h-4 w-4 text-indigo-600 transition duration-150 ease-in-out"
+                            />
+                            <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">
+                                {dict.calendar?.showHolidays || 'Show Holidays'}
+                            </span>
+                        </label>
+                    </div>
+                )}
             </div>
 
             <div className="grid grid-cols-8 mb-2 border-b dark:border-gray-700">

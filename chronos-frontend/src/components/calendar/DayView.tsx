@@ -41,6 +41,7 @@ export const DayView: React.FC<DayViewProps> = ({
     const [categories, setCategories] = useState<CategoryData[]>([]);
     const [showHolidays, setShowHolidays] = useState(true);
     const [userRegion, setUserRegion] = useState<string>('');
+    const [error, setError] = useState('');
 
     const timeGridRef = useRef<HTMLDivElement>(null);
 
@@ -68,13 +69,6 @@ export const DayView: React.FC<DayViewProps> = ({
         viewDate.getDate() === new Date().getDate() &&
         viewDate.getMonth() === new Date().getMonth() &&
         viewDate.getFullYear() === new Date().getFullYear();
-
-    const formattedDate = viewDate.toLocaleDateString(undefined, {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-    });
 
     // Fetch user profile to get region
     useEffect(() => {
@@ -116,6 +110,10 @@ export const DayView: React.FC<DayViewProps> = ({
                     year,
                 );
 
+                if (!holidaysData || holidaysData.length === 0) {
+                    setError(`No holidays found for ${userRegion} in ${year}`);
+                }
+
                 // Filter only holidays for the current day view
                 const todayHolidays = holidaysData.filter(holiday => {
                     const holidayDate = new Date(holiday.startDate);
@@ -128,6 +126,7 @@ export const DayView: React.FC<DayViewProps> = ({
 
                 setHolidays(todayHolidays);
             } catch (error) {
+                console.log(error);
                 console.error('Error fetching holidays:', error);
             } finally {
                 setLoadingHolidays(false);
@@ -309,38 +308,31 @@ export const DayView: React.FC<DayViewProps> = ({
         <div
             className="calendar-day-view overflow-y-auto max-h-[calc(100vh-240px)]"
             ref={timeGridRef}>
-            <div className="border-b dark:border-gray-700 mb-4 pb-2">
-                <h2
-                    className={`text-xl font-semibold ${isToday ? 'text-indigo-600 dark:text-indigo-400' : ''}`}>
-                    {formattedDate}
-                    {isToday && (
-                        <span className="ml-2 text-sm bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 px-2 py-1 rounded-full">
-                            Today
-                        </span>
-                    )}
-                </h2>
-            </div>
-
             <div className="flex justify-between items-center mb-4">
                 <CategoryFilter
                     categories={categories}
                     selectedCategoryIds={selectedCategoryIds}
                     onCategoryChange={handleCategoryChange}
                 />
-
-                <div className="flex items-center">
-                    <label className="inline-flex items-center cursor-pointer mr-2">
-                        <input
-                            type="checkbox"
-                            checked={showHolidays}
-                            onChange={toggleHolidaysDisplay}
-                            className="form-checkbox h-4 w-4 text-indigo-600 transition duration-150 ease-in-out"
-                        />
-                        <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">
-                            {dict.calendar?.showHolidays || 'Show Holidays'}
-                        </span>
-                    </label>
-                </div>
+                {error ? (
+                    <div className="mb-4 mr-4 p-4 bg-red-50 dark:bg-red-900/50 text-red-700 dark:text-red-200 rounded-md">
+                        {error}
+                    </div>
+                ) : (
+                    <div className="flex items-center">
+                        <label className="inline-flex items-center cursor-pointer mr-2">
+                            <input
+                                type="checkbox"
+                                checked={showHolidays}
+                                onChange={toggleHolidaysDisplay}
+                                className="form-checkbox h-4 w-4 text-indigo-600 transition duration-150 ease-in-out"
+                            />
+                            <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">
+                                {dict.calendar?.showHolidays || 'Show Holidays'}
+                            </span>
+                        </label>
+                    </div>
+                )}
             </div>
 
             <div className="grid grid-cols-[100px_1fr] gap-2 relative">
