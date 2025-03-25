@@ -7,3 +7,5 @@ export { EventCategory } from './EventCategory';
 export { CalendarParticipant, ParticipantRole } from './CalendarParticipant';
 export { CalendarInviteLink } from './CalendarInviteLink';
 export { CalendarEmailInvite } from './CalendarEmailInvite';
+export { EventParticipant } from './EventParticipant';
+export { EventEmailInvite } from './EventEmailInvite';

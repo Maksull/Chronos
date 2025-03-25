@@ -1,7 +1,8 @@
 import { AppDataSource } from '@/database/data-source';
-import { Event, EventCategory, Calendar, User, CalendarParticipant, ParticipantRole } from '@/entities';
+import { Event, EventCategory, Calendar, User, CalendarParticipant, ParticipantRole, EventParticipant, EventEmailInvite } from '@/entities';
 import { In, LessThanOrEqual, MoreThanOrEqual } from 'typeorm';
-import { NotificationService } from '.';
+import { NotificationService, EmailService } from '.';
+import { randomBytes } from 'crypto';
 
 export interface CreateEventDto {
     name: string;
@@ -10,7 +11,6 @@ export interface CreateEventDto {
     endDate: Date;
     description?: string;
     color?: string;
-    invitees?: string[];
 }
 
 export interface UpdateEventDto {
@@ -21,7 +21,10 @@ export interface UpdateEventDto {
     description?: string;
     color?: string;
     isCompleted?: boolean;
-    invitees?: string[];
+}
+
+export interface InviteEventParticipantDto {
+    emails: string[];
 }
 
 export class EventService {
@@ -29,11 +32,15 @@ export class EventService {
     private categoryRepository = AppDataSource.getRepository(EventCategory);
     private calendarRepository = AppDataSource.getRepository(Calendar);
     private userRepository = AppDataSource.getRepository(User);
-    private participantRepository = AppDataSource.getRepository(CalendarParticipant);
+    private calendarParticipantRepository = AppDataSource.getRepository(CalendarParticipant);
+    private eventParticipantRepository = AppDataSource.getRepository(EventParticipant);
+    private eventEmailInviteRepository = AppDataSource.getRepository(EventEmailInvite);
     private notificationService: NotificationService;
+    private emailService: EmailService;
 
     constructor() {
         this.notificationService = new NotificationService();
+        this.emailService = new EmailService();
     }
 
     async getEventsByCalendarId(userId: string, calendarId: string, startDate?: Date, endDate?: Date, categoryIds?: string[]): Promise<Event[]> {
@@ -49,7 +56,7 @@ export class EventService {
         const isOwner = calendar.owner.id === userId;
 
         if (!isOwner) {
-            const participantRole = await this.participantRepository.findOne({
+            const participantRole = await this.calendarParticipantRepository.findOne({
                 where: { calendarId, userId },
             });
 
@@ -64,11 +71,9 @@ export class EventService {
 
         // Add category filter if provided
         if (categoryIds && categoryIds.length > 0) {
-            // Use In operator to filter events with any of the selected category IDs
             conditions.category = { id: In(categoryIds) };
         }
 
-        // Handle date conditions
         if (startDate && endDate) {
             conditions.startDate = LessThanOrEqual(endDate);
             conditions.endDate = MoreThanOrEqual(startDate);
@@ -81,7 +86,7 @@ export class EventService {
         return this.eventRepository.find({
             where: conditions,
             order: { startDate: 'ASC' },
-            relations: ['creator', 'invitees', 'category'],
+            relations: ['creator', 'category', 'participants', 'participants.user'],
         });
     }
 
@@ -96,14 +101,11 @@ export class EventService {
         }
 
         const isOwner = calendar.owner.id === userId;
-
-        // If not owner, check if they're a participant with appropriate permissions
         if (!isOwner) {
-            const participantRole = await this.participantRepository.findOne({
+            const participantRole = await this.calendarParticipantRepository.findOne({
                 where: { calendarId, userId },
             });
 
-            // Only ADMIN and CREATOR roles can create events
             if (!participantRole || (participantRole.role !== ParticipantRole.ADMIN && participantRole.role !== ParticipantRole.CREATOR)) {
                 throw new Error('Not authorized');
             }
@@ -122,11 +124,6 @@ export class EventService {
             throw new Error('Category not found');
         }
 
-        let invitees: User[] = [];
-        if (data.invitees && data.invitees.length > 0) {
-            invitees = await this.userRepository.findBy({ id: { $in: data.invitees } as any });
-        }
-
         const event = this.eventRepository.create({
             name: data.name,
             startDate: data.startDate,
@@ -136,42 +133,48 @@ export class EventService {
             calendar,
             category,
             creator,
-            invitees,
             isCompleted: false,
         });
 
         const savedEvent = await this.eventRepository.save(event);
 
-        // Send notifications to all calendar participants
+        // Automatically add all calendar participants as event participants
+        await this.addCalendarParticipantsToEvent(calendarId, savedEvent.id);
+
         try {
             await this.notificationService.notifyEventCreated(userId, calendarId, savedEvent);
         } catch (error) {
             console.error('Failed to send event creation notifications:', error);
-            // Continue with the function as the event was successfully created
         }
 
-        return savedEvent;
+        const createdEvent = await this.eventRepository.findOne({
+            where: { id: savedEvent.id },
+            relations: ['creator', 'category', 'participants', 'participants.user'],
+        });
+
+        if (!createdEvent) {
+            throw new Error('Failed to retrieve created event');
+        }
+
+        return createdEvent;
     }
 
     async updateEvent(userId: string, eventId: string, data: UpdateEventDto): Promise<Event> {
         const event = await this.eventRepository.findOne({
             where: { id: eventId },
-            relations: ['calendar', 'calendar.owner', 'creator', 'invitees', 'category'],
+            relations: ['calendar', 'calendar.owner', 'creator', 'category', 'participants', 'participants.user'],
         });
 
         if (!event) {
             throw new Error('Event not found');
         }
 
-        // Check permissions:
-        // 1. Creator of the event can update it
         const isCreator = event.creator.id === userId;
-        // 2. Calendar owner can update any event
         const isCalendarOwner = event.calendar.owner.id === userId;
         let userRole = null;
 
         if (!isCreator && !isCalendarOwner) {
-            const participantRole = await this.participantRepository.findOne({
+            const participantRole = await this.calendarParticipantRepository.findOne({
                 where: { calendarId: event.calendar.id, userId },
             });
 
@@ -185,7 +188,6 @@ export class EventService {
             }
         }
 
-        // Track changed fields for notifications
         const changedFields: string[] = [];
 
         if (data.name !== undefined && data.name !== event.name) {
@@ -228,27 +230,6 @@ export class EventService {
             event.category = category;
         }
 
-        if (data.invitees) {
-            const invitees = await this.userRepository.findBy({ id: { $in: data.invitees } as any });
-
-            // Check if invitees list has changed
-            const oldInviteeIds = event.invitees
-                .map(inv => inv.id)
-                .sort()
-                .join(',');
-            const newInviteeIds = invitees
-                .map(inv => inv.id)
-                .sort()
-                .join(',');
-
-            if (oldInviteeIds !== newInviteeIds) {
-                changedFields.push('invitees');
-            }
-
-            event.invitees = invitees;
-        }
-
-        // Update other fields
         Object.assign(event, {
             name: data.name ?? event.name,
             startDate: data.startDate ?? event.startDate,
@@ -260,17 +241,24 @@ export class EventService {
 
         const updatedEvent = await this.eventRepository.save(event);
 
-        // Only send notifications if fields actually changed
         if (changedFields.length > 0) {
             try {
                 await this.notificationService.notifyEventUpdated(userId, event.calendar.id, updatedEvent, changedFields);
             } catch (error) {
                 console.error('Failed to send event update notifications:', error);
-                // Continue with the function as the event was successfully updated
             }
         }
 
-        return updatedEvent;
+        const refreshedEvent = await this.eventRepository.findOne({
+            where: { id: updatedEvent.id },
+            relations: ['creator', 'category', 'participants', 'participants.user'],
+        });
+
+        if (!refreshedEvent) {
+            throw new Error('Failed to retrieve updated event');
+        }
+
+        return refreshedEvent;
     }
 
     async deleteEvent(userId: string, eventId: string): Promise<void> {
@@ -287,7 +275,7 @@ export class EventService {
         const isCalendarOwner = event.calendar.owner.id === userId;
 
         if (!isCreator && !isCalendarOwner) {
-            const participantRole = await this.participantRepository.findOne({
+            const participantRole = await this.calendarParticipantRepository.findOne({
                 where: { calendarId: event.calendar.id, userId },
             });
 
@@ -301,12 +289,442 @@ export class EventService {
 
         await this.eventRepository.remove(event);
 
-        // Send notification about event deletion
         try {
             await this.notificationService.notifyEventDeleted(userId, calendarId, eventName);
         } catch (error) {
             console.error('Failed to send event deletion notifications:', error);
-            // Continue with the function as the event was successfully deleted
         }
+    }
+
+    async inviteCalendarParticipantsByEmail(currentUserId: string, eventId: string, data: InviteEventParticipantDto, expireInDays?: number): Promise<Event> {
+        const event = await this.eventRepository.findOne({
+            where: { id: eventId },
+            relations: ['calendar', 'calendar.owner', 'creator', 'participants', 'participants.user'],
+        });
+
+        if (!event) {
+            throw new Error('Event not found');
+        }
+
+        // Check if current user is calendar owner or admin
+        const isCalendarOwner = event.calendar.owner.id === currentUserId;
+        if (!isCalendarOwner) {
+            const participantRole = await this.calendarParticipantRepository.findOne({
+                where: { calendarId: event.calendar.id, userId: currentUserId },
+            });
+
+            if (!participantRole || participantRole.role !== ParticipantRole.ADMIN) {
+                throw new Error('Only calendar owner or admin can invite users to an event');
+            }
+        }
+
+        // Validate emails are from calendar participants
+        const calendarParticipants = await this.calendarParticipantRepository.find({
+            where: { calendarId: event.calendar.id },
+            relations: ['user'],
+        });
+
+        // Extract emails from calendar participants
+        const participantEmails = calendarParticipants.filter(cp => cp.user !== null).map(cp => cp.user.email.toLowerCase());
+
+        // Find which emails are valid calendar participants
+        const validEmails = data.emails.filter(email => participantEmails.includes(email.toLowerCase()));
+
+        if (validEmails.length === 0) {
+            throw new Error('No valid calendar participants to invite');
+        }
+
+        // Get existing participants' emails
+        const existingParticipants = await this.eventParticipantRepository.find({
+            where: { eventId },
+            relations: ['user'],
+        });
+
+        const existingParticipantEmails = existingParticipants.filter(p => p.user !== null).map(p => p.user.email.toLowerCase());
+
+        // Filter out emails that are already participants
+        const newInviteEmails = validEmails.filter(email => !existingParticipantEmails.includes(email.toLowerCase()));
+
+        if (newInviteEmails.length === 0) {
+            throw new Error('All selected users are already participants');
+        }
+
+        // Create expiration date if needed
+        let expiresAt: Date | null = null;
+        if (expireInDays) {
+            expiresAt = new Date();
+            expiresAt.setDate(expiresAt.getDate() + expireInDays);
+        }
+
+        // Create email invites for each new participant
+        const emailInvites: EventEmailInvite[] = [];
+
+        for (const email of newInviteEmails) {
+            // Check if there's already an active invite for this email
+            const existingInvite = await this.eventEmailInviteRepository.findOne({
+                where: { eventId, email: email.toLowerCase() },
+            });
+
+            if (existingInvite) {
+                continue; // Skip if already invited
+            }
+
+            // Find user ID if the email belongs to a registered user
+            const user = await this.userRepository.findOne({
+                where: { email: email.toLowerCase() },
+            });
+
+            const token = randomBytes(32).toString('hex');
+
+            const emailInvite = this.eventEmailInviteRepository.create({
+                event,
+                eventId,
+                email: email.toLowerCase(),
+                userId: user?.id || null,
+                token,
+                expiresAt,
+            });
+
+            emailInvites.push(emailInvite);
+
+            // Send email invitation
+            await this.sendEventInviteEmail(email, event, token);
+        }
+
+        // Save all email invites
+        if (emailInvites.length > 0) {
+            await this.eventEmailInviteRepository.save(emailInvites);
+        }
+
+        const refreshedEvent = await this.eventRepository.findOne({
+            where: { id: eventId },
+            relations: ['creator', 'category', 'participants', 'participants.user'],
+        });
+
+        if (!refreshedEvent) {
+            throw new Error('Failed to retrieve event data');
+        }
+
+        return refreshedEvent;
+    }
+
+    private async sendEventInviteEmail(email: string, event: Event, token: string): Promise<void> {
+        const inviteUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/events/email-invite/${token}`;
+
+        await this.emailService.sendMail({
+            from: process.env.EMAIL_FROM || 'noreply@example.com',
+            to: email,
+            subject: `You have been invited to event: ${event.name}`,
+            html: `
+                <h1>Event Invitation</h1>
+                <p>You have been invited to the event <strong>${event.name}</strong>.</p>
+                <p><strong>Start date:</strong> ${new Date(event.startDate).toLocaleString()}</p>
+                <p><strong>End date:</strong> ${new Date(event.endDate).toLocaleString()}</p>
+                <p>Click the link below to accept the invitation:</p>
+                <p><a href="${inviteUrl}">${inviteUrl}</a></p>
+            `,
+        });
+    }
+
+    async acceptEventEmailInvite(
+        userId: string,
+        token: string,
+    ): Promise<{
+        id: string;
+        title: string;
+        calendarId: string;
+    }> {
+        const emailInvite = await this.eventEmailInviteRepository.findOne({
+            where: { token },
+            relations: ['event', 'event.calendar'],
+        });
+
+        if (!emailInvite) {
+            throw new Error('Invitation not found or invalid');
+        }
+
+        if (emailInvite.expiresAt && emailInvite.expiresAt < new Date()) {
+            throw new Error('Invitation has expired');
+        }
+
+        if (!emailInvite.event) {
+            throw new Error('Event associated with this invitation no longer exists');
+        }
+
+        const user = await this.userRepository.findOne({ where: { id: userId } });
+
+        if (!user) {
+            throw new Error('User not found');
+        }
+
+        if (user.email.toLowerCase() !== emailInvite.email.toLowerCase()) {
+            throw new Error('This invitation was sent to a different email address');
+        }
+
+        const isCalendarParticipant = await this.calendarParticipantRepository.findOne({
+            where: {
+                calendarId: emailInvite.event.calendar.id,
+                userId,
+            },
+        });
+
+        if (!isCalendarParticipant) {
+            throw new Error('You must be a participant of the calendar to join this event');
+        }
+
+        const existingParticipation = await this.eventParticipantRepository.findOne({
+            where: { eventId: emailInvite.eventId, userId },
+        });
+
+        if (existingParticipation) {
+            existingParticipation.hasConfirmed = true;
+            await this.eventParticipantRepository.save(existingParticipation);
+        } else {
+            const participant = this.eventParticipantRepository.create({
+                eventId: emailInvite.eventId,
+                userId,
+                hasConfirmed: true,
+            });
+
+            await this.eventParticipantRepository.save(participant);
+        }
+
+        await this.eventEmailInviteRepository.remove(emailInvite);
+
+        const event = await this.eventRepository.findOne({
+            where: { id: emailInvite.eventId },
+            relations: ['calendar'],
+        });
+
+        if (!event || !event.calendar) {
+            throw new Error('Failed to retrieve event data');
+        }
+
+        return {
+            id: event.id,
+            title: event.name,
+            calendarId: event.calendar.id,
+        };
+    }
+
+    /**
+     * Get information about an event email invitation
+     */
+    async getEventEmailInviteInfo(token: string): Promise<{
+        eventId: string;
+        eventName: string;
+        startDate: Date;
+        endDate: Date;
+        calendarId: string;
+        calendarName: string;
+        email: string;
+    }> {
+        const emailInvite = await this.eventEmailInviteRepository.findOne({
+            where: { token },
+            relations: ['event', 'event.calendar'],
+        });
+
+        if (!emailInvite) {
+            throw new Error('Invitation not found or invalid');
+        }
+
+        if (emailInvite.expiresAt && emailInvite.expiresAt < new Date()) {
+            throw new Error('Invitation has expired');
+        }
+
+        if (!emailInvite.event) {
+            throw new Error('Event associated with this invitation no longer exists');
+        }
+
+        return {
+            eventId: emailInvite.event.id,
+            eventName: emailInvite.event.name,
+            startDate: emailInvite.event.startDate,
+            endDate: emailInvite.event.endDate,
+            calendarId: emailInvite.event.calendar.id,
+            calendarName: emailInvite.event.calendar.name,
+            email: emailInvite.email,
+        };
+    }
+
+    /**
+     * Get all email invitations for an event
+     */
+    async getEventEmailInvites(userId: string, eventId: string): Promise<EventEmailInvite[]> {
+        const event = await this.eventRepository.findOne({
+            where: { id: eventId },
+            relations: ['calendar', 'calendar.owner'],
+        });
+
+        if (!event) {
+            throw new Error('Event not found');
+        }
+
+        // Check permission - only calendar owner or admin can view invites
+        const isCalendarOwner = event.calendar.owner.id === userId;
+        if (!isCalendarOwner) {
+            const participantRole = await this.calendarParticipantRepository.findOne({
+                where: { calendarId: event.calendar.id, userId },
+            });
+
+            if (!participantRole || participantRole.role !== ParticipantRole.ADMIN) {
+                throw new Error('Only the calendar owner or admin can view event invitations');
+            }
+        }
+
+        return this.eventEmailInviteRepository.find({
+            where: { eventId },
+            order: { createdAt: 'DESC' },
+        });
+    }
+
+    /**
+     * Delete an event email invitation
+     */
+    async deleteEventEmailInvite(userId: string, inviteId: string): Promise<void> {
+        const emailInvite = await this.eventEmailInviteRepository.findOne({
+            where: { id: inviteId },
+            relations: ['event', 'event.calendar', 'event.calendar.owner'],
+        });
+
+        if (!emailInvite) {
+            throw new Error('Invitation not found');
+        }
+
+        // Check permission
+        const isCalendarOwner = emailInvite.event.calendar.owner.id === userId;
+        if (!isCalendarOwner) {
+            const participantRole = await this.calendarParticipantRepository.findOne({
+                where: { calendarId: emailInvite.event.calendar.id, userId },
+            });
+
+            if (!participantRole || participantRole.role !== ParticipantRole.ADMIN) {
+                throw new Error('Only the calendar owner or admin can cancel invitations');
+            }
+        }
+
+        await this.eventEmailInviteRepository.remove(emailInvite);
+    }
+
+    /**
+     * Confirm or decline participation in an event
+     */
+    async confirmEventParticipation(userId: string, eventId: string, hasConfirmed: boolean): Promise<EventParticipant> {
+        const eventParticipant = await this.eventParticipantRepository.findOne({
+            where: { eventId, userId },
+            relations: ['event', 'user'],
+        });
+
+        if (!eventParticipant) {
+            throw new Error('You are not invited to this event');
+        }
+
+        eventParticipant.hasConfirmed = hasConfirmed;
+        return this.eventParticipantRepository.save(eventParticipant);
+    }
+
+    /**
+     * Remove a participant from an event
+     * Only calendar owner or admin can remove participants (or self-removal)
+     */
+    async removeEventParticipant(currentUserId: string, eventId: string, participantUserId: string): Promise<void> {
+        const event = await this.eventRepository.findOne({
+            where: { id: eventId },
+            relations: ['calendar', 'calendar.owner'],
+        });
+
+        if (!event) {
+            throw new Error('Event not found');
+        }
+
+        // Self-removal is always allowed
+        const isSelfRemoval = currentUserId === participantUserId;
+
+        // Otherwise, check permissions
+        if (!isSelfRemoval) {
+            const isCalendarOwner = event.calendar.owner.id === currentUserId;
+            if (!isCalendarOwner) {
+                const participantRole = await this.calendarParticipantRepository.findOne({
+                    where: { calendarId: event.calendar.id, userId: currentUserId },
+                });
+
+                if (!participantRole || participantRole.role !== ParticipantRole.ADMIN) {
+                    throw new Error('Not authorized to remove participants from this event');
+                }
+            }
+        }
+
+        const eventParticipant = await this.eventParticipantRepository.findOne({
+            where: { eventId, userId: participantUserId },
+        });
+
+        if (!eventParticipant) {
+            throw new Error('Participant not found');
+        }
+
+        await this.eventParticipantRepository.remove(eventParticipant);
+    }
+
+    /**
+     * Add all calendar participants as event participants
+     * This is called automatically when an event is created
+     */
+    private async addCalendarParticipantsToEvent(calendarId: string, eventId: string): Promise<void> {
+        const calendarParticipants = await this.calendarParticipantRepository.find({
+            where: { calendarId },
+            relations: ['user'],
+        });
+
+        if (calendarParticipants.length === 0) {
+            return;
+        }
+
+        const eventParticipants = calendarParticipants.map(cp =>
+            this.eventParticipantRepository.create({
+                eventId,
+                userId: cp.userId,
+                hasConfirmed: true, // Auto-confirm for calendar participants
+            }),
+        );
+
+        await this.eventParticipantRepository.save(eventParticipants);
+    }
+
+    /**
+     * Get all participants for an event
+     */
+    async getEventParticipants(eventId: string): Promise<EventParticipant[]> {
+        // Fetch event participants
+        const participants = await this.eventParticipantRepository.find({
+            where: { eventId },
+            relations: ['user'],
+        });
+
+        // If no participants or all have valid user data, return as is
+        if (participants.length === 0 || participants.every(p => p.user !== null)) {
+            return participants;
+        }
+
+        // For participants with missing user data, fetch users separately
+        const missingUserIds = participants.filter(p => p.user === null).map(p => p.userId);
+
+        if (missingUserIds.length > 0) {
+            const users = await this.userRepository.findBy({
+                id: In(missingUserIds),
+            });
+
+            // Create a map of user IDs to user objects
+            const userMap = new Map(users.map(user => [user.id, user]));
+
+            // Update the participants with user data
+            return participants.map(participant => {
+                if (participant.user === null && userMap.has(participant.userId)) {
+                    participant.user = userMap.get(participant.userId)!;
+                }
+                return participant;
+            });
+        }
+
+        return participants;
     }
 }
