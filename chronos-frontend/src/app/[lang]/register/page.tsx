@@ -1,5 +1,4 @@
 'use client';
-
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -16,9 +15,7 @@ interface Country {
 
 interface CountryApiResponse {
     cca2: string;
-    name: {
-        common: string;
-    };
+    name: { common: string };
 }
 
 export default function RegisterPage() {
@@ -54,7 +51,6 @@ export default function RegisterPage() {
                     { code: 'BR', name: 'Brazil' },
                     { code: 'IN', name: 'India' },
                 ];
-
                 try {
                     const response = await fetch(
                         'https://restcountries.com/v3.1/all',
@@ -68,7 +64,6 @@ export default function RegisterPage() {
                         .sort((a: Country, b: Country) =>
                             a.name.localeCompare(b.name),
                         );
-
                     setCountries(formattedCountries);
                 } catch (apiError) {
                     console.error(
@@ -89,24 +84,17 @@ export default function RegisterPage() {
                 setError(dict.auth.errors.generic);
             }
         };
-
         fetchCountries();
     }, [dict, setError]);
 
     const detectLocationByIP = async () => {
         setIsDetectingLocation(true);
-
         try {
             const response = await fetch('https://ipapi.co/json/');
             const data = await response.json();
-
             if (data.country_code) {
-                setFormData(prev => ({
-                    ...prev,
-                    region: data.country_code,
-                }));
+                setFormData(prev => ({ ...prev, region: data.country_code }));
             } else {
-                // Show a non-critical notification
                 setPageError(
                     dict.auth.errors.locationDetectionFailed ||
                         'Could not determine location, please select your country manually.',
@@ -132,10 +120,18 @@ export default function RegisterPage() {
             'Registration failed. Please try again.';
 
         try {
-            // Use AuthRegisterData instead of 'any'
+            // Create a plain object with the form data values
+            const formDataAsObject = {
+                username: formData.username,
+                email: formData.email,
+                password: formData.password,
+                fullName: formData.fullName,
+                region: formData.region,
+            };
+
             const response = await api.post<AuthRegisterData>(
                 '/auth/register',
-                formData,
+                formDataAsObject,
                 true,
             );
 
@@ -145,7 +141,6 @@ export default function RegisterPage() {
                 return;
             }
 
-            // Fix: access token directly from response.data.token instead of response.data.data.token
             if (response.data?.token) {
                 localStorage.setItem('token', response.data.token);
                 localStorage.setItem('verificationEmail', formData.email);
@@ -194,10 +189,8 @@ export default function RegisterPage() {
                     </Link>
                 </p>
             </div>
-
             <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
                 <div className="bg-white dark:bg-dark-surface py-8 px-4 shadow sm:rounded-lg sm:px-10">
-                    {/* Inline error display for accessibility */}
                     {pageError && (
                         <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/50 text-red-700 dark:text-red-200 rounded-md">
                             {pageError}
@@ -281,7 +274,7 @@ export default function RegisterPage() {
                                     type="text"
                                     value={formData.fullName}
                                     onChange={handleChange}
-                                    className="w-full rounded-lg border border-gray-300 dark:border-gray-600  px-4 py-1.5 text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700/50"
+                                    className="w-full rounded-lg border border-gray-300 dark:border-gray-600 px-4 py-1.5 text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700/50"
                                 />
                             </div>
                         </div>

@@ -1,5 +1,4 @@
 'use client';
-
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
@@ -43,13 +42,18 @@ export default function LoginPage() {
             dict?.auth?.errors?.generic || 'Login failed. Please try again.';
 
         try {
-            // Use AuthLoginData as the generic type parameter for api.post
-            // This tells TypeScript that response.data will be of type AuthLoginData
+            // Convert formData to a regular object to satisfy TypeScript
+            const formDataAsObject = {
+                username: formData.username,
+                password: formData.password,
+            };
+
             const response = await api.post<AuthLoginData>(
                 '/auth/login',
-                formData,
+                formDataAsObject,
                 true,
             );
+
             console.log('Login response:', response);
 
             if (response.status === 'error') {

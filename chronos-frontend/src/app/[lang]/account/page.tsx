@@ -10,7 +10,12 @@ import {
     ProtectedRoute,
     StatsSection,
 } from '@/components';
-import { ProfileData, CalendarData, PaginationData, CalendarCounts } from '@/types/account';
+import {
+    ProfileData,
+    CalendarData,
+    PaginationData,
+    CalendarCounts,
+} from '@/types/account';
 import { useRouter } from 'next/navigation';
 
 export default function AccountPage() {

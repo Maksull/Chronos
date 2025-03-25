@@ -1,4 +1,7 @@
 {
+    "errors": {
+        "generic": "An unexpected error occurred. Please try again."
+    },
     "navigation": {
         "brand": "Chronos",
         "calendar": "Calendar",
@@ -55,6 +58,11 @@
             "member": "Member Since"
         },
         "calendars": {
+            "emptyActive": "No active calendars found. Create one to get started!",
+            "emptyHidden": "No hidden calendars found.",
+            "createFirst": "Create Your First Calendar",
+            "page": "Page",
+            "of": "of",
             "deleteConfirmTitle": "Title of the delete confirmation",
             "deleteConfirmMessage": "Message asking for confirmation to delete the calendar",
             "deleteWarning": "Warning that deletion cannot be undone",
@@ -79,6 +87,10 @@
                 "name": "Calendar Name",
                 "description": "Description",
                 "color": "Calendar Color"
+            },
+            "activeTabs": {
+                "hidden": "Hidden calendars",
+                "visible": "Active calendars"
             }
         }
     },
@@ -198,6 +210,21 @@
         }
     },
     "calendar": {
+        "sending": "Sending...",
+        "sendInvite": "Send Invitation",
+        "inviteByEmail": "Invite by Email",
+        "noEmailInvites": "No email invitations sent yet",
+        "refresh": "Refresh",
+        "role": "Role",
+        "cancelInvite": "Cancel invitation",
+        "emailInvitesWarning": "Email invites are linked to specific email addresses. The recipient must sign in with the exact email address to accept the invitation.",
+        "noPermissionSharing": "You do not have permission to invite users to this calendar.",
+        "emailInvites": "Email Invitations",
+        "emailInvitesDescription": "Invite users by email to join this calendar.",
+        "emailAddress": "Email Address",
+        "roleForUser": "User Role",
+        "emailInvitePromptWithName": "You've been invited to join {calendarName} calendar with your email ({email}).",
+        "emailInvitePrompt": "You've been invited to join a calendar.",
         "creatorRoleNotice": "You are a Creator. Some settings may be limited.",
         "readerRoleNotice": "You are a Reader. You can view but not edit settings.",
         "cannotDeleteSystemCalendar": "This is a system calendar and cannot be deleted.",
