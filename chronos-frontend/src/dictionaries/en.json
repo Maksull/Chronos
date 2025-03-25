@@ -211,6 +211,22 @@
         }
     },
     "calendar": {
+        "yourParticipation": "Your participation",
+        "confirmed": "Confirmed",
+        "notConfirmed": "Not confirmed",
+        "confirm": "Confirm",
+        "decline": "Decline",
+        "leave": "Leave",
+        "pendingInvitations": "Pending invitations",
+        "emailsToInvite": "Emails to invite",
+        "inviteEmailInfo": "Invitation email info",
+        "sendInvites": "Send invites",
+        "participantsAddedAfterCreation": "Participants will be added after event creation",
+        "eventInviteAcceptedDesc": "You've been added to {eventName} event successfully.",
+        "eventInvitation": "Event Invitation",
+        "eventEmailInvitePrompt": "Please check your email for an event invitation.",
+        "calendarParticipantNote": "Note: You must be a participant of this calendar to join this event.",
+        "eventInvitePrompt": "You've been invited to an event.",
         "sending": "Sending...",
         "sendInvite": "Send Invitation",
         "inviteByEmail": "Invite by Email",
@@ -445,6 +461,9 @@
         "backHome": "Back to Home"
     },
     "common": {
+        "you": "You",
+        "add": "Add",
+        "sending": "Sending...",
         "back": "Back",
         "save": "Save",
         "cancel": "Cancel",

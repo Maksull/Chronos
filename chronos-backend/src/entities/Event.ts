@@ -1,5 +1,5 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, ManyToMany, JoinTable, JoinColumn } from 'typeorm';
-import { Calendar, User, EventCategory } from '.';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, OneToMany, JoinColumn } from 'typeorm';
+import { Calendar, User, EventCategory, EventParticipant } from '.';
 
 @Entity('events')
 export class Event {
@@ -36,13 +36,9 @@ export class Event {
     @JoinColumn({ name: 'creator_id' })
     creator!: User;
 
-    @ManyToMany(() => User)
-    @JoinTable({
-        name: 'event_invitees',
-        joinColumn: { name: 'event_id', referencedColumnName: 'id' },
-        inverseJoinColumn: { name: 'user_id', referencedColumnName: 'id' },
-    })
-    invitees!: User[];
+    // Replace @ManyToMany with @OneToMany to use the EventParticipant entity
+    @OneToMany(() => EventParticipant, participant => participant.event, { cascade: true })
+    participants!: EventParticipant[];
 
     @CreateDateColumn()
     createdAt!: Date;

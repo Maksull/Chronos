@@ -1,4 +1,5 @@
 'use client';
+
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useDictionary } from '@/contexts';
@@ -15,6 +16,7 @@ import {
 } from 'lucide-react';
 import { CategoryData, EventData, ParticipantRole } from '@/types/account';
 import { CategorySelector } from '../calendar';
+import { EventParticipants } from './EventParticipants';
 
 interface EventModalProps {
     isOpen: boolean;
@@ -58,15 +60,8 @@ export const EventModal: React.FC<EventModalProps> = ({
     const [description, setDescription] = useState('');
     const [color, setColor] = useState('#3B82F6');
 
-    // Determine user permissions
     const isCreator = event?.creator?.id === localStorage.getItem('userId');
     const isAdmin = userRole === ParticipantRole.ADMIN;
-
-    // User can edit if:
-    // 1. They're explicitly given edit permission via prop
-    // 2. They're an admin
-    // 3. They created the event
-    // 4. It's a new event and they have CREATOR or ADMIN role
     const userCanEdit =
         canEdit ||
         isAdmin ||
@@ -107,7 +102,6 @@ export const EventModal: React.FC<EventModalProps> = ({
     };
 
     useEffect(() => {
-        // If user can't edit but tries to enter edit mode, force view mode
         if (mode === 'edit' && !userCanEdit) {
             setMode('view');
         }
@@ -170,7 +164,6 @@ export const EventModal: React.FC<EventModalProps> = ({
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        // Check permissions before proceeding
         if (
             (mode === 'edit' && !userCanEdit) ||
             (mode === 'create' && userRole === ParticipantRole.READER)
@@ -254,7 +247,6 @@ export const EventModal: React.FC<EventModalProps> = ({
     const handleDelete = async () => {
         if (!event) return;
 
-        // Check permissions before proceeding
         if (!userCanEdit) {
             setError(
                 dict.calendar?.noPermission ||
@@ -343,7 +335,6 @@ export const EventModal: React.FC<EventModalProps> = ({
                     </div>
                 </div>
 
-                {/* Permission indicator when in view-only mode */}
                 {!userCanEdit && (
                     <div className="bg-blue-50 dark:bg-blue-900/20 p-2 flex items-center text-sm text-blue-600 dark:text-blue-400">
                         <Info className="h-4 w-4 mr-2" />
@@ -400,9 +391,9 @@ export const EventModal: React.FC<EventModalProps> = ({
                                 onChange={e => setName(e.target.value)}
                                 readOnly={mode === 'view'}
                                 className={`w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm 
-                                   focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 
-                                   bg-white dark:bg-gray-700 text-gray-900 dark:text-white
-                                   ${mode === 'view' ? 'opacity-80 cursor-default' : ''}`}
+                  focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 
+                  bg-white dark:bg-gray-700 text-gray-900 dark:text-white
+                  ${mode === 'view' ? 'opacity-80 cursor-default' : ''}`}
                             />
                         </div>
 
@@ -427,13 +418,13 @@ export const EventModal: React.FC<EventModalProps> = ({
                                     categories={categories}
                                     selectedCategoryId={categoryId}
                                     onChange={id => {
-                                        setCategoryId(id); // Set the selected category
+                                        setCategoryId(id);
                                         const selectedCategory =
                                             categories.find(
                                                 cat => cat.id === id,
                                             );
                                         if (selectedCategory) {
-                                            setColor(selectedCategory.color); // Set the color to the selected category's color
+                                            setColor(selectedCategory.color);
                                         }
                                     }}
                                     calendarId={calendarId}
@@ -475,8 +466,8 @@ export const EventModal: React.FC<EventModalProps> = ({
                                                 setStartDate(e.target.value)
                                             }
                                             className="w-full pl-10 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm 
-                                                focus:outline-none focus:ring-indigo-500 focus:border-indigo-500
-                                                bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                        focus:outline-none focus:ring-indigo-500 focus:border-indigo-500
+                        bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                                         />
                                     </div>
                                 )}
@@ -511,8 +502,8 @@ export const EventModal: React.FC<EventModalProps> = ({
                                                 setEndDate(e.target.value)
                                             }
                                             className="w-full pl-10 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm 
-                                                focus:outline-none focus:ring-indigo-500 focus:border-indigo-500
-                                                bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                        focus:outline-none focus:ring-indigo-500 focus:border-indigo-500
+                        bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                                         />
                                     </div>
                                 )}
@@ -540,8 +531,8 @@ export const EventModal: React.FC<EventModalProps> = ({
                                     value={color}
                                     onChange={e => setColor(e.target.value)}
                                     className="w-full h-10 px-1 py-1 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm 
-                                        focus:outline-none focus:ring-indigo-500 focus:border-indigo-500
-                                        bg-white dark:bg-gray-700"
+                    focus:outline-none focus:ring-indigo-500 focus:border-indigo-500
+                    bg-white dark:bg-gray-700"
                                 />
                             )}
                         </div>
@@ -571,17 +562,38 @@ export const EventModal: React.FC<EventModalProps> = ({
                                         setDescription(e.target.value)
                                     }
                                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm 
-                                        focus:outline-none focus:ring-indigo-500 focus:border-indigo-500
-                                        bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    focus:outline-none focus:ring-indigo-500 focus:border-indigo-500
+                    bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                                 />
                             )}
                         </div>
                     </div>
 
-                    {/* Action buttons */}
+                    {/* Add EventParticipants component */}
+                    {mode !== 'create' && event ? (
+                        <EventParticipants
+                            eventId={event.id}
+                            calendarId={calendarId}
+                            mode={mode}
+                            userRole={userRole}
+                            dict={dict}
+                            isCreator={isCreator}
+                            isAdmin={isAdmin}
+                        />
+                    ) : (
+                        mode === 'create' && (
+                            <div className="mt-6 mb-6">
+                                <div className="p-4 border border-gray-200 dark:border-gray-700 rounded-md text-center text-sm text-gray-500 dark:text-gray-400">
+                                    {dict.calendar
+                                        ?.participantsAddedAfterCreation ||
+                                        'Participants will be added after event creation'}
+                                </div>
+                            </div>
+                        )
+                    )}
+
                     <div className="mt-6 flex justify-between">
                         <div>
-                            {/* Delete button - only visible when viewing existing events and user has permission */}
                             {mode !== 'create' &&
                                 userCanEdit &&
                                 (isAdmin || isCreator) && (
@@ -589,12 +601,12 @@ export const EventModal: React.FC<EventModalProps> = ({
                                         type="button"
                                         onClick={handleDelete}
                                         className={`px-4 py-2 border rounded-md shadow-sm text-sm font-medium 
-                                     flex items-center space-x-1
-                                     ${
-                                         deleteConfirm
-                                             ? 'border-red-500 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400'
-                                             : 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600'
-                                     }`}>
+                    flex items-center space-x-1
+                    ${
+                        deleteConfirm
+                            ? 'border-red-500 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400'
+                            : 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600'
+                    }`}>
                                         {deleteConfirm ? (
                                             <>
                                                 <Check className="h-4 w-4" />
@@ -615,13 +627,12 @@ export const EventModal: React.FC<EventModalProps> = ({
                                     </button>
                                 )}
                         </div>
-
                         <div className="flex space-x-3">
                             <button
                                 type="button"
                                 onClick={onClose}
                                 className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium 
-                                    text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
+                  text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
                                 {dict.common?.cancel || 'Cancel'}
                             </button>
 
@@ -633,8 +644,8 @@ export const EventModal: React.FC<EventModalProps> = ({
                                         loading || categories.length === 0
                                     }
                                     className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium 
-                                     text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 
-                                     focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-70 disabled:cursor-not-allowed">
+                    text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 
+                    focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-70 disabled:cursor-not-allowed">
                                     {loading ? (
                                         <span className="flex items-center">
                                             <svg

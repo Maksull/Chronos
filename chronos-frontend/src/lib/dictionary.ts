@@ -215,6 +215,22 @@ export type Dictionary = {
         };
     };
     calendar?: {
+        yourParticipation: string;
+        confirmed: string;
+        notConfirmed: string;
+        confirm: string;
+        decline: string;
+        leave: string;
+        pendingInvitations: string;
+        emailsToInvite: string;
+        inviteEmailInfo: string;
+        sendInvites: string;
+        participantsAddedAfterCreation: string;
+        eventInviteAcceptedDesc: string;
+        eventInvitation: string;
+        eventEmailInvitePrompt: string;
+        calendarParticipantNote: string;
+        eventInvitePrompt: string;
         sending: string;
         sendInvite: string;
         inviteByEmail: string;
@@ -433,6 +449,9 @@ export type Dictionary = {
         backHome: string;
     };
     common: {
+        you: string;
+        add: string;
+        sending: string;
         back: string;
         save: string;
         cancel: string;

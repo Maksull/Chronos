@@ -8,6 +8,8 @@ import {
     CalendarParticipant,
     CalendarEmailInvite,
     CalendarInviteLink,
+    EventParticipant,
+    EventEmailInvite,
 } from '@/entities';
 import { DataSourceOptions } from 'typeorm';
 
@@ -18,7 +20,19 @@ export const databaseConfig: DataSourceOptions = {
     username: process.env.DB_USERNAME || 'postgres',
     password: process.env.DB_PASSWORD || '3459',
     database: process.env.DB_NAME || 'chronos',
-    entities: [User, Calendar, Event, EventReminder, CalendarSettings, EventCategory, CalendarInviteLink, CalendarParticipant, CalendarEmailInvite],
+    entities: [
+        User,
+        Calendar,
+        Event,
+        EventReminder,
+        CalendarSettings,
+        EventCategory,
+        CalendarInviteLink,
+        CalendarParticipant,
+        CalendarEmailInvite,
+        EventParticipant,
+        EventEmailInvite,
+    ],
     synchronize: process.env.NODE_ENV !== 'production', // Don't use in production!
     logging: process.env.NODE_ENV !== 'production',
 };

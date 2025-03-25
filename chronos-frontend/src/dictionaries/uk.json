@@ -211,6 +211,22 @@
         }
     },
     "calendar": {
+        "yourParticipation": "Ваша участь",
+        "confirmed": "Підтверджено",
+        "notConfirmed": "Не підтверджено",
+        "confirm": "Підтвердити",
+        "decline": "Відхилити",
+        "leave": "Покинути",
+        "pendingInvitations": "Очікуючі запрошення",
+        "emailsToInvite": "Електронні адреси для запрошення",
+        "inviteEmailInfo": "Інформація про запрошення електронною поштою",
+        "sendInvites": "Надіслати запрошення",
+        "participantsAddedAfterCreation": "Учасників буде додано після створення",
+        "eventInviteAcceptedDesc": "Вас успішно додано до події {eventName}.",
+        "eventInvitation": "Запрошення на подію",
+        "eventEmailInvitePrompt": "Будь ласка, перевірте свою електронну пошту для запрошення на подію.",
+        "calendarParticipantNote": "Примітка: Ви повинні бути учасником цього календаря, щоб приєднатися до події.",
+        "eventInvitePrompt": "Вас запросили на подію.",
         "sending": "Надсилання...",
         "sendInvite": "Надіслати запрошення",
         "inviteByEmail": "Запросити через Email",
@@ -445,6 +461,9 @@
         "backHome": "На головну"
     },
     "common": {
+        "you": "Ви",
+        "add": "Додати",
+        "sending": "Надсилання...",
         "back": "Назад",
         "save": "Зберегти",
         "cancel": "Скасувати",
