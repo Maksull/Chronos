@@ -209,6 +209,9 @@ export class CalendarController {
                 if (error.message === 'Not authorized') {
                     return reply.status(403).send({ status: 'error', message: error.message });
                 }
+                if (error.message === 'Cannot modify main calendar properties') {
+                    return reply.status(500).send({ status: 'error', message: error.message });
+                }
             }
             request.log.error(error);
             return reply.status(500).send({ status: 'error', message: 'Internal server error' });
