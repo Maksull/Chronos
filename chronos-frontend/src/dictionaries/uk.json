@@ -388,7 +388,9 @@
             "pm": "PM",
             "hours24": "{hour}:00",
             "hours12": "{hour} {period}"
-        }
+        },
+        "notParticipating": "Ви не берете участь у цій події",
+        "requestInvite": "Запросити запрошення"
     },
     "home": {
         "testimonials": {

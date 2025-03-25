@@ -377,6 +377,8 @@ export type Dictionary = {
             hours24: string;
             hours12: string;
         };
+        notParticipating: string;
+        requestInvite: string;
     };
     home: {
         testimonials: {

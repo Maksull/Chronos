@@ -388,7 +388,9 @@
             "pm": "PM",
             "hours24": "{hour}:00",
             "hours12": "{hour} {period}"
-        }
+        },
+        "notParticipating": "You are not participating in this event",
+        "requestInvite": "Request Invite"
     },
     "home": {
         "testimonials": {

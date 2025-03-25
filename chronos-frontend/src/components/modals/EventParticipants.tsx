@@ -1,5 +1,4 @@
 'use client';
-
 import React, { useState, useEffect } from 'react';
 import {
     User,
@@ -43,6 +42,7 @@ interface EventParticipantsProps {
     dict: Dictionary;
     isCreator: boolean;
     isAdmin: boolean;
+    isCalendarOwner?: boolean; // Added prop to identify calendar owner
 }
 
 export const EventParticipants: React.FC<EventParticipantsProps> = ({
@@ -51,27 +51,24 @@ export const EventParticipants: React.FC<EventParticipantsProps> = ({
     dict,
     isCreator,
     isAdmin,
+    isCalendarOwner = false, // Default to false if not provided
 }) => {
-    // Participants state
     const [participants, setParticipants] = useState<EventParticipant[]>([]);
     const [pendingInvites, setPendingInvites] = useState<EventEmailInvite[]>(
         [],
     );
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
-
-    // Email invitation state
     const [showInviteModal, setShowInviteModal] = useState(false);
     const [emailInput, setEmailInput] = useState('');
     const [emails, setEmails] = useState<string[]>([]);
     const [emailError, setEmailError] = useState('');
     const [inviting, setInviting] = useState(false);
 
-    // User permissions
+    // Event creators have the same permissions as admins
     const canManageParticipants = isAdmin || isCreator;
     const currentUserId = localStorage.getItem('userId');
 
-    // Fetch data when component mounts
     useEffect(() => {
         if (eventId && mode !== 'create') {
             fetchParticipants();
@@ -81,13 +78,10 @@ export const EventParticipants: React.FC<EventParticipantsProps> = ({
         }
     }, [eventId, mode, canManageParticipants]);
 
-    // Fetch participants
     const fetchParticipants = async () => {
         if (!eventId) return;
-
         setLoading(true);
         setError('');
-
         try {
             const response = await fetch(
                 `http://localhost:3001/events/${eventId}/participants`,
@@ -97,14 +91,10 @@ export const EventParticipants: React.FC<EventParticipantsProps> = ({
                     },
                 },
             );
-
             const data = await response.json();
-
             if (data.status === 'success') {
-                // Handle missing user data
                 const participantsData = data.data || [];
                 const enrichedParticipants = [...participantsData];
-
                 for (let i = 0; i < participantsData.length; i++) {
                     const participant = participantsData[i];
                     if (!participant.user && participant.userId) {
@@ -117,9 +107,7 @@ export const EventParticipants: React.FC<EventParticipantsProps> = ({
                                     },
                                 },
                             );
-
                             const userData = await userResponse.json();
-
                             if (userData.status === 'success') {
                                 enrichedParticipants[i] = {
                                     ...participant,
@@ -131,7 +119,6 @@ export const EventParticipants: React.FC<EventParticipantsProps> = ({
                         }
                     }
                 }
-
                 setParticipants(enrichedParticipants);
             } else {
                 setError(data.message || 'Failed to load participants');
@@ -144,10 +131,8 @@ export const EventParticipants: React.FC<EventParticipantsProps> = ({
         }
     };
 
-    // Fetch pending email invitations
     const fetchPendingInvites = async () => {
         if (!eventId) return;
-
         try {
             const response = await fetch(
                 `http://localhost:3001/events/${eventId}/email-invites`,
@@ -157,9 +142,7 @@ export const EventParticipants: React.FC<EventParticipantsProps> = ({
                     },
                 },
             );
-
             const data = await response.json();
-
             if (data.status === 'success') {
                 setPendingInvites(data.data || []);
             } else {
@@ -170,47 +153,37 @@ export const EventParticipants: React.FC<EventParticipantsProps> = ({
         }
     };
 
-    // Validate email
     const isValidEmail = (email: string) => {
         return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
     };
 
-    // Add email to the list
     const handleAddEmail = () => {
         const trimmedEmail = emailInput.trim().toLowerCase();
-
         if (!trimmedEmail) {
             setEmailError('Email cannot be empty');
             return;
         }
-
         if (!isValidEmail(trimmedEmail)) {
             setEmailError('Please enter a valid email address');
             return;
         }
-
         if (emails.includes(trimmedEmail)) {
             setEmailError('This email is already added');
             return;
         }
-
         setEmails([...emails, trimmedEmail]);
         setEmailInput('');
         setEmailError('');
     };
 
-    // Remove email from the list
     const handleRemoveEmail = (email: string) => {
         setEmails(emails.filter(e => e !== email));
     };
 
-    // Send email invitations
     const handleSendInvitations = async () => {
         if (emails.length === 0) return;
-
         setInviting(true);
         setError('');
-
         try {
             const response = await fetch(
                 `http://localhost:3001/events/${eventId}/email-invites`,
@@ -222,19 +195,15 @@ export const EventParticipants: React.FC<EventParticipantsProps> = ({
                     },
                     body: JSON.stringify({
                         emails,
-                        expireInDays: 7, // 7-day expiration
+                        expireInDays: 7,
                     }),
                 },
             );
-
             const data = await response.json();
-
             if (data.status === 'success') {
                 setShowInviteModal(false);
                 setEmails([]);
                 setEmailInput('');
-
-                // Refresh participants and invites
                 fetchParticipants();
                 fetchPendingInvites();
             } else {
@@ -248,7 +217,6 @@ export const EventParticipants: React.FC<EventParticipantsProps> = ({
         }
     };
 
-    // Delete a pending invitation
     const handleDeleteInvite = async (inviteId: string) => {
         try {
             const response = await fetch(
@@ -260,11 +228,8 @@ export const EventParticipants: React.FC<EventParticipantsProps> = ({
                     },
                 },
             );
-
             const data = await response.json();
-
             if (data.status === 'success') {
-                // Update the pending invites list
                 setPendingInvites(
                     pendingInvites.filter(invite => invite.id !== inviteId),
                 );
@@ -277,13 +242,10 @@ export const EventParticipants: React.FC<EventParticipantsProps> = ({
         }
     };
 
-    // Update participation status
     const handleConfirmParticipation = async (confirm: boolean) => {
         if (!eventId || !currentUserId) return;
-
         setLoading(true);
         setError('');
-
         try {
             const response = await fetch(
                 `http://localhost:3001/events/${eventId}/participation`,
@@ -296,11 +258,8 @@ export const EventParticipants: React.FC<EventParticipantsProps> = ({
                     body: JSON.stringify({ hasConfirmed: confirm }),
                 },
             );
-
             const data = await response.json();
-
             if (data.status === 'success') {
-                // Update the participant in the local state
                 setParticipants(
                     participants.map(p =>
                         p.userId === currentUserId
@@ -319,13 +278,10 @@ export const EventParticipants: React.FC<EventParticipantsProps> = ({
         }
     };
 
-    // Remove a participant
     const handleRemoveParticipant = async (userId: string) => {
         if (!eventId) return;
-
         setLoading(true);
         setError('');
-
         try {
             const response = await fetch(
                 `http://localhost:3001/events/${eventId}/participants/${userId}`,
@@ -336,11 +292,8 @@ export const EventParticipants: React.FC<EventParticipantsProps> = ({
                     },
                 },
             );
-
             const data = await response.json();
-
             if (data.status === 'success') {
-                // Remove the participant from the local state
                 setParticipants(participants.filter(p => p.userId !== userId));
             } else {
                 setError(data.message || 'Failed to remove participant');
@@ -353,10 +306,14 @@ export const EventParticipants: React.FC<EventParticipantsProps> = ({
         }
     };
 
-    // Find current user's participation
     const currentUserParticipation = participants.find(
         p => p.userId === currentUserId,
     );
+    const isCurrentUserParticipant = !!currentUserParticipation;
+
+    // Calendar owners who are not participants should see option to request invitation
+    const showJoinRequestOption =
+        isCalendarOwner && !isCurrentUserParticipant && mode !== 'create';
 
     return (
         <div className="mt-6 mb-6">
@@ -386,67 +343,81 @@ export const EventParticipants: React.FC<EventParticipantsProps> = ({
                 </div>
             )}
 
-            {/* Current user's participation actions (if not creator/admin) */}
-            {mode !== 'create' &&
-                currentUserParticipation &&
-                !canManageParticipants && (
-                    <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-md flex items-center justify-between">
-                        <div className="text-sm text-gray-700 dark:text-gray-300">
-                            {dict.calendar?.yourParticipation ||
-                                'Your participation'}
-                            :
-                            {currentUserParticipation.hasConfirmed ? (
-                                <span className="ml-2 text-green-600 dark:text-green-400">
-                                    {dict.calendar?.confirmed || 'Confirmed'}
+            {/* Current user's participation actions - show for all participants, including calendar owners */}
+            {mode !== 'create' && currentUserParticipation && (
+                <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-md flex items-center justify-between">
+                    <div className="text-sm text-gray-700 dark:text-gray-300">
+                        {dict.calendar?.yourParticipation ||
+                            'Your participation'}
+                        :
+                        {currentUserParticipation.hasConfirmed ? (
+                            <span className="ml-2 text-green-600 dark:text-green-400">
+                                {dict.calendar?.confirmed || 'Confirmed'}
+                            </span>
+                        ) : (
+                            <span className="ml-2 text-amber-600 dark:text-amber-400">
+                                {dict.calendar?.notConfirmed || 'Not confirmed'}
+                            </span>
+                        )}
+                    </div>
+                    <div className="flex space-x-2">
+                        {!currentUserParticipation.hasConfirmed ? (
+                            <button
+                                type="button"
+                                onClick={() => handleConfirmParticipation(true)}
+                                disabled={loading}
+                                className="px-3 py-1 bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 rounded-md text-xs flex items-center space-x-1 hover:bg-green-200 dark:hover:bg-green-900/50 disabled:opacity-50">
+                                <Check className="h-3 w-3" />
+                                <span>
+                                    {dict.calendar?.confirm || 'Confirm'}
                                 </span>
-                            ) : (
-                                <span className="ml-2 text-amber-600 dark:text-amber-400">
-                                    {dict.calendar?.notConfirmed ||
-                                        'Not confirmed'}
-                                </span>
-                            )}
-                        </div>
-                        <div className="flex space-x-2">
-                            {!currentUserParticipation.hasConfirmed ? (
-                                <button
-                                    type="button"
-                                    onClick={() =>
-                                        handleConfirmParticipation(true)
-                                    }
-                                    disabled={loading}
-                                    className="px-3 py-1 bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 rounded-md text-xs flex items-center space-x-1 hover:bg-green-200 dark:hover:bg-green-900/50 disabled:opacity-50">
-                                    <Check className="h-3 w-3" />
-                                    <span>
-                                        {dict.calendar?.confirm || 'Confirm'}
-                                    </span>
-                                </button>
-                            ) : (
-                                <button
-                                    type="button"
-                                    onClick={() =>
-                                        handleConfirmParticipation(false)
-                                    }
-                                    disabled={loading}
-                                    className="px-3 py-1 bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 rounded-md text-xs flex items-center space-x-1 hover:bg-amber-200 dark:hover:bg-amber-900/50 disabled:opacity-50">
-                                    <X className="h-3 w-3" />
-                                    <span>
-                                        {dict.calendar?.decline || 'Decline'}
-                                    </span>
-                                </button>
-                            )}
+                            </button>
+                        ) : (
                             <button
                                 type="button"
                                 onClick={() =>
-                                    handleRemoveParticipant(currentUserId!)
+                                    handleConfirmParticipation(false)
                                 }
                                 disabled={loading}
-                                className="px-3 py-1 bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 rounded-md text-xs flex items-center space-x-1 hover:bg-red-200 dark:hover:bg-red-900/50 disabled:opacity-50">
-                                <UserX className="h-3 w-3" />
-                                <span>{dict.calendar?.leave || 'Leave'}</span>
+                                className="px-3 py-1 bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 rounded-md text-xs flex items-center space-x-1 hover:bg-amber-200 dark:hover:bg-amber-900/50 disabled:opacity-50">
+                                <X className="h-3 w-3" />
+                                <span>
+                                    {dict.calendar?.decline || 'Decline'}
+                                </span>
                             </button>
-                        </div>
+                        )}
+                        <button
+                            type="button"
+                            onClick={() =>
+                                handleRemoveParticipant(currentUserId!)
+                            }
+                            disabled={loading}
+                            className="px-3 py-1 bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 rounded-md text-xs flex items-center space-x-1 hover:bg-red-200 dark:hover:bg-red-900/50 disabled:opacity-50">
+                            <UserX className="h-3 w-3" />
+                            <span>{dict.calendar?.leave || 'Leave'}</span>
+                        </button>
                     </div>
-                )}
+                </div>
+            )}
+
+            {/* Optional section for calendar owner to request invitation */}
+            {showJoinRequestOption && (
+                <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-md flex items-center justify-between">
+                    <div className="text-sm text-gray-700 dark:text-gray-300">
+                        {dict.calendar?.notParticipating ||
+                            'You are not participating in this event'}
+                    </div>
+                    <button
+                        type="button"
+                        onClick={() => setShowInviteModal(true)}
+                        className="px-3 py-1 bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400 rounded-md text-xs flex items-center space-x-1 hover:bg-indigo-200 dark:hover:bg-indigo-900/50">
+                        <Mail className="h-3 w-3" />
+                        <span>
+                            {dict.calendar?.requestInvite || 'Request Invite'}
+                        </span>
+                    </button>
+                </div>
+            )}
 
             {/* Pending invitations section (only visible to admins/creators) */}
             {canManageParticipants && pendingInvites.length > 0 && (
@@ -536,8 +507,6 @@ export const EventParticipants: React.FC<EventParticipantsProps> = ({
                                         </p>
                                     </div>
                                 </div>
-
-                                {/* Remove button (only for admins/creators or the user themselves) */}
                                 {(canManageParticipants ||
                                     participant.userId === currentUserId) &&
                                     mode !== 'view' && (
@@ -587,7 +556,6 @@ export const EventParticipants: React.FC<EventParticipantsProps> = ({
                                 <X className="h-5 w-5" />
                             </button>
                         </div>
-
                         <div className="p-4">
                             {error && (
                                 <div className="mb-4 p-2 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-md text-xs">
@@ -599,7 +567,6 @@ export const EventParticipants: React.FC<EventParticipantsProps> = ({
                                 {dict.calendar?.inviteEmailInfo ||
                                     'Only calendar participants can be invited to this event. Enter their email addresses below.'}
                             </p>
-
                             <div className="mb-4">
                                 <div className="flex space-x-2">
                                     <div className="relative flex-grow">
@@ -638,7 +605,6 @@ export const EventParticipants: React.FC<EventParticipantsProps> = ({
                                     </p>
                                 )}
                             </div>
-
                             {emails.length > 0 && (
                                 <div className="mb-4">
                                     <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
