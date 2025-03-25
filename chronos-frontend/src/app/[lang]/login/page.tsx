@@ -1,5 +1,4 @@
 'use client';
-
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
@@ -21,6 +20,9 @@ export default function LoginPage() {
         username: '',
         password: '',
     });
+    const [formErrors, setFormErrors] = useState<
+        Partial<Record<keyof LoginFormData, string>>
+    >({});
     const [pageError, setPageError] = useState<string>('');
     const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -35,21 +37,60 @@ export default function LoginPage() {
         }
     }, [isAuthenticated, isLoading, router, lang, searchParams]);
 
+    // Email validation function
+    const validateEmail = (email: string): boolean => {
+        // Basic email validation using regex
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return emailRegex.test(email);
+    };
+
+    // Validate the form
+    const validateForm = (): boolean => {
+        const errors: Partial<Record<keyof LoginFormData, string>> = {};
+        let isValid = true;
+
+        // Check if username is an email and validate it
+        if (
+            formData.username &&
+            formData.username.includes('@') &&
+            !validateEmail(formData.username)
+        ) {
+            errors.username =
+                dict.auth.errors?.invalidEmail ||
+                'Please enter a valid email address';
+            isValid = false;
+        }
+
+        setFormErrors(errors);
+        return isValid;
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setPageError('');
+        setFormErrors({});
+
+        // Validate form before submission
+        if (!validateForm()) {
+            return;
+        }
+
         setIsSubmitting(true);
         const genericErrorMessage =
             dict?.auth?.errors?.generic || 'Login failed. Please try again.';
 
         try {
-            // Use AuthLoginData as the generic type parameter for api.post
-            // This tells TypeScript that response.data will be of type AuthLoginData
+            const formDataAsObject = {
+                username: formData.username,
+                password: formData.password,
+            };
+
             const response = await api.post<AuthLoginData>(
                 '/auth/login',
-                formData,
+                formDataAsObject,
                 true,
             );
+
             console.log('Login response:', response);
 
             if (response.status === 'error') {
@@ -76,10 +117,13 @@ export default function LoginPage() {
     };
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setFormData(prev => ({
-            ...prev,
-            [e.target.name]: e.target.value,
-        }));
+        const { name, value } = e.target;
+        setFormData(prev => ({ ...prev, [name]: value }));
+
+        // Clear error when field is edited
+        if (formErrors[name as keyof LoginFormData]) {
+            setFormErrors(prev => ({ ...prev, [name]: '' }));
+        }
     };
 
     if (isLoading) {
@@ -138,9 +182,18 @@ export default function LoginPage() {
                                     required
                                     value={formData.username}
                                     onChange={handleChange}
-                                    className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 px-4 py-1.5 text-gray-900 dark:text-white"
+                                    className={`w-full rounded-lg border ${
+                                        formErrors.username
+                                            ? 'border-red-500 dark:border-red-400'
+                                            : 'border-gray-300 dark:border-gray-600'
+                                    } bg-gray-50 dark:bg-gray-700/50 px-4 py-1.5 text-gray-900 dark:text-white`}
                                 />
                             </div>
+                            {formErrors.username && (
+                                <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                                    {formErrors.username}
+                                </p>
+                            )}
                         </div>
 
                         <div>

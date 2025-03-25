@@ -2,6 +2,9 @@ import 'server-only';
 import { Locale } from '@/middleware';
 
 export type Dictionary = {
+    errors: {
+        generic: string;
+    };
     navigation: {
         brand: string;
         calendar: string;
@@ -58,6 +61,11 @@ export type Dictionary = {
             member: string;
         };
         calendars: {
+            emptyActive: string;
+            emptyHidden: string;
+            createFirst: string;
+            page: string;
+            of: string;
             deleteConfirmTitle: string;
             deleteConfirmMessage: string;
             deleteWarning: string;
@@ -78,6 +86,10 @@ export type Dictionary = {
                 name: string;
                 description: string;
                 color: string;
+            };
+            activeTabs: {
+                hidden: string;
+                visible: string;
             };
             // New entries
             empty: string;
@@ -141,6 +153,7 @@ export type Dictionary = {
             expiredCode: string;
             alreadyVerified: string;
             emailNotFound: string;
+            invalidEmail: string;
         };
         login: {
             title: string;
@@ -202,6 +215,21 @@ export type Dictionary = {
         };
     };
     calendar?: {
+        sending: string;
+        sendInvite: string;
+        inviteByEmail: string;
+        noEmailInvites: string;
+        refresh: string;
+        role: string;
+        cancelInvite: string;
+        emailInvitesWarning: string;
+        noPermissionSharing: string;
+        emailInvites: string;
+        emailInvitesDescription: string;
+        emailAddress: string;
+        roleForUser: string;
+        emailInvitePromptWithName: string;
+        emailInvitePrompt: string;
         creatorRoleNotice: string;
         readerRoleNotice: string;
         cannotDeleteSystemCalendar: string;
