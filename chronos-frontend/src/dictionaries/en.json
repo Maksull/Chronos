@@ -148,7 +148,8 @@
             "invalidCode": "Invalid verification code. Please try again.",
             "expiredCode": "Verification code has expired. Please request a new one.",
             "alreadyVerified": "Email is already verified.",
-            "emailNotFound": "Email address not found."
+            "emailNotFound": "Email address not found.",
+            "invalidEmail": "Please enter a valid email address."
         },
         "login": {
             "title": "Sign in to your account",

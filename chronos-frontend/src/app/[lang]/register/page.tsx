@@ -31,6 +31,10 @@ export default function RegisterPage() {
         fullName: '',
         region: '',
     });
+
+    const [formErrors, setFormErrors] = useState<
+        Partial<Record<keyof RegisterFormData, string>>
+    >({});
     const [pageError, setPageError] = useState<string>('');
     const [isLoading, setIsLoading] = useState(false);
     const [countries, setCountries] = useState<Country[]>([]);
@@ -51,6 +55,7 @@ export default function RegisterPage() {
                     { code: 'BR', name: 'Brazil' },
                     { code: 'IN', name: 'India' },
                 ];
+
                 try {
                     const response = await fetch(
                         'https://restcountries.com/v3.1/all',
@@ -84,8 +89,15 @@ export default function RegisterPage() {
                 setError(dict.auth.errors.generic);
             }
         };
+
         fetchCountries();
     }, [dict, setError]);
+
+    const validateEmail = (email: string): boolean => {
+        // Basic email validation using regex
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return emailRegex.test(email);
+    };
 
     const detectLocationByIP = async () => {
         setIsDetectingLocation(true);
@@ -111,16 +123,38 @@ export default function RegisterPage() {
         }
     };
 
+    const validateForm = (): boolean => {
+        const errors: Partial<Record<keyof RegisterFormData, string>> = {};
+        let isValid = true;
+
+        // Validate email
+        if (formData.email && !validateEmail(formData.email)) {
+            errors.email =
+                dict.auth.errors.invalidEmail ||
+                'Please enter a valid email address';
+            isValid = false;
+        }
+
+        setFormErrors(errors);
+        return isValid;
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setPageError('');
+        setFormErrors({});
+
+        // Validate form before submission
+        if (!validateForm()) {
+            return;
+        }
+
         setIsLoading(true);
         const genericErrorMessage =
             dict?.auth?.errors?.generic ||
             'Registration failed. Please try again.';
 
         try {
-            // Create a plain object with the form data values
             const formDataAsObject = {
                 username: formData.username,
                 email: formData.email,
@@ -165,10 +199,13 @@ export default function RegisterPage() {
     const handleChange = (
         e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
     ) => {
-        setFormData(prev => ({
-            ...prev,
-            [e.target.name]: e.target.value,
-        }));
+        const { name, value } = e.target;
+        setFormData(prev => ({ ...prev, [name]: value }));
+
+        // Clear error when field is edited
+        if (formErrors[name as keyof RegisterFormData]) {
+            setFormErrors(prev => ({ ...prev, [name]: '' }));
+        }
     };
 
     return (
@@ -189,6 +226,7 @@ export default function RegisterPage() {
                     </Link>
                 </p>
             </div>
+
             <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
                 <div className="bg-white dark:bg-dark-surface py-8 px-4 shadow sm:rounded-lg sm:px-10">
                     {pageError && (
@@ -233,9 +271,18 @@ export default function RegisterPage() {
                                     required
                                     value={formData.email}
                                     onChange={handleChange}
-                                    className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 px-4 py-1.5 text-gray-900 dark:text-white"
+                                    className={`w-full rounded-lg border ${
+                                        formErrors.email
+                                            ? 'border-red-500 dark:border-red-400'
+                                            : 'border-gray-300 dark:border-gray-600'
+                                    } bg-gray-50 dark:bg-gray-700/50 px-4 py-1.5 text-gray-900 dark:text-white`}
                                 />
                             </div>
+                            {formErrors.email && (
+                                <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                                    {formErrors.email}
+                                </p>
+                            )}
                         </div>
 
                         <div>

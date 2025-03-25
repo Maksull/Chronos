@@ -153,6 +153,7 @@ export type Dictionary = {
             expiredCode: string;
             alreadyVerified: string;
             emailNotFound: string;
+            invalidEmail: string;
         };
         login: {
             title: string;
