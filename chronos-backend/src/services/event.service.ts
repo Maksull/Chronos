@@ -138,9 +138,6 @@ export class EventService {
 
         const savedEvent = await this.eventRepository.save(event);
 
-        // Automatically add all calendar participants as event participants
-        await this.addCalendarParticipantsToEvent(calendarId, savedEvent.id);
-
         try {
             await this.notificationService.notifyEventCreated(userId, calendarId, savedEvent);
         } catch (error) {
@@ -189,27 +186,21 @@ export class EventService {
         }
 
         const changedFields: string[] = [];
-
         if (data.name !== undefined && data.name !== event.name) {
             changedFields.push('name');
         }
-
         if (data.startDate !== undefined && data.startDate.toString() !== event.startDate.toString()) {
             changedFields.push('startDate');
         }
-
         if (data.endDate !== undefined && data.endDate.toString() !== event.endDate.toString()) {
             changedFields.push('endDate');
         }
-
         if (data.description !== undefined && data.description !== event.description) {
             changedFields.push('description');
         }
-
         if (data.color !== undefined && data.color !== event.color) {
             changedFields.push('color');
         }
-
         if (data.isCompleted !== undefined && data.isCompleted !== event.isCompleted) {
             changedFields.push('isCompleted');
         }
@@ -226,7 +217,6 @@ export class EventService {
             if (category.id !== event.category.id) {
                 changedFields.push('categoryId');
             }
-
             event.category = category;
         }
 
@@ -431,7 +421,7 @@ export class EventService {
         token: string,
     ): Promise<{
         id: string;
-        title: string;
+        eventName: string;
         calendarId: string;
     }> {
         const emailInvite = await this.eventEmailInviteRepository.findOne({
@@ -502,7 +492,7 @@ export class EventService {
 
         return {
             id: event.id,
-            title: event.name,
+            eventName: event.name,
             calendarId: event.calendar.id,
         };
     }
@@ -663,31 +653,6 @@ export class EventService {
         }
 
         await this.eventParticipantRepository.remove(eventParticipant);
-    }
-
-    /**
-     * Add all calendar participants as event participants
-     * This is called automatically when an event is created
-     */
-    private async addCalendarParticipantsToEvent(calendarId: string, eventId: string): Promise<void> {
-        const calendarParticipants = await this.calendarParticipantRepository.find({
-            where: { calendarId },
-            relations: ['user'],
-        });
-
-        if (calendarParticipants.length === 0) {
-            return;
-        }
-
-        const eventParticipants = calendarParticipants.map(cp =>
-            this.eventParticipantRepository.create({
-                eventId,
-                userId: cp.userId,
-                hasConfirmed: true, // Auto-confirm for calendar participants
-            }),
-        );
-
-        await this.eventParticipantRepository.save(eventParticipants);
     }
 
     /**
