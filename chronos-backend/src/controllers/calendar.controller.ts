@@ -384,7 +384,10 @@ export class CalendarController {
                 if (error.message === 'Calendar not found') {
                     return reply.status(404).send({ status: 'error', message: error.message });
                 }
-                if (error.message === 'Only the calendar owner or admin can create invite links') {
+                if (
+                    error.message === 'Only the calendar owner or admin can create invite links' ||
+                    error.message === 'Cannot create invite links for personal calendar'
+                ) {
                     return reply.status(403).send({ status: 'error', message: error.message });
                 }
             }

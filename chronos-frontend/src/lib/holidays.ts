@@ -84,8 +84,7 @@ export async function fetchHolidaysForRegion(
         holidayCache.set(cacheKey, holidayEvents);
 
         return holidayEvents;
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    } catch (error) {
+    } catch {
         return [];
     }
 }
