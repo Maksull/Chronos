@@ -112,8 +112,7 @@ export default function RegisterPage() {
                         'Could not determine location, please select your country manually.',
                 );
             }
-        } catch (error) {
-            console.log('Could not determine location', error);
+        } catch {
             setPageError(
                 dict.auth.errors.locationDetectionFailed ||
                     'Could not determine location, please select your country manually.',

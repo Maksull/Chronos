@@ -91,8 +91,6 @@ export default function LoginPage() {
                 true,
             );
 
-            console.log('Login response:', response);
-
             if (response.status === 'error') {
                 const errorMessage = response.message || genericErrorMessage;
                 setPageError(errorMessage);

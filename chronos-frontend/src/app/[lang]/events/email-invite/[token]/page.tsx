@@ -87,7 +87,6 @@ export default function EventEmailInvitePage() {
                 },
             );
             const data = await response.json();
-            console.log('Accept Invite Response:', data); // Debugging line
             if (data.status === 'success') {
                 setSuccess(true);
                 setEventInfo(data.data);

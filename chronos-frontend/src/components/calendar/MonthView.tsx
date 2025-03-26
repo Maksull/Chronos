@@ -489,14 +489,6 @@ export const MonthView: React.FC<MonthViewProps> = ({
                                                                         onEventClick(
                                                                             event,
                                                                         );
-                                                                    } else if (
-                                                                        isHoliday
-                                                                    ) {
-                                                                        // Maybe show holiday details in a tooltip or modal
-                                                                        console.log(
-                                                                            'Holiday clicked:',
-                                                                            event,
-                                                                        );
                                                                     }
                                                                 }}>
                                                                 {isHoliday ? (

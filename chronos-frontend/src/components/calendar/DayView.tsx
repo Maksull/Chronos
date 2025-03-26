@@ -126,7 +126,6 @@ export const DayView: React.FC<DayViewProps> = ({
 
                 setHolidays(todayHolidays);
             } catch (error) {
-                console.log(error);
                 console.error('Error fetching holidays:', error);
             } finally {
                 setLoadingHolidays(false);

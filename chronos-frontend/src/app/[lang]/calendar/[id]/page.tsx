@@ -90,13 +90,11 @@ export default function CalendarPage() {
 
             const data = await response.json();
             if (data.status === 'success') {
-                console.log('Calendar data received:', data.data);
                 setCalendar(data.data);
                 const isOwner = String(data.data.owner.id) === String(userId);
                 setIsUserOwner(isOwner);
 
                 if (isOwner) {
-                    console.log('Setting owner permissions (ADMIN role)');
                     setCurrentUserRole(ParticipantRole.ADMIN);
                     setCanCreateEvents(true);
                     setCanManageCalendar(true);

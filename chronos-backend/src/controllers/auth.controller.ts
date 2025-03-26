@@ -83,9 +83,6 @@ export class AuthController {
 
     async logout(request: FastifyRequest, reply: FastifyReply) {
         try {
-            // Log the headers for debugging
-            console.log('Request headers:', request.headers);
-
             const token = request.headers.authorization?.split(' ')[1];
 
             if (!token) {
