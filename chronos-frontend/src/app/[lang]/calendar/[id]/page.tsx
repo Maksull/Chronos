@@ -460,22 +460,26 @@ export default function CalendarPage() {
 
                                 {/* Action Buttons - Improved spacing and sizing */}
                                 <div className="flex items-center space-x-2 sm:space-x-3 w-full sm:w-auto justify-between sm:justify-end">
-                                    {/* Participants Button */}
-                                    <button
-                                        onClick={() =>
-                                            setIsParticipantsDrawerOpen(true)
-                                        }
-                                        className="p-2 rounded-md text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center"
-                                        title={
-                                            dict.calendar?.participants ||
-                                            'Participants'
-                                        }>
-                                        <Users className="h-5 w-5" />
-                                        <span className="sr-only sm:not-sr-only sm:ml-2 text-sm font-medium">
-                                            {dict.calendar?.participants ||
-                                                'Participants'}
-                                        </span>
-                                    </button>
+                                    {/* Participants Button - Only show if not a main calendar */}
+                                    {!calendar?.isMain && (
+                                        <button
+                                            onClick={() =>
+                                                setIsParticipantsDrawerOpen(
+                                                    true,
+                                                )
+                                            }
+                                            className="p-2 rounded-md text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center"
+                                            title={
+                                                dict.calendar?.participants ||
+                                                'Participants'
+                                            }>
+                                            <Users className="h-5 w-5" />
+                                            <span className="sr-only sm:not-sr-only sm:ml-2 text-sm font-medium">
+                                                {dict.calendar?.participants ||
+                                                    'Participants'}
+                                            </span>
+                                        </button>
+                                    )}
 
                                     {/* Add Event Button with responsive text */}
                                     {canCreateEvents && (
@@ -494,8 +498,8 @@ export default function CalendarPage() {
                                         </button>
                                     )}
 
-                                    {/* Settings Button */}
-                                    {canManageCalendar && (
+                                    {/* Settings Button - Only show if not a main calendar */}
+                                    {canManageCalendar && !calendar?.isMain && (
                                         <button
                                             onClick={() =>
                                                 setIsCalendarEditModalOpen(true)
@@ -529,7 +533,7 @@ export default function CalendarPage() {
                 </div>
 
                 {/* Participants Sliding Drawer / Panel */}
-                {isParticipantsDrawerOpen && calendar && (
+                {isParticipantsDrawerOpen && calendar && !calendar.isMain && (
                     <div className="fixed inset-0 z-50 overflow-hidden">
                         <div
                             className="absolute inset-0 bg-black bg-opacity-25"
