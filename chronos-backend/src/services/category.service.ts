@@ -32,7 +32,7 @@ export class CategoryService {
         });
     }
 
-    async createCategory(userId: string, calendarId: string, data: { name: string; color?: string }): Promise<EventCategory> {
+    async createCategory(userId: string, calendarId: string, data: { name: string; description?: string; color?: string }): Promise<EventCategory> {
         const calendar = await this.calendarRepository.findOne({
             where: { id: calendarId },
             relations: ['owner'],
@@ -54,6 +54,7 @@ export class CategoryService {
 
         const category = this.categoryRepository.create({
             name: data.name,
+            description: data.description,
             color: data.color || '#CCCCCC',
             calendar,
         });
@@ -61,7 +62,7 @@ export class CategoryService {
         return this.categoryRepository.save(category);
     }
 
-    async updateCategory(userId: string, categoryId: string, data: { name?: string; color?: string }): Promise<EventCategory> {
+    async updateCategory(userId: string, categoryId: string, data: { name?: string; description?: string; color?: string }): Promise<EventCategory> {
         const category = await this.categoryRepository.findOne({
             where: { id: categoryId },
             relations: ['calendar', 'calendar.owner'],
@@ -82,6 +83,7 @@ export class CategoryService {
         }
 
         if (data.name !== undefined) category.name = data.name;
+        if (data.description !== undefined) category.description = data.description;
         if (data.color !== undefined) category.color = data.color;
 
         return this.categoryRepository.save(category);
