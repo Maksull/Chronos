@@ -498,8 +498,8 @@ export default function CalendarPage() {
                                         </button>
                                     )}
 
-                                    {/* Settings Button - Only show if not a main calendar */}
-                                    {canManageCalendar && !calendar?.isMain && (
+                                    {/* Settings Button */}
+                                    {canManageCalendar && (
                                         <button
                                             onClick={() =>
                                                 setIsCalendarEditModalOpen(true)

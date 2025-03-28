@@ -47,14 +47,11 @@ export const CalendarEditModal: React.FC<CalendarEditModalProps> = ({
         'general' | 'categories' | 'sharing'
     >(initialTab);
 
-    // Determine permissions based on user role
     const isAdmin = userRole === ParticipantRole.ADMIN;
     const canEditGeneral = isAdmin;
     const canManageCategories = isAdmin;
     const canManageSharing = isAdmin;
     const canDeleteCalendar = isAdmin;
-
-    // If owner has set isMain or isHoliday, even admins can't delete
     const isSystemCalendar = calendar?.isMain || calendar?.isHoliday;
 
     useEffect(() => {
@@ -64,8 +61,12 @@ export const CalendarEditModal: React.FC<CalendarEditModalProps> = ({
             setColor(calendar.color);
         }
 
-        // If user can't access the initialTab, switch to one they can access
-        if (initialTab === 'categories' && !canManageCategories) {
+        // If calendar is main and initialTab is 'sharing', switch to another tab
+        if (calendar?.isMain && initialTab === 'sharing') {
+            setActiveTab(canEditGeneral ? 'general' : 'categories');
+        }
+        // Handle other conditions for non-main calendars
+        else if (initialTab === 'categories' && !canManageCategories) {
             setActiveTab(canEditGeneral ? 'general' : 'sharing');
         } else if (initialTab === 'sharing' && !canManageSharing) {
             setActiveTab(canEditGeneral ? 'general' : 'categories');
@@ -91,8 +92,6 @@ export const CalendarEditModal: React.FC<CalendarEditModalProps> = ({
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-
-        // Return early if user doesn't have permission
         if (!canEditGeneral) {
             setError(
                 dict.calendar?.noPermission ||
@@ -100,17 +99,14 @@ export const CalendarEditModal: React.FC<CalendarEditModalProps> = ({
             );
             return;
         }
-
         setLoading(true);
         setError('');
-
         try {
             const calendarData = {
                 name,
                 description: description || undefined,
                 color,
             };
-
             const response = await fetch(
                 `http://localhost:3001/calendars/${calendar.id}`,
                 {
@@ -122,9 +118,7 @@ export const CalendarEditModal: React.FC<CalendarEditModalProps> = ({
                     body: JSON.stringify(calendarData),
                 },
             );
-
             const data = await response.json();
-
             if (data.status === 'success') {
                 onClose();
                 if (onCalendarUpdated) {
@@ -148,8 +142,6 @@ export const CalendarEditModal: React.FC<CalendarEditModalProps> = ({
 
     const handleDelete = async () => {
         if (!calendar) return;
-
-        // Return early if user doesn't have permission
         if (!canDeleteCalendar) {
             setError(
                 dict.calendar?.noPermission ||
@@ -157,12 +149,10 @@ export const CalendarEditModal: React.FC<CalendarEditModalProps> = ({
             );
             return;
         }
-
         if (!deleteConfirm) {
             setShowDeleteForm(true);
             return;
         }
-
         if (deleteConfirmInput !== calendar.name) {
             setError(
                 dict.calendar?.deleteConfirmationError ||
@@ -170,10 +160,8 @@ export const CalendarEditModal: React.FC<CalendarEditModalProps> = ({
             );
             return;
         }
-
         setLoading(true);
         setError('');
-
         try {
             const response = await fetch(
                 `http://localhost:3001/calendars/${calendar.id}`,
@@ -184,9 +172,7 @@ export const CalendarEditModal: React.FC<CalendarEditModalProps> = ({
                     },
                 },
             );
-
             const data = await response.json();
-
             if (data.status === 'success') {
                 onClose();
                 if (onCalendarDeleted) {
@@ -261,18 +247,21 @@ export const CalendarEditModal: React.FC<CalendarEditModalProps> = ({
                             {dict.calendar?.categoriesTab || 'Categories'}
                         </button>
 
-                        <button
-                            onClick={() => setActiveTab('sharing')}
-                            className={`py-3 px-4 font-medium text-sm border-b-2 focus:outline-none ${
-                                activeTab === 'sharing'
-                                    ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400'
-                                    : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'
-                            }`}>
-                            <span className="flex items-center">
-                                <LinkIcon className="h-4 w-4 mr-1" />
-                                {dict.calendar?.sharingTab || 'Sharing'}
-                            </span>
-                        </button>
+                        {/* Only show Sharing tab if NOT a main calendar */}
+                        {!calendar?.isMain && (
+                            <button
+                                onClick={() => setActiveTab('sharing')}
+                                className={`py-3 px-4 font-medium text-sm border-b-2 focus:outline-none ${
+                                    activeTab === 'sharing'
+                                        ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400'
+                                        : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'
+                                }`}>
+                                <span className="flex items-center">
+                                    <LinkIcon className="h-4 w-4 mr-1" />
+                                    {dict.calendar?.sharingTab || 'Sharing'}
+                                </span>
+                            </button>
+                        )}
                     </nav>
                 </div>
 
@@ -309,7 +298,6 @@ export const CalendarEditModal: React.FC<CalendarEditModalProps> = ({
                                             </div>
                                         </div>
                                     </div>
-
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                             {dict.calendar?.calendarColor ||
@@ -341,7 +329,6 @@ export const CalendarEditModal: React.FC<CalendarEditModalProps> = ({
                                             )}
                                         </div>
                                     </div>
-
                                     <div className="flex items-center mt-4 py-3 border-t border-gray-200 dark:border-gray-700">
                                         <Eye className="h-4 w-4 mr-2 text-blue-500 dark:text-blue-400" />
                                         <span className="text-sm text-gray-600 dark:text-gray-400">
@@ -398,7 +385,6 @@ export const CalendarEditModal: React.FC<CalendarEditModalProps> = ({
                                             className="w-full h-10 px-1 py-1 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-gray-700"
                                         />
                                     </div>
-
                                     <div>
                                         <label
                                             htmlFor="calendar-description"
@@ -417,8 +403,6 @@ export const CalendarEditModal: React.FC<CalendarEditModalProps> = ({
                                             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                                         />
                                     </div>
-
-                                    {/* Delete Calendar Section */}
                                     {canDeleteCalendar && !isSystemCalendar && (
                                         <div className="mt-6 border-t border-gray-200 dark:border-gray-700 pt-4">
                                             <button
@@ -436,7 +420,6 @@ export const CalendarEditModal: React.FC<CalendarEditModalProps> = ({
                                                         'Delete Calendar'}
                                                 </span>
                                             </button>
-
                                             {showDeleteForm && (
                                                 <div className="p-3 bg-red-50 dark:bg-red-900/20 rounded-md mb-4">
                                                     <div className="flex items-start mb-2">
@@ -447,7 +430,6 @@ export const CalendarEditModal: React.FC<CalendarEditModalProps> = ({
                                                                 'This action cannot be undone. All events in this calendar will be permanently deleted.'}
                                                         </p>
                                                     </div>
-
                                                     <div className="mb-3">
                                                         <label
                                                             htmlFor="delete-confirm"
@@ -473,7 +455,6 @@ export const CalendarEditModal: React.FC<CalendarEditModalProps> = ({
                                                             className="w-full px-3 py-2 border border-red-300 dark:border-red-700 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500 bg-white dark:bg-gray-800 text-red-900 dark:text-red-200"
                                                         />
                                                     </div>
-
                                                     <button
                                                         type="button"
                                                         onClick={() => {
@@ -509,7 +490,6 @@ export const CalendarEditModal: React.FC<CalendarEditModalProps> = ({
                                             </div>
                                         </div>
                                     )}
-
                                     <div className="mt-4 flex justify-end space-x-3">
                                         <button
                                             type="button"
@@ -562,7 +542,8 @@ export const CalendarEditModal: React.FC<CalendarEditModalProps> = ({
                         />
                     )}
 
-                    {activeTab === 'sharing' && (
+                    {/* Only render sharing tab content if it's not a main calendar */}
+                    {activeTab === 'sharing' && !calendar?.isMain && (
                         <CalendarInviteManagement
                             calendarId={calendar.id}
                             dict={dict}
